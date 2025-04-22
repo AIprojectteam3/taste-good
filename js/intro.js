@@ -142,6 +142,37 @@ document.addEventListener('DOMContentLoaded', () => {
         container.classList.remove("right-panel-active");
     });
 
+    function handleMobileToggle(isSignup) {
+        const container = document.querySelector('.container');
+        const animDuration = 500;
+    
+        if(container.classList.contains('animating')) return;
+        container.classList.add('animating');
+    
+        // 애니메이션 리셋 로직 추가
+        container.style.animation = 'none';
+        void container.offsetWidth; // 리플로우 강제 실행
+    
+        container.classList.toggle('right-panel-active', isSignup);
+    
+        setTimeout(() => {
+            container.classList.remove('animating');
+            const activeForm = isSignup 
+                ? document.querySelector('.container--signup')
+                : document.querySelector('.container--signin');
+            activeForm.querySelector('input').focus();
+        }, animDuration);
+    }
+
+    // 모바일 링크 이벤트 바인딩
+    document.querySelectorAll('.toggle-link a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleMobileToggle(link.id === 'show-signup');
+        });
+    });
+
     // 폼 제출 시 새로고침 방지
     firstForm.addEventListener("submit", (e) => e.preventDefault());
     secondForm.addEventListener("submit", (e) => e.preventDefault());
