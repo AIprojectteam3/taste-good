@@ -1,1 +1,1 @@
-console.log("intro.js 파일이 로드되었습니다.");
+console.log("asdf.js 파일이 로드되었습니다.");
