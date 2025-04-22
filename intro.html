@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang = "ko">
+<head>
+    <meta charset = "UTF-8">
+    <meta name = "viewport" content = "width=device-width, initial-scale=1.0">
+    <title>맛잘알 연구소</title>
+    <link rel = "stylesheet" href = "css/intro.css">
+    <script src="https://developers.kakao.com/sdk/js/kakao.js" defer></script>
+    <script src="js/intro.js" defer></script>
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+</head>
+<!-- HTML 구조 -->
+<body>
+    <!-- <script>
+        window.Kakao.init("0a67ccd23eeb991c84d7900835e98db7");
+    
+        function kakaoLogin(){
+            window.KaKao.Auth.login({
+                scope: 'profile, account_email',
+                success: function(autoObj){
+                    console.log(autoObj);
+                    window.kakao.API.request({
+                        url:'/v2/user/me',
+                        success: res => {
+                            const kakao_account = res.kakao_account;
+                            console.log(kakao_account);
+                        }
+                    })
+                }
+            });
+        }
+    </script> -->
+    <div class = "dots">
+        <div class = "dot"></div>
+        <div class = "dot"></div>
+        <div class = "dot"></div>
+        <div class = "dot"></div>
+    </div>
+
+    <section class ="page red">
+        <div class = "logo">맛잘알 연구소</div>
+        <div class = "one_content">
+            <span>당신의 입맛,<br>
+            오늘의 메뉴</span>
+            <div class="start_button" id="startBtn">
+                시작하기
+            </div>
+        </div>
+
+        <!-- 로그인/회원가입 모달 -->
+        <div class="modal" id="modal">
+            <div class="container">
+                <!-- 회원가입 -->
+                <div class="container__form container--signup">
+                    <form action="#" class="form" id="form1">
+                        <h2 class="form__title">Sign Up</h2>
+                        <input type="text" name="username" placeholder="닉네임" class="input" />
+                        <input type="email" name="email" placeholder="이메일" class="input" />
+                        <input type="password" name="password" placeholder="비밀번호" class="input" />
+                        <input type="password" placeholder="비밀번호 확인" class="input" />
+
+                        <div class="address-group">
+                            <div class="address-row">
+                                <input type="text" name="address" id="address" placeholder="주소" class="input" readonly />
+                                <button type="button" id="searchAddress" class="address-btn">주소 검색</button>
+                            </div>
+                            <input type="text" name="detailAddress" id="detailAddress" placeholder="상세 주소" class="input" />
+                        </div>
+
+                        <button class="btn">Sign Up</button>
+                    </form>
+                    <!-- <a href="javascript:kakaolLogin():"><img src = "image/kakao_signup_large_wide.png" alt = "카카오로 로그인"></a> -->
+                    <button class = "SignApiBtn"><a href="javascript:kakaolLogin():"><img src = "image/kakao_signup_large_wide.png" alt = "카카오로 로그인"></a></button>
+                    <button class = "SignApiBtn"><a href="#"><img src = "image/Naver_signup.png" alt = "네이버로 로그인"></a></button>
+                </div>
+            
+                <!-- 로그인 -->
+                <div class="container__form container--signin">
+                    <form action="#" class="form" id="form2">
+                        <h2 class="form__title">Sign In</h2>
+                        <input type="email" placeholder="이메일" class="input" />
+                        <input type="password" placeholder="비밀번호" class="input" />
+                        <a href="#" class="link">Forgot your password?</a>
+                        <button class="btn">Sign In</button>
+                    </form>
+                    <!-- <a href="javascript:kakaolLogin():"><img src = "image/kakao_login_large_wide.png" alt = "카카오로 로그인"></a> -->
+                    <button class = "SignApiBtn"><a href="javascript:kakaolLogin():"><img src = "image/kakao_login_large_wide.png" alt = "카카오로 로그인"></a></button>
+                    <button class = "SignApiBtn"><a href="#"><img src = "image/Naver_login.png" alt = "네이버로 로그인"></a></button>
+                </div>
+
+                <!-- 오버레이 -->
+                <div class="container__overlay">
+                    <div class="overlay">
+                        <div class="overlay__panel overlay--left">
+                            <button class="btn" id="signin">Sign In</button>
+                        </div>
+                        <div class="overlay__panel overlay--right">
+                            <button class="btn" id="signup">Sign Up</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </section>
+
+    <section class = "page green">
+        <div class="logo">맛잘알 연구소</div>
+        <div class = "main_content">
+            <div class = "main_content_div" id = "ani_left">
+                <div class = "content_img">
+                    <img src = "" alt = "이미지">
+                </div>
+                <div class = "content_text">
+                    <p class = "p_left">유저 추천 메뉴를 <span>무한 스크롤</span>로<br> 탐색하는 <span>SNS 커뮤니티</span></p>
+                </div>
+            </div>
+            <div class = "main_content_div" id = "ani_right">
+                <div class = "content_text">
+                    <p class = "p_right"><span>포인트</span>를 획득하여 <span>캐릭터</span>를<br>성장시키고, <span>다채로운 즐거움</span>을<br>선사하는 <span>특별한 경험</span>제공</p>
+                </div>
+                <div class = "content_img">
+                    <img src = "" alt = "이미지">
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class = "page blue">
+        <div class = "logo">맛잘알 연구소</div>
+        <div class = "main_content">
+            <div class = "main_content_div" id = "ani_right">
+                <div class = "content_text">
+                    <p class = "p_right"><span>AI</span>가 당신의 기분과 취향에 꼭 맞는<br>오늘의 메뉴를 추천해주는<br>스마트한 <span>식사 가이드</span></p>
+                </div>
+                <div class = "content_img">
+                    <img src = "" alt = "이미지">
+                </div>
+            </div>
+            <div class = "main_content_div" id = "ani_left">
+                <div class = "content_img">
+                    <img src = "" alt = "이미지">
+                </div>
+                <div class = "content_text">
+                    <p class = "p_left"><span>현대의 트렌드</span>를 반영해<br>다양한 조합을 <span>쉽게 선택</span>할 수<br>있도록 도와주는 서비스</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class = "page yellow">
+        <div class = "logo">맛잘알 연구소</div>
+        <div class = "text_div">
+            <span id = "ani_right">음식 경험을 혁신해</span>
+            <span id = "ani_left">최상의 메뉴 선택을 돕는다</span>
+        </div>
+    </section>
+    <footer class = "footer">
+        <div class = "footer_logo">
+            <img src = "" alt = "하단 로고">
+        </div>
+        <div class = "footer_copyright">
+            copyright
+        </div>
+        <div class = "div_sns">
+            <div class = "sns_img">
+                <img src = "" alt = "페이스북">
+                <img src = "" alt = "인스타">
+                <img src = "" alt = "유튜브">
+            </div>
+        </div>
+    </footer>
+    
+</body>
+</html>
+``` 
