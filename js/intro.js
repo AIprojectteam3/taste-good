@@ -280,5 +280,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 로그인 버튼 이벤트
     // document.querySelector('.kakao-login-btn').addEventListener('click', kakaoLogin);
-    document.querySelector('.kakaoSignBtn').addEventListener('click', kakaoLogin());
+    // document.querySelector('.kakaoSignBtn').addEventListener('click', kakaoLogin());
 });
