@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>조합 추천 페이지</title>
+    <link rel = "stylesheet" href = "css/index.css">
+    <link rel = "stylesheet" href = "css/menu.css">
+
+    <script src="js/script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 메뉴 영역 -->
+        <aside class="menu">
+            <!-- 프로필 영역 -->
+            <section class="profile">
+                <div class = "profile-header">
+                    <div class="image">
+                        <img src="image/profile-icon.png" alt="프로필 사진" />
+                    </div>
+                    <div class="nickname">조태익</div>
+                    <div class="level">
+                        <span class="level-text">LV.99</span>
+                        <span class="level-icon">🏆</span>
+                    </div>
+                </div>
+                <div class = "profile-stats">
+                    <div class="post">
+                        <a href = "#">
+                            <span>Posts</span>
+                            <span>200</span>
+                        </a>
+                    </div>
+                    <div class="follower">
+                        <a href = "#">
+                            <span>Followers</span>
+                            <span>1.9k</span>
+                        </a>
+                    </div>
+                    <div class="point">
+                        <a href = "#">
+                            <span>Point</span>
+                            <span>2k</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 차트 영역 -->
+            <section class="chart">
+                <ol>
+                    <li>
+                        <span>1.</span>
+                        <span>엽기 떡볶이</span>
+                        <img src = "image/no-change-icon.png" alt = "순위 변동 없음">
+                    </li>
+                    <li>
+                        <span>2.</span>
+                        <span>공차</span>
+                        <img src = "image/rank-up-icon.png" alt = "순위 상승">
+                    </li>
+                    <li>
+                        <span>3.</span>
+                        <span>마크 정식</span>
+                        <img src = "image/rank-down-icon.png" alt = "순위 하락">
+                    </li>
+                    <li>
+                        <span>4.</span>
+                        <span>버거킹</span>
+                        <img src = "image/rank-down-icon.png" alt = "순위 하락">
+                    </li>
+                    <li>
+                        <span>5.</span>
+                        <span>서브웨이</span>
+                        <img src = "image/rank-down-icon.png" alt = "순위 하락">
+                    </li>
+                </ol>
+            </section>
+
+            <!-- 메인 메뉴 -->
+            <nav class="main-menu">
+                <ul>
+                    <li><a href = "myprofile.html">
+                        <img src = "image/myprofile-icon.png" alt = "마이페이지">
+                        <span>마이페이지</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "#">
+                        <img src = "image/search-icon.png" alt = "검색">
+                        <span>검색</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "index.html">
+                        <img src = "image/popularity-icon.png" alt = "인기 메뉴">
+                        <span>인기 메뉴</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "#">
+                        <img src = "image/ai-icon.png" alt = "AI 메뉴 추천">
+                        <span>AI 메뉴 추천</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "#">
+                        <img src = "image/roulette-icon.png" alt = "룰렛">
+                        <span>룰렛</span>
+                    </a></li>
+                    <li><a href = "#">
+                        <img src = "image/tamagotchi-icon.png" alt = "다마고치">
+                        <span>다마고치</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "#">
+                        <img src = "image/coupon-icon.png" alt = "할인 쿠폰">
+                        <span>할인 쿠폰</span>
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 콘텐츠 영역 -->
+        <main class="content" id = "postContainer">
+        <!-- JS에서 게시물 자동 추가 -->
+        </main>
+    </div>
+
+    <div class = "modal-overlay" id = "index-modal">
+        <div class = "modal-window">
+            <div class = "modal-left">
+                <div class = "modal-img">
+                    <img src = "post_Tempdata/image/0001.jpg" alt = "게시물 이미지">
+                    
+                </div>
+            </div>
+            <div class = "modal-right">
+                <div class = "modal-header">
+                    <div class = "post-user">
+                        <div class = "user-profile-img">
+                            <img src = "image/profile-icon.png" alt = "작성자 프로필 사진">
+                        </div>
+                        <div class = "user-nickname">
+                            <span>조태익</span>
+                            <span>···</span>
+                        </div>
+                    </div>
+                    <hr class = "line">
+                    <div class = "post-content-div">
+                        <div>
+                            <h3 class = "post-title"></h3>
+                            <p class = "post-content"></p>
+                        </div>
+                    </div>
+                    <hr class = "line">
+                    <div class = "post-comment">
+                        <div class = "comment-user">
+                            <div class = "user-profile-img">
+                                <img src = "image/profile-icon.png" alt = "작성자 프로필 사진">
+                            </div>
+                            <div class = "comment-user-nickname">
+                                <span>조태익</span>
+                            </div>
+                            <div class = "comment-content">
+                                <span>테스트 댓글, 테스트 댓글, 테스트 댓글, 테스트 댓글, </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr class = "line">
+                <div class = "comment-input-div">
+                    <div class = "communityBtn">
+                        <a class = "heartBtn">
+                            <img src = "image/heart-icon.png" alt = "하트">
+                        </a>
+                        <a class = "shareBtn">
+                            <img src = "image/send-icon.png" alt = "공유유">
+                        </a>
+                        <a class = "bookmarkBtn">
+                            <img src = "image/bookmark-icon.png" alt = "북마크">
+                        </a>
+                    </div>
+                    <div class = "commentInput">
+                        <input class = "comment-input" type = "text">
+                        <input class = "comment-submit" type = "submit" value = "">
+                    </div>
+                </div>
+            </div>
+            <span class = "close-area" id = "modal-close">x</span>
+        </div>
+    </div>
+
+    <!-- 모바일 하단 네비게이션 -->
+    <nav class="bottom-nav">
+        <a href="#home">
+            <span class="icon">🏠</span>
+            <span>홈</span>
+        </a>
+        <a href="#profile">
+            <span class="icon">👤</span>
+            <span>프로필</span>
+        </a>
+        <a href="#search">
+            <span class="icon">🔍</span>
+            <span>검색</span>
+        </a>
+        <a href="#popular">
+            <span class="icon">🔥</span>
+            <span>인기</span>
+        </a>
+        <a href="#ai-recommend">
+            <span class="icon">🤖</span>
+            <span>추천</span>
+        </a>
+        <a href="#coupons">
+            <span class="icon">🎟️</span>
+            <span>할인 쿠폰</span>
+        </a>
+    </nav>
+</body>
+</html>
