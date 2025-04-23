@@ -391,6 +391,19 @@ body {
     transform: translateX(20%);
 }
 
+.modal-close-btn {
+    display: none;
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 1001;
+    background: transparent;
+    border: none;
+    font-size: 2.2rem;
+    color: #333;
+    cursor: pointer;
+}
+
 .btn {
     font-weight: bold;
     border-radius: 20px;
@@ -724,6 +737,10 @@ body {
 
     #address {
         width : 60%;
+    }
+
+    .modal-close-btn {
+        display: block;
     }
 }
 
