@@ -173,6 +173,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    document.querySelectorAll('.modal-close-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            modal.style.display = "none";
+            container.classList.remove("right-panel-active");
+            window.addEventListener("wheel", wheelHandler);
+            window.addEventListener("keydown", keydownHandler);
+        });
+    });
+
     // 폼 제출 시 새로고침 방지
     firstForm.addEventListener("submit", (e) => e.preventDefault());
     secondForm.addEventListener("submit", (e) => e.preventDefault());
