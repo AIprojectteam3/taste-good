@@ -379,6 +379,11 @@ body {
     width : 100%;
 }
 
+.user-nickname > span:nth-child(2) {
+    margin-right : 5px;
+    cursor : pointer;
+}
+
 .hidden-user {
     display: none !important;
 }
@@ -424,6 +429,7 @@ body {
     padding : 5px;
     width : 40px;
     height : 40px;
+    cursor : pointer;
 }
 
 .communityBtn a:nth-child(3) {
