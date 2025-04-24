@@ -169,30 +169,30 @@ body {
 
     .bottom-nav {
         display: flex;
+        align-items: center;
+        justify-content: space-between;
         position: fixed;
-        bottom: 0;
+        top: 0;
         left: 0;
         width: 100%;
         height: 60px;
-        background-color: #fff;
+        background-color: #fff1f0;
         box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-        justify-content: space-around;
-        align-items: center;
         z-index: 1000;
     }
 
-    .bottom-nav a {
-        text-decoration: none;
-        color: #333;
-        font-size: 14px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
+    .bottom-nav img {
+        margin : 10px;
+        width : 30px;
+        height : 30px;
     }
 
-    .bottom-nav a .icon {
-        font-size: 20px;
+    .bottom-nav span {
+        display : flex;
+        justify-content : center;
+        margin-right : 40px;
+        width : 100%;
+        font-size : 1.5rem;
     }
 }
 

@@ -342,56 +342,6 @@ document.addEventListener("DOMContentLoaded", () => {
         adjustGridRows();
     });
 
-    if (window.matchMedia("(max-width: 768px)").matches) {
-        const container = document.querySelector('.content');
-        const cards = Array.from(container.querySelectorAll('.card'));
-        let currentSlide = 0;
-        let isAnimating = false;
-        let touchStartY = 0;
-    
-        // 카드 높이 계산
-        const getCardHeight = () => cards[0]?.offsetHeight || window.innerHeight;
-    
-        // 터치 시작 이벤트
-        container.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        });
-    
-        // 터치 종료 이벤트
-        container.addEventListener('touchend', (e) => {
-            if (isAnimating || cards.length === 0) return;
-            const touchEndY = e.changedTouches[0].clientY;
-            const deltaY = touchStartY - touchEndY;
-            const direction = deltaY > 0 ? 1 : -1;
-            const newIndex = Math.min(
-                Math.max(currentSlide + direction, 0),
-                cards.length - 1
-            );
-            if (newIndex !== currentSlide) {
-                currentSlide = newIndex;
-                isAnimating = true;
-                // 기존 scrollTo 대신 scrollIntoView 사용
-                cards[currentSlide].scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'
-                });
-                setTimeout(() => {
-                    isAnimating = false;
-                }, 500); // 애니메이션 시간에 맞게 조정
-            }
-        });
-    
-        // 물리적 스크롤 방지
-        container.addEventListener('scroll', () => {
-            if (!isAnimating) {
-                container.scrollTo({
-                    top: currentSlide * getCardHeight(),
-                    behavior: 'auto'
-                });
-            }
-        });
-    }
-
     const cards = document.querySelectorAll('.card');
 
     const modalImg = document.querySelector('.modal-img > img');
