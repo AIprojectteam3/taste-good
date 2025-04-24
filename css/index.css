@@ -72,6 +72,93 @@ body {
     flex: 1; /* 남은 공간 채우기 */
 }
 
+.slide-thumbnails {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    height: 54px;
+}
+.slide-thumb.active {
+    border: 2px solid #ff6b6b !important;
+    box-shadow: 0 2px 8px rgba(255,0,0,0.15);
+}
+.slide-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid rgba(255,255,255,0.7);
+    background: #fff;
+    transition: border 0.2s;
+}
+.slide-container {
+    width: 100%;
+    height: calc(100% - 64px); /* 썸네일 높이+여백만큼 빼기 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+.slide-img {
+    max-width: 100%;
+    max-height: calc(100% - 64px);
+    object-fit: contain;
+    display: block;
+    margin: auto;
+}
+
+.slides {
+    display: flex;
+    transition: transform 0.5s ease;
+    height: 100%;
+}
+
+.slide {
+    min-width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* 네비게이션 버튼 */
+.slide-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin : 10px;
+    padding-bottom : 10px;
+    top: 50%;
+    width: 30px;
+    height: 30px;
+    transform: translateY(-50%);
+    font-size: 2rem;
+    color: black;
+    border: none;
+    border-radius: 50%;
+    z-index: 2;
+    cursor: pointer;
+}
+
+.slide-nav:hover {
+    background: rgba(0,0,0,0.7);
+    color : white;
+    opacity: 1;
+}
+
+/* 왼쪽 버튼 */
+.slide-nav.prev {
+    left: 12px;
+}
+
+/* 오른쪽 버튼 */
+.slide-nav.next {
+    right: 12px;
+}
+
 .card-title {
     display: flex;
     align-items: center;
