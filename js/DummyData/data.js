@@ -172,7 +172,427 @@ const cardData = [
         title: '더미 게시글',
         thumbnail_path: '0025.jpg',
         images: [],
+        content: '25'
+    },
+    {
+        id: 13,
+        title: '더미 게시글',
+        thumbnail_path: '0014.jpg',
+        images: [],
         content: ''
+    },
+    {
+        id: 14,
+        title: '더미 게시글',
+        thumbnail_path: '0015.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 15,
+        title: '더미 게시글',
+        thumbnail_path: '0016.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 16,
+        title: '더미 게시글',
+        thumbnail_path: '0017.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 17,
+        title: '더미 게시글',
+        thumbnail_path: '0018.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 18,
+        title: '더미 게시글',
+        thumbnail_path: '0019.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 19,
+        title: '더미 게시글',
+        thumbnail_path: '0020.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 20,
+        title: '더미 게시글',
+        thumbnail_path: '0021.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 21,
+        title: '더미 게시글',
+        thumbnail_path: '0022.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 22,
+        title: '더미 게시글',
+        thumbnail_path: '0023.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 23,
+        title: '더미 게시글',
+        thumbnail_path: '0024.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 24,
+        title: '더미 게시글',
+        thumbnail_path: '0025.jpg',
+        images: [],
+        content: '25'
+    },
+    {
+        id: 13,
+        title: '더미 게시글',
+        thumbnail_path: '0014.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 14,
+        title: '더미 게시글',
+        thumbnail_path: '0015.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 15,
+        title: '더미 게시글',
+        thumbnail_path: '0016.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 16,
+        title: '더미 게시글',
+        thumbnail_path: '0017.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 17,
+        title: '더미 게시글',
+        thumbnail_path: '0018.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 18,
+        title: '더미 게시글',
+        thumbnail_path: '0019.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 19,
+        title: '더미 게시글',
+        thumbnail_path: '0020.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 20,
+        title: '더미 게시글',
+        thumbnail_path: '0021.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 21,
+        title: '더미 게시글',
+        thumbnail_path: '0022.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 22,
+        title: '더미 게시글',
+        thumbnail_path: '0023.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 23,
+        title: '더미 게시글',
+        thumbnail_path: '0024.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 24,
+        title: '더미 게시글',
+        thumbnail_path: '0025.jpg',
+        images: [],
+        content: '25'
+    },
+    {
+        id: 13,
+        title: '더미 게시글',
+        thumbnail_path: '0014.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 14,
+        title: '더미 게시글',
+        thumbnail_path: '0015.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 15,
+        title: '더미 게시글',
+        thumbnail_path: '0016.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 16,
+        title: '더미 게시글',
+        thumbnail_path: '0017.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 17,
+        title: '더미 게시글',
+        thumbnail_path: '0018.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 18,
+        title: '더미 게시글',
+        thumbnail_path: '0019.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 19,
+        title: '더미 게시글',
+        thumbnail_path: '0020.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 20,
+        title: '더미 게시글',
+        thumbnail_path: '0021.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 21,
+        title: '더미 게시글',
+        thumbnail_path: '0022.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 22,
+        title: '더미 게시글',
+        thumbnail_path: '0023.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 23,
+        title: '더미 게시글',
+        thumbnail_path: '0024.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 24,
+        title: '더미 게시글',
+        thumbnail_path: '0025.jpg',
+        images: [],
+        content: '25'
+    },
+    {
+        id: 13,
+        title: '더미 게시글',
+        thumbnail_path: '0014.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 14,
+        title: '더미 게시글',
+        thumbnail_path: '0015.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 15,
+        title: '더미 게시글',
+        thumbnail_path: '0016.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 16,
+        title: '더미 게시글',
+        thumbnail_path: '0017.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 17,
+        title: '더미 게시글',
+        thumbnail_path: '0018.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 18,
+        title: '더미 게시글',
+        thumbnail_path: '0019.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 19,
+        title: '더미 게시글',
+        thumbnail_path: '0020.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 20,
+        title: '더미 게시글',
+        thumbnail_path: '0021.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 21,
+        title: '더미 게시글',
+        thumbnail_path: '0022.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 22,
+        title: '더미 게시글',
+        thumbnail_path: '0023.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 23,
+        title: '더미 게시글',
+        thumbnail_path: '0024.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 24,
+        title: '더미 게시글',
+        thumbnail_path: '0025.jpg',
+        images: [],
+        content: '25'
+    },
+    {
+        id: 13,
+        title: '더미 게시글',
+        thumbnail_path: '0014.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 14,
+        title: '더미 게시글',
+        thumbnail_path: '0015.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 15,
+        title: '더미 게시글',
+        thumbnail_path: '0016.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 16,
+        title: '더미 게시글',
+        thumbnail_path: '0017.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 17,
+        title: '더미 게시글',
+        thumbnail_path: '0018.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 18,
+        title: '더미 게시글',
+        thumbnail_path: '0019.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 19,
+        title: '더미 게시글',
+        thumbnail_path: '0020.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 20,
+        title: '더미 게시글',
+        thumbnail_path: '0021.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 21,
+        title: '더미 게시글',
+        thumbnail_path: '0022.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 22,
+        title: '더미 게시글',
+        thumbnail_path: '0023.png',
+        images: [],
+        content: ''
+    },
+    {
+        id: 23,
+        title: '더미 게시글',
+        thumbnail_path: '0024.jpg',
+        images: [],
+        content: ''
+    },
+    {
+        id: 24,
+        title: '더미 게시글',
+        thumbnail_path: '0025.jpg',
+        images: [],
+        content: '25'
     }
 ];
 
@@ -182,3 +602,7 @@ const postUserData = [
         profile_path : '../image/profile-icon.png'
     }
 ];
+
+document.addEventListener("DOMContentLoaded", () => {
+    console.log(cardData.length);
+})
