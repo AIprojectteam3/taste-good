@@ -16,8 +16,8 @@ const cardData = [
     {
         id: 2,
         title: '검증된 서브웨이 꿀팁',
-        thumbnail_path: '0003.jpg',
-        images: [],
+        thumbnail_path: '0003/0003.jpg',
+        images: ['0003/0003-01.jpg', '0003/0003-02.jpg', '0003/0003-03.jpg', '0003/0003-04.jpg', '0003/0003-05.jpg', '0003/0003-06.jpg'],
         content: '검증된 서브웨이 꿀팁, 검증된 서브웨이 꿀팁, 검증된 서브웨이 꿀팁'
     },
     {
