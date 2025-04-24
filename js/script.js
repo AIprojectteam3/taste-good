@@ -133,6 +133,14 @@ function createCard(item, isPlaceholder = false) {
     overlay.appendChild(actionsDiv);
     card.appendChild(overlay);
 
+    // 좋아요, 댓글, 북마크 버튼 생성 후
+    [likeBtn, commentBtn, bookmarkBtn].forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            if (!isMobile()) e.stopPropagation();
+            // 아이콘별 추가 동작은 여기서 구현
+        });
+    });
+
     // PC 환경에서만 마우스오버 효과
     if (!isMobile()) {
         card.addEventListener('mouseenter', () => {
