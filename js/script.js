@@ -309,7 +309,6 @@ document.addEventListener("DOMContentLoaded", () => {
     adjustGridRows();
 
     window.addEventListener('resize', () => {
-        window.location.reload();
         adjustGridRows();
     });
 });
