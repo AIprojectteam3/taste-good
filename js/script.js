@@ -1,42 +1,3 @@
-// 데이터 배열
-function updateContentAndContainerHeight() {
-
-    if (isMobile()) return;
-
-    const content = document.querySelector('.content');
-    const computedStyle = window.getComputedStyle(content);
-    const container = document.querySelector('.container');
-    const cards = content.querySelectorAll('.card');
-    if (cards.length === 0) return;
-
-    content.offsetHeight;
-
-    // 1. 실제 열 개수 계산 (첫 행에 있는 카드 개수)
-    let firstRowTop = cards[0].offsetTop;
-    let columns = 0;
-    for (let card of cards) {
-        if (card.offsetTop === firstRowTop) {
-            columns++;
-        } else {
-            break;
-        }
-    }
-
-    // 2. 행 개수 계산
-    const numRows = Math.ceil(cards.length / columns);
-
-    setTimeout(() => {
-        const cardHeight = cards[0].offsetHeight;
-        const contentGap = parseInt(computedStyle.gap);
-        const totalHeight = (numRows * cardHeight) + ((numRows - 1) * contentGap) + 40;
-        
-        content.style.height = totalHeight + 'px';
-        if (container) {
-            container.style.height = totalHeight + 'px';
-        }
-    }, 100);
-}
-
 // 게시물(카드) 생성 함수
 function createCard(item, isPlaceholder = false) {
     const card = document.createElement('div');
@@ -59,9 +20,7 @@ function createCard(item, isPlaceholder = false) {
             img.src = `post_Tempdata/image/${item.thumbnail_path}`;
             img.alt = item.title;
             sliderContainer.appendChild(img);
-        } 
-        // 모바일 환경: 슬라이더 구성
-        else {
+        } else {
             images.forEach((imgPath, index) => {
                 const slide = document.createElement('img');
                 slide.className = `slide ${index === 0 ? 'active' : ''}`;
@@ -233,26 +192,71 @@ function createCard(item, isPlaceholder = false) {
     return card;
 }
 
-function renderCards(startIndex = 0, count = 100) {
-    const content = document.querySelector('.content');
-    const endIndex = startIndex + count;
-    for (let i = startIndex; i < endIndex; i++) {
-        if (i < cardData.length) {
-            const card = createCard(cardData[i]);
-            content.appendChild(card);
-        } else {
-            // 데이터가 없을 때 임시 카드 생성
-            const card = createCard({}, true);
-            content.appendChild(card);
-        }
-    }
-    updateContentAndContainerHeight();
+
+let currentPage = 0;
+const itemsPerPage = 30;
+let isLoading = false;
+let sentinel = null;
+
+// 카드 렌더링 함수 (start~end 구간만)
+function renderCards(start, end) {
+    const fragment = document.createDocumentFragment();
+    const dataChunk = cardData.slice(start, end);
+
+    dataChunk.forEach(item => {
+        const card = createCard(item);
+        fragment.appendChild(card);
+    });
+
+    const contentEl = document.querySelector('.content');
+    contentEl.appendChild(fragment);
+    adjustGridRows();
 }
 
-// 그리드 행 높이 조정 함수
+function loadMoreData() {
+    if (isLoading || currentPage * itemsPerPage >= cardData.length) {
+        if (sentinel) observer.unobserve(sentinel); // 데이터 끝나면 관찰 중지
+        return;
+    }
+    isLoading = true;
+
+    setTimeout(() => {
+        const start = currentPage * itemsPerPage;
+        const end = start + itemsPerPage;
+
+        // 데이터가 남아있을 때만 생성
+        if (start >= cardData.length) {
+            if (sentinel) observer.unobserve(sentinel);
+            isLoading = false;
+            return;
+        }
+
+        renderCards(start, end);
+        currentPage++;
+        isLoading = false;
+
+        // 마지막 데이터까지 생성했으면 관찰 중지
+        if (currentPage * itemsPerPage >= cardData.length && sentinel) {
+            observer.unobserve(sentinel);
+        }
+    }, 300);
+}
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (
+            entry.isIntersecting &&
+            !isLoading &&
+            currentPage * itemsPerPage < cardData.length
+        ) {
+            loadMoreData();
+        }
+    });
+}, { threshold: 1.0 });
+
+// 그리드 레이아웃 동기화
 function adjustGridRows() {
     if (isMobile()) return;
-
     requestAnimationFrame(() => {
         const grid = document.querySelector('.content');
         const cards = grid.querySelectorAll('.card:not(.hidden)');
@@ -260,42 +264,21 @@ function adjustGridRows() {
 
         const cardWidth = cards[0].offsetWidth;
         grid.style.gridAutoRows = `${cardWidth}px`;
+
         cards.forEach(card => {
             card.style.height = `${cardWidth}px`;
         });
+
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.height = `${grid.scrollHeight}px`;
+        }
     });
 }
 
 function isMobile() {
     return window.matchMedia("(max-width: 768px)").matches;
 }
-
-// 페이지 사이즈 변경될 때 마다 새로고침
-window.addEventListener('resize', () => {
-    window.location.reload();
-});
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('active');
-        }
-    });
-}, { threshold: 0.5 });
-
-document.querySelectorAll('.card').forEach(card => {
-    observer.observe(card);
-});
-
-// 초기 렌더링 및 이벤트 등록
-document.addEventListener("DOMContentLoaded", () => {
-    renderCards();
-    adjustGridRows();
-
-    window.addEventListener('resize', () => {
-        adjustGridRows();
-    });
-});
 
 function handleSwipe() {
     const slides = document.querySelectorAll('.slide');
@@ -313,3 +296,20 @@ function handleSwipe() {
     slides.forEach(slide => slide.classList.remove('active'));
     slides[currentIndex].classList.add('active');
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    sentinel = document.createElement('div');
+    sentinel.id = 'sentinel';
+    document.querySelector('.content').appendChild(sentinel); // 반드시 추가!
+    observer.observe(sentinel);
+    
+    renderCards(0, itemsPerPage);
+    currentPage = 1;
+
+    adjustGridRows();
+
+    window.addEventListener('resize', () => {
+        window.location.reload();
+        adjustGridRows();
+    });
+});
