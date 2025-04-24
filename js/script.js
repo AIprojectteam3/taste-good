@@ -64,7 +64,7 @@ function createCard(item, isPlaceholder = false) {
 
     // 작성자 정보(프로필+닉네임) 추가 (화면에 보이지 않게)
     const postUserDiv = document.createElement('div');
-    postUserDiv.className = 'post-user hidden-user'; // 숨김 클래스 지정
+    postUserDiv.className = 'post-user';
 
     // 프로필 이미지
     const profileImg = document.createElement('img');
@@ -74,10 +74,18 @@ function createCard(item, isPlaceholder = false) {
 
     // 닉네임
     const nicknameSpan = document.createElement('span');
+    nicknameSpan.className = 'user-nickname';
     nicknameSpan.textContent = postUserData[0].user;
+
+    // ... 메뉴 버튼
+    const menuBtn = document.createElement('a');
+    menuBtn.className = 'post-menu-btn';
+    menuBtn.type = 'a';
+    menuBtn.innerText = '⋯';
 
     postUserDiv.appendChild(profileImg);
     postUserDiv.appendChild(nicknameSpan);
+    postUserDiv.appendChild(menuBtn);
 
     // 카드에 추가 (위치: 카드 최상단 또는 원하는 위치)
     card.appendChild(postUserDiv);

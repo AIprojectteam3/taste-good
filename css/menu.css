@@ -167,6 +167,14 @@ body {
         display: none; /* 데스크톱용 메뉴 숨김 */
     }
 
+    .menu {
+        display: none; /* 모바일 화면에서 메뉴 숨김 */
+    }
+
+    .content {
+        margin-left: 0; /* 메뉴 너비만큼의 여백 제거 */
+    }
+
     .bottom-nav {
         display: flex;
         align-items: center;
@@ -195,17 +203,6 @@ body {
         margin-right : 40px;
         width : 100%;
         font-size : 1.5rem;
-    }
-}
-
-/* 모바일 화면에서 .menu 숨기기 및 .content 여백 제거 */
-@media (max-width: 768px) {
-    .menu {
-        display: none; /* 모바일 화면에서 메뉴 숨김 */
-    }
-
-    .content {
-        margin-left: 0; /* 메뉴 너비만큼의 여백 제거 */
     }
 }
 
