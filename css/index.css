@@ -464,6 +464,50 @@ body {
         aspect-ratio: unset;
         border-radius: 0;
     }
+    
+    .card-overlay {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        background: transparent !important; /* 배경 투명하게(필요시) */
+        position: static !important; /* 카드 흐름에 맞춰 배치 */
+        display: flex !important;
+        flex-direction: column;
+        min-height: unset;
+        box-shadow: none;
+        z-index: 1;
+        padding: 0;
+    }
+
+    .card-center-box {
+        background: #fff;
+        color: #222;
+        width: 100%;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 16px 12px 20px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .card-center-title {
+        font-size: 1.15rem;
+        font-weight: bold;
+        color: #222;
+        margin-bottom: 8px;
+        text-align: left;
+        text-shadow: none;
+    }
+    
+    .card-center-content {
+        color: #444;
+        font-size: 0.93rem;
+        text-align: left;
+        line-height: 1.5;
+        margin-bottom: 0;
+        text-shadow: none;
+    }
 
     .card > img {
         width: 100%;
