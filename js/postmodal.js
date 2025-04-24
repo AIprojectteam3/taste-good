@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             function showSlide(idx) {
+                if (idx < 0 || idx >= images.length) return;
                 currentSlideIndex = (idx + images.length) % images.length;
                 const slideImg = modalImgDiv.querySelector('.slide-img');
                 slideImg.src = "post_Tempdata/image/" + images[currentSlideIndex];
