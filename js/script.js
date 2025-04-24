@@ -42,25 +42,95 @@ function createCard(item, isPlaceholder = false) {
     const card = document.createElement('div');
     card.className = 'card';
 
-    // 이미지 또는 임시 배경
-    if (isPlaceholder) {
-        const imgDiv = document.createElement('div');
-        imgDiv.style.width = '100%';
-        imgDiv.style.height = '100%';
-        imgDiv.style.display = 'flex';
-        imgDiv.style.alignItems = 'center';
-        imgDiv.style.justifyContent = 'center';
-        imgDiv.style.background = '#eee';
-        imgDiv.style.fontSize = '2.5rem';
-        imgDiv.style.fontWeight = 'bold';
-        imgDiv.textContent = 'Post';
-        card.appendChild(imgDiv);
-    } else {
-        const img = document.createElement('img');
-        img.src = "post_Tempdata/image/" + item.thumbnail_path;
-        img.alt = item.title;
-        card.appendChild(img);
+    // 슬라이더 컨테이너 생성
+    const sliderContainer = document.createElement('div');
+    sliderContainer.className = 'slider-container';
+
+    if (!isPlaceholder) {
+        // 데이터에서 이미지 배열 가져오기 (썸네일을 첫 번째로)
+        let images = [item.thumbnail_path];
+        if (Array.isArray(item.images) && item.images.length > 0) {
+            images = [item.thumbnail_path, ...item.images.filter(img => img !== item.thumbnail_path)];
+        }
+
+        // PC 환경: 썸네일만 표시
+        if (!isMobile()) {
+            const img = document.createElement('img');
+            img.src = `post_Tempdata/image/${item.thumbnail_path}`;
+            img.alt = item.title;
+            sliderContainer.appendChild(img);
+        } 
+        // 모바일 환경: 슬라이더 구성
+        else {
+            images.forEach((imgPath, index) => {
+                const slide = document.createElement('img');
+                slide.className = `slide ${index === 0 ? 'active' : ''}`;
+                slide.src = `post_Tempdata/image/${imgPath}`;
+                slide.alt = item.title;
+                sliderContainer.appendChild(slide);
+            });
+
+            // 네비게이션 버튼 추가
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'slide-nav prev';
+            prevBtn.innerHTML = '‹';
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'slide-nav next';
+            nextBtn.innerHTML = '›';
+            
+            sliderContainer.appendChild(prevBtn);
+            sliderContainer.appendChild(nextBtn);
+
+            // 슬라이드 이동 함수
+            function showSlide(idx) {
+                // 처음과 끝에서 더 이상 이동하지 않게
+                if (idx < 0 || idx >= images.length) return;
+                currentSlide = idx;
+                const slideEls = sliderContainer.querySelectorAll('.slide');
+                slideEls.forEach((el, i) => {
+                    el.classList.toggle('active', i === currentSlide);
+                    el.style.opacity = i === currentSlide ? '1' : '0';
+                });
+                // 버튼 활성/비활성 처리
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === images.length - 1;
+                prevBtn.classList.toggle('disabled', currentSlide === 0);
+                nextBtn.classList.toggle('disabled', currentSlide === images.length - 1);
+            }
+
+            // 초기 버튼 상태 설정
+            showSlide(0);
+
+            // 버튼 클릭 이벤트
+            prevBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                showSlide(currentSlide - 1);
+            });
+            nextBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                showSlide(currentSlide + 1);
+            });
+
+            // 터치 슬라이드 이벤트
+            let touchStartX = null;
+            let touchEndX = null;
+            sliderContainer.addEventListener('touchstart', e => {
+                if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
+            });
+            sliderContainer.addEventListener('touchend', e => {
+                if (touchStartX === null) return;
+                touchEndX = e.changedTouches[0].clientX;
+                if (touchStartX - touchEndX > 40 && currentSlide < images.length - 1) {
+                    showSlide(currentSlide + 1);
+                } else if (touchEndX - touchStartX > 40 && currentSlide > 0) {
+                    showSlide(currentSlide - 1);
+                }
+                touchStartX = null;
+                touchEndX = null;
+            });
+        }
     }
+    card.appendChild(sliderContainer);
 
     // 작성자 정보(프로필+닉네임) 추가 (화면에 보이지 않게)
     const postUserDiv = document.createElement('div');
@@ -226,3 +296,20 @@ document.addEventListener("DOMContentLoaded", () => {
         adjustGridRows();
     });
 });
+
+function handleSwipe() {
+    const slides = document.querySelectorAll('.slide');
+    const currentSlide = document.querySelector('.slide.active');
+    let currentIndex = Array.from(slides).indexOf(currentSlide);
+
+    if (touchStartX - touchEndX > 50) {
+        // 왼쪽으로 스와이프
+        currentIndex = (currentIndex + 1) % slides.length;
+    } else if (touchEndX - touchStartX > 50) {
+        // 오른쪽으로 스와이프
+        currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+    }
+
+    slides.forEach(slide => slide.classList.remove('active'));
+    slides[currentIndex].classList.add('active');
+}
