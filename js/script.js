@@ -208,32 +208,4 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener('resize', () => {
         adjustGridRows();
     });
-
-    const cards = document.querySelectorAll('.card');
-
-    const modalImg = document.querySelector('.modal-img > img');
-    const modalTitle = document.querySelector('.post-title');
-    const modalContent = document.querySelector('.post-content');
-
-    cards.forEach((card, index) => {
-        card.addEventListener('click', function() {
-            modalImg.src = "post_Tempdata/image/" + cardData[index].thumbnail_path;
-            modalTitle.textContent = cardData[index].title;
-            modalContent.textContent = cardData[index].content;
-            // 모달 열기
-            document.getElementById('index-modal').style.display = 'flex';
-        });
-    });
-        
-    // 모달 닫기
-    document.getElementById('modal-close').addEventListener('click', function() {
-        document.getElementById('index-modal').style.display = 'none';
-    });
-
-    // 모달 바깥 클릭 시 닫기
-    document.getElementById('index-modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-        this.style.display = 'none';
-        }
-    });
 });
