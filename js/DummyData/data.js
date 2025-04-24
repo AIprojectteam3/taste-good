@@ -153,7 +153,7 @@ const cardData = [
 
 const postUserData = [
     {
-        user : "조태익",
+        user : "테스트",
         profile_path : '../image/profile-icon.png'
     }
 ];
