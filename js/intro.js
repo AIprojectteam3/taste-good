@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
         history.scrollRestoration = 'manual';
     }
 
-    let isScrolling = false;
     let currentPage = 0;
     const pages = document.querySelectorAll('.page');
     const dots = document.querySelectorAll('.dot');
@@ -37,8 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    let lastScrollY = window.scrollY;
-
     function handleScroll(direction) {
         const maxPage = pages.length - 1;
         const prevPage = currentPage;
@@ -60,15 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleScrollToPage(targetPage) {
         currentPage = targetPage;
-        const scrollPosition = Array.from(pages)
-            .slice(0, currentPage)
-            .reduce((acc, page) => acc + page.offsetHeight, 0);
-
-        window.scrollTo({
-            top: scrollPosition,
-            behavior: 'smooth'
-        });
-
+        
+        // 요소 직접 참조 방식으로 변경
+        const targetElement = pages[currentPage];
+        if (targetElement) {
+            window.scrollTo({
+                top: targetElement.offsetTop,
+                behavior: 'smooth'
+            });
+        }
+        
+        // dot 버튼 표시 보장
+        const dots = document.querySelector('.dots');
+        if (dots) {
+            dots.style.display = 'block';
+            dots.style.opacity = '1';
+        }
+        
         activateAnimation(currentPage);
         updateDotStyle(currentPage);
         toggleFooter(currentPage);
@@ -80,46 +85,109 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 풋터 애니메이션
     function toggleFooter(pageIndex) {
         const footer = document.querySelector('.footer');
         const isLastPage = pageIndex === pages.length - 1;
 
-        // 이미 active 상태면 중복 애니메이션 방지
+        // 애니메이션 초기화 (중복 방지)
+        footer.style.animation = 'none';
+        void footer.offsetWidth; // 리플로우 강제
+
+        function clearAnimationHandler(e) {
+            if (e.animationName === 'fadeInFooter' || e.animationName === 'fadeOutFooter') {
+                footer.style.animation = '';
+                footer.removeEventListener('animationend', clearAnimationHandler);
+                // fadeOutFooter 끝난 후 active 해제
+                if (e.animationName === 'fadeOutFooter') {
+                    footer.classList.remove('active');
+                    // opacity와 pointer-events도 초기화
+                    footer.style.opacity = '0';
+                    footer.style.pointerEvents = 'none';
+                }
+            }
+        }
+
         if (isLastPage) {
+            // 이미 active면 중복 적용 방지
             if (!footer.classList.contains('active')) {
                 footer.classList.add('active');
+                footer.style.opacity = '1';
+                footer.style.pointerEvents = 'auto';
                 footer.style.animation = 'fadeInFooter 0.7s ease forwards';
-                footer.addEventListener('animationend', () => {
-                    footer.style.animation = '';
-                }, { once: true });
+                footer.addEventListener('animationend', clearAnimationHandler, { once: true });
+            } else {
+                // 이미 active면 스타일만 보장
+                footer.style.opacity = '1';
+                footer.style.pointerEvents = 'auto';
             }
         } else {
             if (footer.classList.contains('active')) {
                 footer.style.animation = 'fadeOutFooter 0.7s ease forwards';
-                footer.addEventListener('animationend', () => {
-                    footer.classList.remove('active');
-                    footer.style.animation = '';
-                }, { once: true });
+                footer.addEventListener('animationend', clearAnimationHandler, { once: true });
             }
         }
     }
 
+    // PC환경 2, 3, 4 페이지 글귀 애니메이션
     function activateAnimation(pageIndex) {
         const page = pages[pageIndex];
         const elements = {
             left: page.querySelector('#ani_left'),
             right: page.querySelector('#ani_right')
         };
-
+    
         Object.entries(elements).forEach(([type, element]) => {
             if (!element) return;
+            
+            // 모바일 애니메이션 강제 재설정
             element.style.animation = 'none';
-            void element.offsetWidth;
-            element.style.animation = type === 'left'
-                ? 'fadeInLeft 1s ease-in-out forwards'
-                : 'fadeInRight 1s ease-in-out forwards';
+            void element.offsetWidth; // 리플로우 강제
+            
+            if (window.innerWidth <= 768) {
+                element.style.animation = 'fadeInOpacity 0.8s ease-out forwards';
+            } else {
+                element.style.animation = type === 'left' 
+                    ? 'fadeInLeft 1s ease-in-out forwards' 
+                    : 'fadeInRight 1s ease-in-out forwards';
+            }
         });
-    }
+    }    
+
+    // 모바일 스크롤 애니메이션
+    let touchStartY = 0;
+    let isScrolling = false;
+
+    window.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+    });
+
+    window.addEventListener('touchend', (e) => {
+        if (isScrolling) return;
+    
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaY = touchStartY - touchEndY;
+        const isLastPage = currentPage === pages.length - 1;
+        const threshold = window.innerHeight * 0.1; // 감도 개선
+    
+        if (Math.abs(deltaY) > threshold) {
+            isScrolling = true;
+    
+            // 4페이지 특수 처리
+            if (isLastPage) {
+                const footer = document.querySelector('.footer');
+                if (deltaY < 0 && !footer.classList.contains('active')) {
+                    toggleFooter(currentPage, true);
+                } else {
+                    handleScroll(deltaY > 0 ? 1 : -1);
+                }
+            } else {
+                handleScroll(deltaY > 0 ? 1 : -1);
+            }
+    
+            setTimeout(() => { isScrolling = false }, 800);
+        }
+    });
 
     // ===============================
     // 🟨 로그인/회원가입 모달 제어
@@ -191,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.style.display = "flex";
         window.removeEventListener("wheel", wheelHandler);
         window.removeEventListener("keydown", keydownHandler);
+        hideDotsOnModal();
     });
 
     // 모달 외부 클릭 시 닫기 + 스크롤 다시 활성화
@@ -201,6 +270,32 @@ document.addEventListener('DOMContentLoaded', () => {
             window.addEventListener("wheel", wheelHandler);
             window.addEventListener("keydown", keydownHandler);
         }
+    });
+
+    // 모바일 환경에서 모달 열었을 때 페이지 이동 버튼 숨기기
+    function hideDotsOnModal() {
+        const dots = document.querySelector('.dots');
+        if (window.innerWidth <= 768 && dots) {
+            dots.style.display = 'none';
+        }
+    }
+    
+    // 모바일 환경에서 모달 닫았을 때 페이지 이동 버튼 나타내기
+    function showDotsOnModalClose() {
+        const dots = document.querySelector('.dots');
+        if (window.innerWidth <= 768 && dots) {
+            dots.style.display = 'block';
+        }
+    }
+
+    document.querySelectorAll('.modal-close-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            modal.style.display = "none";
+            container.classList.remove("right-panel-active");
+            window.addEventListener("wheel", wheelHandler);
+            window.addEventListener("keydown", keydownHandler);
+            showDotsOnModalClose();
+        });
     });
 
     document.getElementById('form1').addEventListener('submit', async (e) => {

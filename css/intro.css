@@ -13,14 +13,17 @@ html {
 body {
     margin: 0 auto;
     overflow: hidden; /* 기본 스크롤바 숨김 */
+    overscroll-behavior: none;
 }
 
 .page {
-    position: relative;
-    height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    height: 100svh; /* 동적 뷰포트 사용 */
+    min-height: 100svh; /* 추가 보장 */
+    scroll-snap-align: start;
     font-size: 40px;
 }
 
@@ -37,11 +40,13 @@ body {
 }
 
 .dots {
-    position: fixed; /* 화면에 고정 */
+    position: fixed;
     top: 50%;
     right: 20px;
     transform: translateY(-50%);
-    z-index: 10;
+    z-index: 9999; /* z-index 크게 증가 */
+    pointer-events: auto;
+    visibility: visible !important; /* 항상 표시 강제 */
 }
 
 .dot {
@@ -74,6 +79,7 @@ body {
     display : flex;
     align-items : center;
     justify-content : center;
+    flex : 1;
 }
 
 .start_button {
@@ -215,26 +221,25 @@ body {
 }
 
 .footer {
-    position: fixed;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
+    position: fixed;
     padding: 10px;
-    bottom: calc(-14vh + 5px);
+    bottom: calc(-14svh + 5px);
     left: 0;
     right: 0;
-    height: 14vh;
+    height: 14svh;
+    flex-wrap: wrap;
     background: #333;
     color: white;
     opacity: 0;
     pointer-events: none;
-    transition: none;
+    animation-fill-mode: forwards;
 }
 
 .footer.active {
-    opacity: 1;
-    pointer-events: auto;
+    height: 14svh;
     bottom: 0;
 }
 
@@ -606,6 +611,28 @@ body {
 }
 
 @media (max-width: 768px) {
+    .page {
+        transform: none !important; /* 페이지 트랜스폼 방지 */
+        will-change: opacity; /* 성능 최적화 */
+    }
+
+    #ani_left, #ani_right {
+        animation-duration: 0.8s !important;
+        animation-fill-mode: forwards !important;
+    }
+    
+    /* 새로운 애니메이션 정의 */
+    @keyframes fadeInOpacity {
+        0% { 
+            opacity: 0;
+            transform: translateY(20px); /* 추가 효과 */
+        }
+        100% { 
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
     .dot {
         width : 12px;
         height : 12px;
@@ -620,16 +647,20 @@ body {
         font-size : 3rem;
     }
 
+    .one_content > span {
+        font-size : 2.5rem;
+    }
+
     .main_content {
         width : 100%;
     }
 
     .content_text > p {
-        font-size : 0.9rem;
+        font-size : 0.8rem;
     }
     
     .content_text > p > span {
-        font-size : 1.5rem;
+        font-size : 1.3rem;
     }
 
     .main_content_div {
@@ -642,7 +673,7 @@ body {
 
     .text_div {
         width : 80%;
-        font-size : 2rem
+        font-size : 1.5rem
     }
 }
 
@@ -716,6 +747,10 @@ body {
     }
     .container__overlay {
         display: none;
+    }
+
+    .form {
+        padding : 0 3rem;
     }
 
     .form input {
