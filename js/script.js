@@ -190,13 +190,13 @@ function updateContentAndContainerHeight() {
     }, 100);
 }
 
-// 카드 생성 함수
+// 게시물(카드) 생성 함수
 function createCard(item, isPlaceholder = false) {
     const card = document.createElement('div');
     card.className = 'card';
 
+    // 이미지 또는 임시 배경
     if (isPlaceholder) {
-        // 이미지 대신 "Post" 텍스트 스타일링
         const imgDiv = document.createElement('div');
         imgDiv.style.width = '100%';
         imgDiv.style.height = '100%';
@@ -208,81 +208,74 @@ function createCard(item, isPlaceholder = false) {
         imgDiv.style.fontWeight = 'bold';
         imgDiv.textContent = 'Post';
         card.appendChild(imgDiv);
-
-        // 타이틀
-        const title = document.createElement('div');
-        title.className = 'card-title';
-        title.textContent = '임시';
-        title.style.cssText = `
-            position: absolute;
-            bottom: -30px;
-            left: 0;
-            right: 0;
-            padding: 10px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            opacity: 0;
-            transition: all 0.3s ease;
-        `;
-        card.appendChild(title);
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'card-content';
-        contentDiv.textContent = '임시 콘텐츠';
-        card.appendChild(contentDiv);
-
-        // 마우스 이벤트
-        card.addEventListener('mouseenter', () => {
-            title.style.opacity = '1';
-            title.style.bottom = '0';
-        });
-        card.addEventListener('mouseleave', () => {
-            title.style.opacity = '0';
-            title.style.bottom = '-30px';
-        });
-
-        return card;
+    } else {
+        const img = document.createElement('img');
+        img.src = "post_Tempdata/image/" + item.thumbnail_path;
+        img.alt = item.title;
+        card.appendChild(img);
     }
 
-    // 이미지
-    const img = document.createElement('img');
-    img.src = "post_Tempdata/image/" + item.thumbnail_path;
-    img.alt = item.title;
+    // 오버레이
+    const overlay = document.createElement('div');
+    overlay.className = 'card-overlay';
 
-    // 타이틀
+    // 중앙 타이틀+콘텐츠
+    const centerBox = document.createElement('div');
+    centerBox.className = 'card-center-box';
+
     const title = document.createElement('div');
-    title.className = 'card-title';
-    title.textContent = item.title;
-    title.style.cssText = `
-        position: absolute;
-        bottom: -30px;
-        left: 0;
-        right: 0;
-        padding: 10px;
-        background: rgba(0,0,0,0.7);
-        color: white;
-        opacity: 0;
-        transition: all 0.3s ease;
-    `;
+    title.className = 'card-center-title';
+    title.textContent = isPlaceholder ? '타이틀' : item.title;
 
-    // Content 영역 추가 (PC에서 숨김)
     const contentDiv = document.createElement('div');
-    contentDiv.className = 'card-content';
-    contentDiv.textContent = item.content || '';
-    card.appendChild(contentDiv);
+    contentDiv.className = 'card-center-content';
+    contentDiv.textContent = isPlaceholder
+        ? '임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠'
+        : item.content;
 
-    // 마우스 이벤트
-    card.addEventListener('mouseenter', () => {
-        title.style.opacity = '1';
-        title.style.bottom = '0';
-    });
-    card.addEventListener('mouseleave', () => {
-        title.style.opacity = '0';
-        title.style.bottom = '-30px';
-    });
+    centerBox.appendChild(title);
+    centerBox.appendChild(contentDiv);
+    overlay.appendChild(centerBox);
 
-    card.appendChild(img);
-    card.appendChild(title);
+    // 하단 아이콘 버튼
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'card-actions';
+
+    // 좋아요
+    const likeBtn = document.createElement('img');
+    likeBtn.src = '../image/heart-icon2.png'; // 예시 경로
+    likeBtn.alt = '좋아요';
+    likeBtn.className = 'action-icon';
+
+    // 댓글
+    const commentBtn = document.createElement('img');
+    commentBtn.src = '../image/SpeechBubble-icon2.png'; // 예시 경로
+    commentBtn.alt = '댓글';
+    commentBtn.className = 'action-icon';
+
+    // 북마크
+    const bookmarkBtn = document.createElement('img');
+    bookmarkBtn.src = '../image/bookmark-icon2.png'; // 예시 경로
+    bookmarkBtn.alt = '북마크';
+    bookmarkBtn.className = 'action-icon';
+
+    actionsDiv.appendChild(likeBtn);
+    actionsDiv.appendChild(commentBtn);
+    actionsDiv.appendChild(bookmarkBtn);
+
+    overlay.appendChild(actionsDiv);
+    card.appendChild(overlay);
+
+    // PC 환경에서만 마우스오버 효과
+    if (!isMobile()) {
+        card.addEventListener('mouseenter', () => {
+            overlay.classList.add('active');
+        });
+        card.addEventListener('mouseleave', () => {
+            overlay.classList.remove('active');
+        });
+    }
+
     return card;
 }
 
@@ -407,7 +400,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     cards.forEach((card, index) => {
         card.addEventListener('click', function() {
-            modalImg.src = "post_Tempdata/image/" + cardData[index].image_path;
+            modalImg.src = "post_Tempdata/image/" + cardData[index].thumbnail_path;
             modalTitle.textContent = cardData[index].title;
             modalContent.textContent = cardData[index].content;
             // 모달 열기
