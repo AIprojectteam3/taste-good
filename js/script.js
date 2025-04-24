@@ -111,6 +111,7 @@ function createCard(item, isPlaceholder = false) {
     centerBox.appendChild(title);
     centerBox.appendChild(contentDiv);
     overlay.appendChild(centerBox);
+    card.appendChild(overlay);
 
     // 하단 아이콘 버튼
     const actionsDiv = document.createElement('div');
