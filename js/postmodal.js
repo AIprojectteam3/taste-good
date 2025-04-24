@@ -22,20 +22,38 @@ document.addEventListener("DOMContentLoaded", () => {
             modalUserImg.alt = postUserData[0].user + " 프로필 사진";
             modalUserNickname.textContent = postUserData[0].user;
 
-            // 모달 열기
-            document.getElementById('index-modal').style.display = 'flex';
+            // 모달 내 post-user 강제로 보이게
+            const modalUser = document.querySelector('#index-modal .post-user');
+            if (modalUser) {
+                modalUser.style.display = 'flex';
+            }
+
+            if (!isMobile()) {
+                // 모달 열기
+                document.getElementById('index-modal').style.display = 'flex';
+            }
         });
     });
 
     // 모달 닫기
     document.getElementById('modal-close').addEventListener('click', function() {
         document.getElementById('index-modal').style.display = 'none';
+        // 닫을 때 다시 숨김 처리(원상복구)
+        const modalUser = document.querySelector('#index-modal .post-user');
+        if (modalUser) {
+            modalUser.style.display = '';
+        }
     });
 
     // 모달 바깥 클릭 시 닫기
     document.getElementById('index-modal').addEventListener('click', function(e) {
         if (e.target === this) {
             this.style.display = 'none';
+            // 닫을 때 다시 숨김 처리(원상복구)
+            const modalUser = document.querySelector('#index-modal .post-user');
+            if (modalUser) {
+                modalUser.style.display = '';
+            }
         }
     });
 });
