@@ -311,4 +311,14 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener('resize', () => {
         adjustGridRows();
     });
+
+    let lastIsMobile = isMobile();
+
+    window.addEventListener('resize', function() {
+        const nowIsMobile = isMobile();
+            if (lastIsMobile !== nowIsMobile) {
+                location.reload(); // 페이지 새로고침[6][9][12]
+            }
+        lastIsMobile = nowIsMobile;
+    });
 });

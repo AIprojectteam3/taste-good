@@ -7,6 +7,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalContent = document.querySelector('.post-content');
     const modalUserImg = document.querySelector('.post-user .user-profile-img img');
     const modalUserNickname = document.querySelector('.post-user .user-nickname span:first-child');
+    const commentProfile = document.querySelector('.user-profile-img img');
+    const commentUser = document.querySelector('.comment-user-nickname span');
+    const commentContent = document.querySelector('.comment-content span');
 
     cards.forEach((card, index) => {
         card.addEventListener('click', function() {
@@ -47,6 +50,12 @@ document.addEventListener("DOMContentLoaded", () => {
             modalUserImg.src = postUserData[0].profile_path;
             modalUserImg.alt = postUserData[0].user + " 프로필 사진";
             modalUserNickname.textContent = postUserData[0].user;
+
+            // 댓글 정보 세팅
+            commentProfile.src = commentData[0].profile_path;
+            commentProfile.alt = commentData[0].user + " 프로필 사진";
+            commentUser.textContent = commentData[0].user_nickname;
+            commentContent.textContent = commentData[0].comment;
 
             // 4. 슬라이드 버튼, 썸네일 클릭 이벤트
             const prevBtn = modalImgDiv.querySelector('.slide-nav.prev');
