@@ -134,11 +134,17 @@ function createCard(item, isPlaceholder = false) {
     const cutStringNum = 80;
     const contentDiv = document.createElement('div');
     contentDiv.className = 'card-center-content';
-    contentDiv.textContent = isPlaceholder
+    if (!isMobile()) {
+        contentDiv.textContent = isPlaceholder
         ? '임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠'
         : item.content.length > cutStringNum
         ? item.content.substring(0, cutStringNum) + '...'
         : item.content;
+    } else {
+        contentDiv.textContent = isPlaceholder
+        ? '임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠'
+        : item.content
+    }
 
     const readmoreBtn = document.createElement('button');
     readmoreBtn.className = 'read-more-btn';
