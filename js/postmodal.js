@@ -51,11 +51,25 @@ document.addEventListener("DOMContentLoaded", () => {
             modalUserImg.alt = postUserData[0].user + " 프로필 사진";
             modalUserNickname.textContent = postUserData[0].user;
 
-            // 댓글 정보 세팅
-            commentProfile.src = commentData[0].profile_path;
-            commentProfile.alt = commentData[0].user + " 프로필 사진";
-            commentUser.textContent = commentData[0].user_nickname;
-            commentContent.textContent = commentData[0].comment;
+            const comment = document.querySelector('.post-comment');
+            comment.innerHTML = ''; // 기존 댓글 초기화
+            for (i = 0; i < commentData.length; i++) {
+                const comData = commentData[i];
+
+                comment.innerHTML += `
+                    <div class = "comment-user">
+                        <div class = "user-profile-img">
+                            <img src = "${comData.profile_path}" alt = "${comData.profile_path} 프로필 사진">
+                        </div>
+                        <div class = "comment-user-nickname">
+                            <span>${comData.user_nickname}</span>
+                        </div>
+                        <div class = "comment-content">
+                            <span>${comData.comment}</span>
+                        </div>
+                    </div>
+                `
+            }
 
             // 4. 슬라이드 버튼, 썸네일 클릭 이벤트
             const prevBtn = modalImgDiv.querySelector('.slide-nav.prev');
