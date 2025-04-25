@@ -285,7 +285,7 @@ body {
     margin: 10px;
     padding-bottom: 10px;
     top: 50%;
-    width: 30px;
+    width: 35px;
     height: 30px;
     transform: translateY(-50%);
     font-size: 2rem;
@@ -674,6 +674,8 @@ body {
     .slide-nav {
         position: absolute;
         top: 50%;
+        width: 30px;
+        height: 30px;
         transform: translateY(-50%);
         background: rgba(0,0,0,0.7);
         color: white;
