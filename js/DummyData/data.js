@@ -603,6 +603,14 @@ const postUserData = [
     }
 ];
 
+const commentData = [
+    {
+        profile_path : "image/profile-icon.png",
+        user_nickname : "댓글 쓰기",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
+    }
+]
+
 document.addEventListener("DOMContentLoaded", () => {
     console.log(cardData.length);
 })
