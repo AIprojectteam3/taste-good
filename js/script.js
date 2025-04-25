@@ -142,6 +142,18 @@ function createCard(item, isPlaceholder = false) {
     overlay.appendChild(centerBox);
     card.appendChild(overlay);
 
+    const commentInput = document.createElement('div');
+    commentInput.className = 'commentInputM';
+    overlay.appendChild(commentInput);
+    commentInput.innerHTML = `
+        <div class = "iconDiv">
+            <img src = "../image/heart-icon.png" alt = "좋아요">
+            <img src = "../image/send-icon.png" alt = "공유">
+        </div>
+        <input class = "comInput" type = "text" placeholder = "댓글 입력">
+        <input class = "comSubmit" type = "submit" value = "쓰기">
+    `
+
     // 하단 아이콘 버튼
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'card-actions';
