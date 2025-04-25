@@ -131,15 +131,24 @@ function createCard(item, isPlaceholder = false) {
     title.className = 'card-center-title';
     title.textContent = isPlaceholder ? '타이틀' : item.title;
 
+    const cutStringNum = 80;
     const contentDiv = document.createElement('div');
     contentDiv.className = 'card-center-content';
     contentDiv.textContent = isPlaceholder
         ? '임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠'
+        : item.content.length > cutStringNum
+        ? item.content.substring(0, cutStringNum) + '...'
         : item.content;
+
+    const readmoreBtn = document.createElement('button');
+    readmoreBtn.className = 'read-more-btn';
+    readmoreBtn.textContent = '더보기';
+    readmoreBtn.style.display = 'none'; // 기본적으로 숨김
 
     centerBox.appendChild(title);
     centerBox.appendChild(contentDiv);
     overlay.appendChild(centerBox);
+    centerBox.appendChild(readmoreBtn);
     card.appendChild(overlay);
 
     const commentInput = document.createElement('div');
@@ -349,5 +358,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 location.reload();
             }
         lastIsMobile = nowIsMobile;
+    });
+
+    // 모바일 환경
+    document.querySelectorAll('.card-center-content').forEach(function(content) {
+        const btn = content.parentNode.querySelector('.read-more-btn');
+        if (content.scrollHeight > content.clientHeight) {
+            btn.style.display = 'block';
+            btn.textContent = '더보기';
+            btn.addEventListener('click', function() {
+                content.classList.toggle('expanded');
+                if (content.classList.contains('expanded')) {
+                    btn.textContent = '닫기';
+                } else {
+                    btn.textContent = '더보기';
+                }
+            });
+        }
     });
 });
