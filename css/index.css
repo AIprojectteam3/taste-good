@@ -198,7 +198,7 @@ body {
     position: relative;
     background: #fff;
     border-radius: 16px;
-    width: 80vw;
+    width: 70vw;
     height: 90vh;
     overflow-y: auto;
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
@@ -410,6 +410,33 @@ body {
     font-size : 0.9rem;
 }
 
+.post-content {
+    max-height: 270px;
+    overflow: hidden;
+    position: relative;
+    transition: max-height 0.3s;
+}
+
+.post-content.expanded {
+    height: 700px; /* 스크롤 영역 확대 시 높이(또는 none) */
+    overflow: auto;
+}
+
+.post-content.expanded::-webkit-scrollbar {
+    display: none;
+}
+
+.read-more-btn {
+    display: block;
+    margin-left : auto;
+    cursor: pointer;
+    background: none;
+    border: 0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color : gray;
+}
+
 .comment-user {
     width : 100%;
 }
@@ -582,6 +609,25 @@ body {
         line-height: 1.5;
         margin-bottom: 0;
         text-shadow: none;
+        max-height: 170px; /* 모바일에서 더 작은 값 권장 */
+        overflow: hidden;
+        position: relative;
+        transition: max-height 0.3s;
+    }
+
+    .card-center-content.expanded {
+        max-height: 270px; /* 스크롤 영역 확대 시 높이(또는 none) */
+        overflow: auto;
+    }
+
+    .read-more-btn {
+        display: block;
+        margin-left : auto;
+        cursor: pointer;
+        background: none;
+        border: 0;
+        font-size: 0.93rem;
+        color : gray;
     }
 
     .card-actions {

@@ -7,9 +7,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalContent = document.querySelector('.post-content');
     const modalUserImg = document.querySelector('.post-user .user-profile-img img');
     const modalUserNickname = document.querySelector('.post-user .user-nickname span:first-child');
-    const commentProfile = document.querySelector('.user-profile-img img');
-    const commentUser = document.querySelector('.comment-user-nickname span');
-    const commentContent = document.querySelector('.comment-content span');
 
     cards.forEach((card, index) => {
         card.addEventListener('click', function() {
@@ -50,6 +47,27 @@ document.addEventListener("DOMContentLoaded", () => {
             modalUserImg.src = postUserData[0].profile_path;
             modalUserImg.alt = postUserData[0].user + " 프로필 사진";
             modalUserNickname.textContent = postUserData[0].user;
+
+            const readmoreBtn = document.querySelector('.post-content-div .read-more-btn');
+
+            setTimeout(() => {
+                if (modalContent.scrollHeight > modalContent.clientHeight) {
+                    readmoreBtn.style.display = 'block';
+                } else {
+                    readmoreBtn.style.display = 'none';
+                }
+            }, 100); // 0이 아닌 100ms 등 충분한 딜레이 권장
+            
+            readmoreBtn.onclick = function() {
+                modalContent.classList.toggle('expanded');
+                readmoreBtn.textContent = modalContent.classList.contains('expanded') ? '닫기' : '더보기';
+            };
+
+            setTimeout(() => {
+                if (modalContent.scrollHeight > modalContent.clientHeight) {
+                    readmoreBtn.style.display = 'block';
+                }
+            }, 0);
 
             const comment = document.querySelector('.post-comment');
             comment.innerHTML = ''; // 기존 댓글 초기화
