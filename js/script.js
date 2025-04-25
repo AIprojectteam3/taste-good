@@ -195,6 +195,7 @@ function createCard(item, isPlaceholder = false) {
 
 let currentPage = 0;
 const itemsPerPage = 30;
+const sentinelag = 5;
 let isLoading = false;
 let sentinel = null;
 
@@ -232,8 +233,15 @@ function loadMoreData() {
         }
 
         renderCards(start, end);
+        placeSentinelAboveLastNCards(sentinelag);
         currentPage++;
         isLoading = false;
+
+        if (isMobile()) {
+            setTimeout(() => {
+                window.scrollBy(0, -25650); // 50px 위로 이동
+            }, 100);
+        }
 
         // 마지막 데이터까지 생성했으면 관찰 중지
         if (currentPage * itemsPerPage >= cardData.length && sentinel) {
@@ -243,16 +251,24 @@ function loadMoreData() {
 }
 
 const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (
-            entry.isIntersecting &&
-            !isLoading &&
-            currentPage * itemsPerPage < cardData.length
-        ) {
-            loadMoreData();
-        }
-    });
-}, { threshold: 1.0 });
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !isLoading) {
+                loadMoreData();
+            }
+        });
+    }, { 
+    threshold: 0.1
+});
+
+function placeSentinelAboveLastNCards(n = 2) {
+    const content = document.querySelector('.content');
+    const cards = content.querySelectorAll('.card:not(.hidden)');
+    if (cards.length < n) {
+        content.appendChild(sentinel);
+    } else {
+        content.insertBefore(sentinel, cards[cards.length - n]);
+    }
+}
 
 // 그리드 레이아웃 동기화
 function adjustGridRows() {
@@ -300,10 +316,11 @@ function handleSwipe() {
 document.addEventListener("DOMContentLoaded", () => {
     sentinel = document.createElement('div');
     sentinel.id = 'sentinel';
-    document.querySelector('.content').appendChild(sentinel); // 반드시 추가!
-    observer.observe(sentinel);
     
     renderCards(0, itemsPerPage);
+    placeSentinelAboveLastNCards(sentinelag);
+    
+    observer.observe(sentinel);
     currentPage = 1;
 
     adjustGridRows();
@@ -317,7 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener('resize', function() {
         const nowIsMobile = isMobile();
             if (lastIsMobile !== nowIsMobile) {
-                location.reload(); // 페이지 새로고침[6][9][12]
+                location.reload();
             }
         lastIsMobile = nowIsMobile;
     });
