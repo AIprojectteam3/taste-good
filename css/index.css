@@ -328,13 +328,6 @@ body {
     height : 89%;
 }
 
-.modal-header .line {
-    width : 100%;
-    height : 1px;
-    border : 0;
-    background-color : #999;
-}
-
 .close-area {
     position : fixed;
     top : 10px;
@@ -349,6 +342,7 @@ body {
     width : 100%;
     height : 40%;
     overflow-y: auto;
+    border-bottom : 1px solid #eee;
 }
 
 .post-user {
@@ -395,6 +389,8 @@ body {
     width : 100%;
     height : 50%;
     font-size : 0.9rem;
+    border-top : 1px solid #eee;
+    border-bottom : 1px solid #eee;
 }
 
 .post-content {
@@ -719,14 +715,7 @@ body {
         width : 100%;
         height : 15%;
         gap : 3px;
-        border-top : 1px solid gray;
-    }
-
-    .commentInputM > hr {
-        width : 100%;
-        height : 1px;
-        border : 0;
-        background-color : black;
+        border-top : 1px solid #eee;
     }
 
     .iconDiv {
@@ -749,7 +738,7 @@ body {
         width : 68%;
         height : 30px;
         padding : 0 5px;
-        border : 1px solid black;
+        border : 1px solid #ddd;
         border-radius : 5px;
     }
 
@@ -757,7 +746,7 @@ body {
         margin-right : 5px;
         width : 10%;
         height : 30px;
-        border : 1px solid gray;
+        border : 1px solid #ddd;
         border-radius : 5px;
         background-color : #fff1f0;
     }
