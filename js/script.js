@@ -163,7 +163,7 @@ function createCard(item, isPlaceholder = false) {
     commentInput.innerHTML = `
         <div class = "iconDiv">
             <img src = "../image/heart-icon.png" alt = "좋아요">
-            <img src = "../image/send-icon.png" alt = "공유">
+            <img src = "../image/SpeechBubble-icon.png" alt = "댓글">
         </div>
         <input class = "comInput" type = "text" placeholder = "댓글 입력">
         <input class = "comSubmit" type = "submit" value = "쓰기">
