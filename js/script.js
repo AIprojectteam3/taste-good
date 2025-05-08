@@ -2,6 +2,7 @@
 function createCard(item, isPlaceholder = false) {
     const card = document.createElement('div');
     card.className = 'card';
+    card.setAttribute('data-post-id', item.id);
 
     // 슬라이더 컨테이너 생성
     const sliderContainer = document.createElement('div');

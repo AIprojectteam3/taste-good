@@ -8,9 +8,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalUserImg = document.querySelector('.post-user .user-profile-img img');
     const modalUserNickname = document.querySelector('.post-user .user-nickname span:first-child');
 
-    cards.forEach((card, index) => {
+    cards.forEach(card => {
         card.addEventListener('click', function() {
-            const data = cardData[index];
+            const postId = card.getAttribute('data-post-id');
+            const data = cardData[postId];
 
             // 1. 썸네일이 반드시 첫 번째가 되도록 이미지 배열 구성
             let images = [];
@@ -71,8 +72,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const comment = document.querySelector('.post-comment');
             comment.innerHTML = ''; // 기존 댓글 초기화
-            for (i = 0; i < commentData.length; i++) {
-                const comData = commentData[i];
+            const filteredComments = commentData.filter(com => String(com.postId) === String(postId));
+            for (i = 0; i < filteredComments.length; i++) {
+                const comData = filteredComments[i];
 
                 comment.innerHTML += `
                     <div class = "comment-user">

@@ -669,7 +669,7 @@ const commentData = [
     },{
         postId : 3,
         profile_path : "image/profile-icon.png",
-        user_nickname : "유저 13",
+        user_nickname : "유저 ",
         comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
     }
 ]
