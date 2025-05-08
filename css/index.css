@@ -427,7 +427,6 @@ body {
 .comment-user {
     display: flex;
     align-items: flex-start;
-    margin-bottom: 8px;
     padding : 10px;
     gap: 10px;
     width: 100%;
