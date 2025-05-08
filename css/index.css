@@ -378,7 +378,7 @@ body {
     justify-content : center;
 }
 
-.post-user img, .comment-user img {
+.post-user img, .comment-user img{
     width : 30px;
     height : 30px;
     border : 1px solid black;
@@ -735,5 +735,109 @@ body {
         border : 1px solid gray;
         border-radius : 5px;
         background-color : #fff1f0;
+    }
+
+    .modal.comment-modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1001;
+        left: 0; top: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.5);
+    }
+    .modal.comment-modal .modal-content {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        margin: 10% auto;
+        padding: 0;
+        width: 90%;
+        max-width : 400px;
+        height: 90%;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+    }
+    .modal.comment-modal .close {
+        position: absolute;
+        right: 16px; top: 12px;
+        font-size: 28px;
+        cursor: pointer;
+    }
+    .comment-modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        padding: 20px 24px 10px 24px;
+    }
+    .comment-modal-list {
+        display : flex;
+        flex-direction: column;
+        flex: 1;
+        padding: 0 24px 10px 24px;
+        gap : 15px;
+        overflow-y: auto;
+    }
+    
+    .comment-item {
+        display : flex;
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .user-profile-img {
+        display : flex;
+        align-items : center;
+        justify-content : center;
+        margin-top : 2px;
+    }
+    
+    .user-profile-img img {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: 1px solid #ddd;
+    }
+    
+    .comment-mobile-content {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start; /* 왼쪽 정렬 */
+        width: 100%;
+    }
+    
+    .comment-user-nickname {
+        margin-bottom: 1px;
+        width : 100%;
+        font-weight: bold;
+        /* 필요하다면 white-space: nowrap; 추가 */
+    }
+    
+    .comment-content {
+        font-size: 0.95rem;
+        color: #444;
+        word-break: break-all;    /* 긴 단어도 줄바꿈 */
+        white-space: pre-line;    /* 줄바꿈 문자 유지 */
+        line-height: 1.5;
+    }
+    .comment-modal-input {
+        display: flex;
+        border-top: 1px solid #eee;
+        padding: 12px 24px;
+        gap: 8px;
+    }
+    .comment-modal-input input {
+        flex: 1;
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+    }
+    .comment-modal-input button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        background: #fff1f0;
+        color: #000;
+        font-weight: bold;
+        cursor: pointer;
     }
 }

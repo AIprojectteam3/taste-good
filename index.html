@@ -8,8 +8,9 @@
     <link rel = "stylesheet" href = "css/menu.css">
 
     <script src = "js/DummyData/data.js"></script>
-    <script src="js/script.js"></script>
-    <script src="js/postmodal.js"></script>
+    <script src = "js/script.js"></script>
+    <script src = "js/postmodal.js"></script>
+    <script src = "js/index_mobile/comment_modal.js"></script>
 </head>
 <body>
     <div class="container">
@@ -178,6 +179,18 @@
                 </div>
             </div>
             <span class = "close-area" id = "modal-close">x</span>
+        </div>
+    </div>
+
+    <div class = "modal comment-modal" id = "commentOnlyModal">
+        <div class = "modal-content">
+            <span class = "close">&times;</span>
+            <div class="comment-modal-title">댓글</div>
+            <div class="comment-modal-list"></div>
+            <div class="comment-modal-input">
+                <input type="text" placeholder="댓글을 입력하세요">
+                <button>등록</button>
+            </div>
         </div>
     </div>
 
