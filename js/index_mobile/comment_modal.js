@@ -7,8 +7,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const submitBtn = modal.querySelector('.comment-modal-input button');
     
         const filteredComments = commentData.filter(com => String(com.postId) === String(postId));
+
         // 댓글 데이터 가져오기 (postId로 필터링, 예시는 전체 사용)
         commentListDiv.innerHTML = '';
+
+        if (filteredComments.length === 0) {
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <div class="no-comment">
+                    댓글이 없습니다.
+                </div>
+            `;
+            commentListDiv.appendChild(div);
+        }
+
         filteredComments.forEach(com => {
             const div = document.createElement('div');
             div.className = 'comment-item';

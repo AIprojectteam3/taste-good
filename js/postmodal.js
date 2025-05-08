@@ -73,6 +73,15 @@ document.addEventListener("DOMContentLoaded", () => {
             const comment = document.querySelector('.post-comment');
             comment.innerHTML = ''; // 기존 댓글 초기화
             const filteredComments = commentData.filter(com => String(com.postId) === String(postId));
+
+            if (filteredComments.length === 0) {
+                comment.innerHTML = `
+                    <div class="no-comment">
+                        댓글이 없습니다.
+                    </div>
+                `;
+            }
+
             for (i = 0; i < filteredComments.length; i++) {
                 const comData = filteredComments[i];
 
