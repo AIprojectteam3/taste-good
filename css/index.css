@@ -468,7 +468,6 @@ body {
     display : flex;
     align-items : center;
     width : 100%;
-    padding : 0 5%;
 }
 
 .communityBtn img {
@@ -496,7 +495,7 @@ body {
 
 .comment-input {
     padding : 0 10px;
-    width : 76%;
+    width : 85%;
     height : 80%;
     border : 1px solid gray;
     border-radius : 5px;
