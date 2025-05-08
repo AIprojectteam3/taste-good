@@ -622,6 +622,18 @@ const commentData = [
         profile_path : "image/profile-icon.png",
         user_nickname : "댓글쓰기",
         comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
+    },{
+        profile_path : "image/profile-icon.png",
+        user_nickname : "댓글쓰기",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
+    },{
+        profile_path : "image/profile-icon.png",
+        user_nickname : "댓글쓰기",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
+    },{
+        profile_path : "image/profile-icon.png",
+        user_nickname : "댓글쓰기",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
     }
 ]
 
