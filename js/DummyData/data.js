@@ -605,34 +605,71 @@ const postUserData = [
 
 const commentData = [
     {
+        postId : 0,
         profile_path : "image/profile-icon.png",
-        user_nickname : "댓글쓰기",
+        user_nickname : "유저 01",
         comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
     },
     {
+        postId : 0,
         profile_path : "image/profile-icon.png",
-        user_nickname : "댓글쓰기",
+        user_nickname : "유저 02",
         comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
     },
     {
+        postId : 0,
         profile_path : "image/profile-icon.png",
-        user_nickname : "댓글쓰기",
+        user_nickname : "유저 03",
         comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
     },{
+        postId : 0,
         profile_path : "image/profile-icon.png",
-        user_nickname : "댓글쓰기",
+        user_nickname : "유저 04",
         comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
     },{
+        postId : 0,
         profile_path : "image/profile-icon.png",
-        user_nickname : "댓글쓰기",
+        user_nickname : "유저 05",
         comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
     },{
+        postId : 0,
         profile_path : "image/profile-icon.png",
-        user_nickname : "댓글쓰기",
+        user_nickname : "유저 06",
         comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
     },{
+        postId : 1,
         profile_path : "image/profile-icon.png",
-        user_nickname : "댓글쓰기",
+        user_nickname : "유저 07",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글, 테스트 댓글, 테스트 댓글"
+    },{
+        postId : 1,
+        profile_path : "image/profile-icon.png",
+        user_nickname : "유저 08",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
+    },{
+        postId : 1,
+        profile_path : "image/profile-icon.png",
+        user_nickname : "유저 09",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
+    },{
+        postId : 2,
+        profile_path : "image/profile-icon.png",
+        user_nickname : "유저 10",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
+    },{
+        postId : 3,
+        profile_path : "image/profile-icon.png",
+        user_nickname : "유저 11",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
+    },{
+        postId : 3,
+        profile_path : "image/profile-icon.png",
+        user_nickname : "유저 12",
+        comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
+    },{
+        postId : 3,
+        profile_path : "image/profile-icon.png",
+        user_nickname : "유저 13",
         comment : "테스트 댓글, 테스트 댓글, 테스트 댓글"
     }
 ]
