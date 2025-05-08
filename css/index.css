@@ -535,6 +535,16 @@ body {
     display : none;
 }
 
+.no-comment {
+    display : flex;
+    align-items : center;
+    justify-content : center;
+    width : 100%;
+    height : 100%;
+    font-size : 0.9rem;
+    color : gray;
+}
+
 /* PC 환경 */
 @media (min-width : 768px) {
     .post-user {
@@ -780,9 +790,10 @@ body {
         cursor: pointer;
     }
     .comment-modal-title {
+        padding: 20px 24px 10px 24px;
         font-size: 20px;
         font-weight: bold;
-        padding: 20px 24px 10px 24px;
+        border-bottom: 1px solid #eee;
     }
     .comment-modal-list {
         display : flex;
@@ -855,5 +866,9 @@ body {
         color: #000;
         font-weight: bold;
         cursor: pointer;
+    }
+
+    .no-comment {
+        padding : 20px;
     }
 }
