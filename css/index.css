@@ -360,26 +360,11 @@ body {
     gap : 10px;
 }
 
-.comment-user {
-    display : flex;
-    align-items : center;
-    padding : 10px;
-    width : 100%;
-    gap : 10px;
-}
-
 .post-user {
     height : 10%;
 }
 
-.user-profile-img {
-    display : flex;
-    align-items : center;
-    justify-content : center;
-    width : 10%;
-}
-
-.post-user img, .comment-user img{
+.post-user img{
     width : 30px;
     height : 30px;
     border : 1px solid black;
@@ -440,19 +425,48 @@ body {
 }
 
 .comment-user {
-    width : 100%;
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    padding : 10px;
+    gap: 10px;
+    width: 100%;
+}
+
+.user-profile-img {
+    display : flex;
+    align-items : center;
+    justify-content : center;
+    width : 10%;
+}
+
+.comment-user img {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
 
 .comment-user-nickname {
-    display : flex;
-    width : 20%;
+    display: flex;
+    margin-right: 8px;
+    width : 10%;
+    min-width: 70px;   /* 닉네임 영역 고정 */
+    max-width: 110px;
+    overflow: hidden;
+    white-space: nowrap;
+    font-weight: bold;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
 }
 
 .comment-content {
     width : 80%;
-    font-size : 0.8rem;
-    font-weight : 0;
-    color : #444;
+    font-size: 0.9rem;
+    color: #444;
+    word-break: break-all;
+    /* 아래 줄은 필요시 추가 */
+    /* min-width: 0; */
 }
 
 .comment-input-div {
