@@ -376,6 +376,7 @@ body {
     display : flex;
     align-items : center;
     justify-content : center;
+    width : 10%;
 }
 
 .post-user img, .comment-user img{
@@ -448,6 +449,7 @@ body {
 }
 
 .comment-content {
+    width : 80%;
     font-size : 0.8rem;
     font-weight : 0;
     color : #444;
