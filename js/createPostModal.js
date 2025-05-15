@@ -11,9 +11,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const createPostTitleInput = document.getElementById('createPostTitle');
     const createPostContentInput = document.getElementById('createPostContent');
     const submitCreatePostBtn = document.getElementById('submitCreatePostBtn');
-
     let uploadedFilesForCreatePost = []; // { file: FileObject, blobUrl: "blob:..." }
     let currentCreatePostSlideIndex = 0;
+    let draggedItem = null;
 
     // 파일 업로드 input 숨김 해제 및 이벤트 연결
     function triggerImageUpload() {
@@ -31,20 +31,52 @@ document.addEventListener('DOMContentLoaded', function() {
             const slide = document.createElement('div');
             slide.classList.add('create-post-slide');
             slide.dataset.index = index;
+
             const img = document.createElement('img');
             img.src = item.blobUrl;
             img.alt = `업로드 이미지 ${index + 1}`;
             slide.appendChild(img);
             createPostSliderMain.appendChild(slide);
 
-            // 썸네일 아이템
+            // 썸네일 아이템 컨테이너 (삭제 버튼 포함)
+            const thumbContainer = document.createElement('div');
+            thumbContainer.classList.add('create-post-thumbnail-item-container');
+            thumbContainer.dataset.index = index; // 데이터 인덱스 저장
+            thumbContainer.setAttribute('draggable', 'true');
+
+            thumbContainer.addEventListener('dragstart', handleDragStart);
+            thumbContainer.addEventListener('dragover', handleDragOver);
+            thumbContainer.addEventListener('drop', handleDrop);
+            thumbContainer.addEventListener('dragend', handleDragEnd);
+            // 터치 이벤트를 위한 리스너 (선택 사항, 모바일 지원 시)
+            // thumbContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+            // thumbContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+            // thumbContainer.addEventListener('touchend', handleTouchEnd);
+
             const thumb = document.createElement('img');
             thumb.classList.add('create-post-thumbnail-item');
             thumb.src = item.blobUrl;
             thumb.alt = `썸네일 ${index + 1}`;
-            thumb.dataset.index = index;
+            // thumb.dataset.index = index;
             thumb.addEventListener('click', () => showCreatePostSlide(index));
-            createPostThumbnails.appendChild(thumb);
+            thumbContainer.appendChild(thumb);
+
+            // 삭제 버튼
+            const deleteButton = document.createElement('button');
+            deleteButton.classList.add('delete-thumbnail-button');
+            deleteButton.innerHTML = `
+                <svg viewBox="0 0 10 10" width="8" height="8" fill="currentColor" style="display: block; margin: auto;">
+                    <line x1="1" y1="1" x2="9" y2="9" stroke="white" stroke-width="1.5"/>
+                    <line x1="1" y1="9" x2="9" y2="1" stroke="white" stroke-width="1.5"/>
+                </svg>
+            `;
+            deleteButton.addEventListener('click', (event) => {
+                event.stopPropagation(); // 이벤트 버블링 방지
+                deleteImage(index);
+            });
+            thumbContainer.appendChild(deleteButton);
+
+            createPostThumbnails.appendChild(thumbContainer);
         });
 
         // 2. '사진 추가' 슬라이드 (메인 슬라이드 영역)
@@ -64,14 +96,74 @@ document.addEventListener('DOMContentLoaded', function() {
         // 3. '사진 추가' 썸네일 버튼
         const addThumb = document.createElement('div');
         addThumb.classList.add('create-post-thumbnail-item', 'create-post-add-new-thumb-btn');
-        addThumb.innerHTML = `<div class="add-icon-thum"><i class="fas fa-plus"></i></div>`; // 아이콘을 포함하려면 여기에 i 태그 추가 가능
-        // '사진 추가' 썸네일 클릭 시 '사진 추가' 메인 슬라이드 표시
+        addThumb.innerHTML = `<div class="add-icon"><i class="fas fa-plus"></i></div>`;
         addThumb.addEventListener('click', () => showCreatePostSlide(uploadedFilesForCreatePost.length));
         addThumb.addEventListener('click', triggerImageUpload);
         createPostThumbnails.appendChild(addThumb);
 
         // 현재 인덱스에 맞춰 슬라이드 표시
         showCreatePostSlide(currentCreatePostSlideIndex);
+    }
+
+    function handleDragStart(e) {
+        draggedItem = this; // 드래그 시작된 요소 저장
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML); // 필요한 경우 데이터 설정
+        // 드래그 시작 시 약간 투명하게 보이도록 스타일 추가 (선택 사항)
+        setTimeout(() => {
+            this.style.opacity = '0.5';
+        }, 0);
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault(); // 기본 동작 방지 (드롭을 허용하기 위함)
+        e.dataTransfer.dropEffect = 'move';
+
+        // 드롭 대상 위에 있을 때 시각적 피드백 (예: 테두리 변경)
+        const targetItem = e.target.closest('.create-post-thumbnail-item-container');
+        if (targetItem && targetItem !== draggedItem) {
+            // 기존 하이라이트 제거
+            document.querySelectorAll('.create-post-thumbnail-item-container.drag-over').forEach(el => el.classList.remove('drag-over'));
+            targetItem.classList.add('drag-over');
+        }
+        return false;
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        e.stopPropagation(); // 이벤트 전파 중지
+
+        const targetItem = e.target.closest('.create-post-thumbnail-item-container');
+
+        if (targetItem && draggedItem !== targetItem) {
+            const fromIndex = parseInt(draggedItem.dataset.index);
+            const toIndex = parseInt(targetItem.dataset.index);
+
+            // uploadedFilesForCreatePost 배열 순서 변경
+            const itemToMove = uploadedFilesForCreatePost.splice(fromIndex, 1)[0];
+            uploadedFilesForCreatePost.splice(toIndex, 0, itemToMove);
+
+            // 현재 선택된 슬라이드 인덱스 업데이트 로직 필요
+            // 만약 드래그된 아이템이 현재 활성 슬라이드였다면, 새 위치로 currentCreatePostSlideIndex 업데이트
+            // 또는 드롭된 위치에 따라 currentCreatePostSlideIndex 업데이트
+            if (currentCreatePostSlideIndex === fromIndex) {
+                currentCreatePostSlideIndex = toIndex;
+            } else if (fromIndex < currentCreatePostSlideIndex && toIndex >= currentCreatePostSlideIndex) {
+                currentCreatePostSlideIndex--;
+            } else if (fromIndex > currentCreatePostSlideIndex && toIndex <= currentCreatePostSlideIndex) {
+                currentCreatePostSlideIndex++;
+            }
+
+            updateCreatePostSliderView(); // 뷰 업데이트
+        }
+        return false;
+    }
+
+    function handleDragEnd(e) {
+        // 드래그 종료 시 투명도 복원 및 정리
+        this.style.opacity = '1';
+        document.querySelectorAll('.create-post-thumbnail-item-container.drag-over').forEach(el => el.classList.remove('drag-over'));
+        draggedItem = null;
     }
 
     // 특정 인덱스의 슬라이드 표시
@@ -88,6 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 새 이미지가 추가되어 인덱스가 범위를 벗어날 경우, 마지막 이미지 또는 '사진 추가' 슬라이드로 조정
             index = totalSlidesCount - 1;
         }
+
         currentCreatePostSlideIndex = index;
 
         // 모든 메인 슬라이드 숨기고 현재 슬라이드만 표시
@@ -108,8 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateNavigationButtons() {
         const totalSlidesCount = uploadedFilesForCreatePost.length + 1; // 이미지 슬라이드 + '사진 추가' 슬라이드
 
-        if (totalSlidesCount <= 1) {
-            // 슬라이드가 하나뿐이면 (즉, '사진 추가' 슬라이드만 있는 경우)
+        if (totalSlidesCount <= 1) { // 슬라이드가 하나뿐이면 (즉, '사진 추가' 슬라이드만 있는 경우)
             createPostNavPrev.style.display = 'none';
             createPostNavNext.style.display = 'none';
         } else {
@@ -123,21 +215,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // 파일 선택 시 처리
     createPostImageUpload.addEventListener('change', function(e) {
         const files = Array.from(e.target.files);
+        const initialLength = uploadedFilesForCreatePost.length;
+
         files.forEach(file => {
-            // 동일한 파일이 이미 있는지 확인 (선택사항)
-            // if (!uploadedFilesForCreatePost.find(f => f.file.name === file.name && f.file.size === file.size)) {
             uploadedFilesForCreatePost.push({ file: file, blobUrl: URL.createObjectURL(file) });
-            // }
         });
 
-        // 파일 선택 후, 새로 추가된 이미지가 있다면 그 중 첫 번째를 보여주거나,
-        // 기존 이미지가 있다면 마지막 이미지 다음, 즉 '사진 추가' 슬라이드 바로 전으로 이동할 수 있도록 조정
-        // 또는 간단하게 마지막 이미지(새로 추가된 이미지 중 첫번째)를 보여주도록 설정
         if (files.length > 0) {
-             // 새로 추가된 이미지 중 첫 번째 이미지가 기존 배열에서 몇 번째 인덱스인지 계산
-            currentCreatePostSlideIndex = uploadedFilesForCreatePost.length - files.length;
+            // 새로 추가된 첫 번째 이미지로 슬라이드 인덱스 설정
+            // 또는 기존 로직 유지: currentCreatePostSlideIndex = uploadedFilesForCreatePost.length - files.length;
+            currentCreatePostSlideIndex = initialLength; // 새로 추가된 이미지 그룹의 첫번째를 보여줌
         }
-        // input 값 초기화하여 같은 파일 다시 선택 가능하게 함
+
         createPostImageUpload.value = '';
         updateCreatePostSliderView();
     });
@@ -230,5 +319,11 @@ document.addEventListener('DOMContentLoaded', function() {
             closeCreatePostModal(); // 게시 후 모달 닫기
             alert('게시물이 등록되었습니다! (실제 서버 연동 필요)');
         });
+    }
+
+    // 이미지 삭제 함수
+    function deleteImage(index) {
+        uploadedFilesForCreatePost.splice(index, 1); // 이미지 배열에서 삭제
+        updateCreatePostSliderView(); // 슬라이더 뷰 업데이트
     }
 });
