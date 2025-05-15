@@ -225,7 +225,6 @@ body {
 
 .slide-thumbnails {
     display: flex;
-    justify-content: flex-start;
     width: 100%;
     gap: 8px;
     margin-top: 10px;
@@ -241,6 +240,14 @@ body {
 
 .slide-thumbnails::-webkit-scrollbar {
     display: none;
+}
+
+.slide-thumbnails > .slide-thumb:first-child {
+    margin-left: auto;
+}
+
+.slide-thumbnails > .slide-thumb:last-child {
+    margin-right: auto;
 }
 
 .slide-thumb.active {
