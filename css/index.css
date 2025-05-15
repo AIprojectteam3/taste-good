@@ -883,4 +883,8 @@ body {
     .no-comment {
         padding : 20px;
     }
+
+    .create-post-button {
+        display : none;
+    }
 }
