@@ -278,6 +278,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    const createPostThumbnailsContainer = document.querySelector('.create-post-thumbnails-container');
+    if (createPostThumbnailsContainer) {
+        createPostThumbnailsContainer.addEventListener('wheel', function(event) {
+            event.preventDefault();
+            createPostThumbnailsContainer.scrollLeft += event.deltaY;
+        });
+    } else {
+        console.error('.create-post-thumbnails-container 요소를 찾을 수 없습니다.');
+    }
+
     function closeCreatePostModal() {
         if (createPostModal) {
             createPostModal.style.display = 'none';
