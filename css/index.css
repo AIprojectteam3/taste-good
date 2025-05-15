@@ -662,8 +662,8 @@ body {
     align-items: center;
     justify-content: center;
     flex-direction : column;
-    width: 50%;
-    height: 50%;
+    width: 90%;
+    height: 90%;
     border : 5px dashed #ccc;
     border-radius : 15px;
 }
