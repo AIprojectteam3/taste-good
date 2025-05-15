@@ -29,23 +29,37 @@ document.addEventListener("DOMContentLoaded", () => {
         currentImages = images;
 
         // 2. 모달 이미지 영역 생성 (슬라이드 + 썸네일)
-            const modalImgDiv = document.querySelector('.modal-img');
-            modalImgDiv.innerHTML = `
-                <button class="slide-nav prev">‹</button>
-                <div class="slide-container" style="width:100%;height:calc(100% - 64px);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;position:relative;">
-                    <img class="slide-img" src="post_Tempdata/image/${images[0]}" alt="${data.title}" style="max-width:100%;max-height:calc(100% - 64px);object-fit:contain;display:block;margin:auto;">
-                    <div class="slide-thumbnails" style="width:100%;display:flex;justify-content:center;gap:8px;margin-top:10px;height:54px;">
-                        ${images.map((img, i) => `
-                            <img 
-                                src="post_Tempdata/image/${img}" 
-                                class="slide-thumb${i === 0 ? ' active' : ''}" 
-                                data-idx="${i}" 
-                                style="width:48px;height:48px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid ${i === 0 ? '#ff6b6b' : 'rgba(255,255,255,0.7)'};box-shadow:0 2px 6px rgba(0,0,0,0.08);background:#fff;">
-                        `).join('')}
-                    </div>
+        const modalImgDiv = document.querySelector('.modal-img');
+        modalImgDiv.innerHTML = `
+            <button class="slide-nav prev">‹</button>
+            <div class="slide-container"">
+                <img class="slide-img" src="post_Tempdata/image/${images[0]}" alt="${data.title}"">
+                <div class="slide-thumbnails">
+                    ${images.map((img, i) => `
+                        <img 
+                            src="post_Tempdata/image/${img}" 
+                            class="slide-thumb${i === 0 ? ' active' : ''}" 
+                            data-idx="${i}" 
+                            style="width:48px;height:48px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid ${i === 0 ? '#ff6b6b' : 'rgba(255,255,255,0.7)'};box-shadow:0 2px 6px rgba(0,0,0,0.08);background:#fff;">
+                    `).join('')}
                 </div>
-                <button class="slide-nav next">›</button>
-            `;
+            </div>
+            <button class="slide-nav next">›</button>
+        `;
+
+        const slideThumbnails = modalImgDiv.querySelector('.slide-thumbnails');
+        if (slideThumbnails) {
+            slideThumbnails.addEventListener('wheel', function(event) {
+                // event.deltaY가 0이 아닐 때 (즉, 수직 휠 움직임이 있을 때)
+                // 기본 페이지 스크롤을 막고 가로 스크롤을 수행합니다.
+                if (event.deltaY !== 0) {
+                    event.preventDefault(); // 수직 스크롤 방지
+                    slideThumbnails.scrollLeft += event.deltaY; // 가로 스크롤 적용
+                }
+            });
+        } else {
+            console.error('.slide-thumbnails 요소를 찾을 수 없습니다. DOM에 추가된 후인지 확인하세요.');
+        }
 
         // 3. 제목, 내용, 작성자 정보 세팅 (여기를 꼭 넣어야 함!)
         modalTitle.textContent = data.title;
