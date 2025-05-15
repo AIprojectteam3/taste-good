@@ -205,12 +205,12 @@ body {
 }
 
 .modal-left {
-    width : 60%;
+    width : 55%;
     height : 100%;
 }
 
 .modal-right {
-    width : 40%;
+    width : 45%;
     height : 100%;
 }
 
@@ -222,8 +222,6 @@ body {
     height : 100%;
     background-color : #000000;
 }
-
-
 
 .slide-thumbnails {
     width: 100%;
@@ -535,6 +533,35 @@ body {
     height : 100%;
     font-size : 0.9rem;
     color : gray;
+}
+
+.create-post-button {
+    position: fixed;
+    bottom: 30px;
+    right: 40px;
+    width: 65px;
+    height: 65px;
+    background-color: #FF6B6B;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+    z-index: 1050;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    opacity : 0.9;
+}
+
+.create-post-button:hover {
+    background-color: #e05252;
+}
+
+.create-post-button span {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
 }
 
 /* PC 환경 */
