@@ -116,13 +116,13 @@ body {
 }
 
 .post {
-    /* background-color: #fff;
+    background-color: #fff;
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     display: flex;
-    flex-direction: column; /* 이미지와 텍스트를 세로로 정렬 */
-    justify-content: space-between; /* 콘텐츠 간 간격 유지 */
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .post img {

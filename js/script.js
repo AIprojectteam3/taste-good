@@ -30,40 +30,40 @@ const cardData = [
 
 function updateContentAndContainerHeight() {
 
-    if (isMobile()) return;
+  if (isMobile()) return;
 
-    const content = document.querySelector('.content');
-    const computedStyle = window.getComputedStyle(content);
-    const container = document.querySelector('.container');
-    const cards = content.querySelectorAll('.card');
-    if (cards.length === 0) return;
+  const content = document.querySelector('.content');
+  const computedStyle = window.getComputedStyle(content);
+  const container = document.querySelector('.container');
+  const cards = content.querySelectorAll('.card');
+  if (cards.length === 0) return;
 
-    content.offsetHeight;
+  content.offsetHeight;
 
-    // 1. 실제 열 개수 계산 (첫 행에 있는 카드 개수)
-    let firstRowTop = cards[0].offsetTop;
-    let columns = 0;
-    for (let card of cards) {
-        if (card.offsetTop === firstRowTop) {
-            columns++;
-        } else {
-            break;
-        }
-    }
+  // 1. 실제 열 개수 계산 (첫 행에 있는 카드 개수)
+  let firstRowTop = cards[0].offsetTop;
+  let columns = 0;
+  for (let card of cards) {
+      if (card.offsetTop === firstRowTop) {
+          columns++;
+      } else {
+          break;
+      }
+  }
 
-    // 2. 행 개수 계산
-    const numRows = Math.ceil(cards.length / columns);
+  // 2. 행 개수 계산
+  const numRows = Math.ceil(cards.length / columns);
 
-    setTimeout(() => {
-        const cardHeight = cards[0].offsetHeight;
-        const contentGap = parseInt(computedStyle.gap);
-        const totalHeight = (numRows * cardHeight) + ((numRows - 1) * contentGap) + 40;
-        
-        content.style.height = totalHeight + 'px';
-        if (container) {
-            container.style.height = totalHeight + 'px';
-        }
-    }, 100);
+  setTimeout(() => {
+      const cardHeight = cards[0].offsetHeight;
+      const contentGap = parseInt(computedStyle.gap);
+      const totalHeight = (numRows * cardHeight) + ((numRows - 1) * contentGap) + 40;
+      
+      content.style.height = totalHeight + 'px';
+      if (container) {
+          container.style.height = totalHeight + 'px';
+      }
+  }, 100);
 }
 
 // 카드 생성 함수
@@ -114,7 +114,6 @@ function createCard(item, isPlaceholder = false) {
 
         return card;
     }
-
     // 이미지
     const img = document.createElement('img');
     img.src = "post_Tempdata/image/" + item.image_path;
@@ -169,102 +168,101 @@ function renderCards(startIndex = 0, count = 100) {
 
 // 그리드 행 높이 조정 함수
 function adjustGridRows() {
-    if (isMobile()) return;
+  if (isMobile()) return;
 
-    requestAnimationFrame(() => {
-        const grid = document.querySelector('.content');
-        const cards = grid.querySelectorAll('.card:not(.hidden)');
-        if (cards.length === 0) return;
+  requestAnimationFrame(() => {
+      const grid = document.querySelector('.content');
+      const cards = grid.querySelectorAll('.card:not(.hidden)');
+      if (cards.length === 0) return;
 
-        const cardWidth = cards[0].offsetWidth;
-        grid.style.gridAutoRows = `${cardWidth}px`;
-        cards.forEach(card => {
-            card.style.height = `${cardWidth}px`;
-        });
-    });
+      const cardWidth = cards[0].offsetWidth;
+      grid.style.gridAutoRows = `${cardWidth}px`;
+      cards.forEach(card => {
+          card.style.height = `${cardWidth}px`;
+      });
+  });
 }
 
 function isMobile() {
-    return window.matchMedia("(max-width: 768px)").matches;
+  return window.matchMedia("(max-width: 768px)").matches;
 }
 
-// 페이지 사이즈 변경될 때 마다 새로고침
 window.addEventListener('resize', () => {
     window.location.reload();
 });
 
 const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('active');
-        }
-    });
+  entries.forEach(entry => {
+      if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+      }
+  });
 }, { threshold: 0.5 });
 
 document.querySelectorAll('.card').forEach(card => {
-    observer.observe(card);
+  observer.observe(card);
 });
 
 // 초기 렌더링 및 이벤트 등록
 document.addEventListener("DOMContentLoaded", () => {
-    renderCards();
-    adjustGridRows();
+  renderCards();
+  adjustGridRows();
 
-    window.addEventListener('resize', () => {
-        adjustGridRows();
-    });
+  window.addEventListener('resize', () => {
+      adjustGridRows();
+  });
 
-    if (window.matchMedia("(max-width: 768px)").matches) {
-        const container = document.querySelector('.content');
-        const cards = Array.from(container.querySelectorAll('.card'));
-        let currentSlide = 0;
-        let isAnimating = false;
-        let touchStartY = 0;
-    
-        // 카드 높이 계산
-        const getCardHeight = () => cards[0]?.offsetHeight || window.innerHeight;
-    
-        // 터치 시작 이벤트
-        container.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        });
-    
-        // 터치 종료 이벤트
-        container.addEventListener('touchend', (e) => {
-            if (isAnimating || cards.length === 0) return;
-            const touchEndY = e.changedTouches[0].clientY;
-            const deltaY = touchStartY - touchEndY;
-            const direction = deltaY > 0 ? 1 : -1;
-            const newIndex = Math.min(
-                Math.max(currentSlide + direction, 0),
-                cards.length - 1
-            );
-            if (newIndex !== currentSlide) {
-                currentSlide = newIndex;
-                isAnimating = true;
-                // 기존 scrollTo 대신 scrollIntoView 사용
-                cards[currentSlide].scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'
-                });
-                setTimeout(() => {
-                    isAnimating = false;
-                }, 500); // 애니메이션 시간에 맞게 조정
-            }
-        });
-    
-        // 물리적 스크롤 방지
-        container.addEventListener('scroll', () => {
-            if (!isAnimating) {
-                container.scrollTo({
-                    top: currentSlide * getCardHeight(),
-                    behavior: 'auto'
-                });
-            }
-        });
-    }
+  if (window.matchMedia("(max-width: 768px)").matches) {
+      const container = document.querySelector('.content');
+      const cards = Array.from(container.querySelectorAll('.card'));
+      let currentSlide = 0;
+      let isAnimating = false;
+      let touchStartY = 0;
+  
+      // 카드 높이 계산
+      const getCardHeight = () => cards[0]?.offsetHeight || window.innerHeight;
+  
+      // 터치 시작 이벤트
+      container.addEventListener('touchstart', (e) => {
+          touchStartY = e.touches[0].clientY;
+      });
+  
+      // 터치 종료 이벤트
+      container.addEventListener('touchend', (e) => {
+          if (isAnimating || cards.length === 0) return;
+          const touchEndY = e.changedTouches[0].clientY;
+          const deltaY = touchStartY - touchEndY;
+          const direction = deltaY > 0 ? 1 : -1;
+          const newIndex = Math.min(
+              Math.max(currentSlide + direction, 0),
+              cards.length - 1
+          );
+          if (newIndex !== currentSlide) {
+              currentSlide = newIndex;
+              isAnimating = true;
+              // 기존 scrollTo 대신 scrollIntoView 사용
+              cards[currentSlide].scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'center'
+              });
+              setTimeout(() => {
+                  isAnimating = false;
+              }, 500); // 애니메이션 시간에 맞게 조정
+          }
+      });
+  
+      // 물리적 스크롤 방지
+      container.addEventListener('scroll', () => {
+          if (!isAnimating) {
+              container.scrollTo({
+                  top: currentSlide * getCardHeight(),
+                  behavior: 'auto'
+              });
+          }
+      });
+  }
 
-    const cards = document.querySelectorAll('.card');
+  const cards = document.querySelectorAll('.card');
 
     const modalImg = document.querySelector('.modal-img > img');
     const modalTitle = document.querySelector('.post-title');
