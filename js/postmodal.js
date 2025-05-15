@@ -2,7 +2,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentSlideIndex = 0;
     let currentImages = [];
 
-    const cards = document.querySelectorAll('.card');
     const modalTitle = document.querySelector('.post-title');
     const modalContent = document.querySelector('.post-content');
     const modalUserImg = document.querySelector('.post-user .user-profile-img img');
