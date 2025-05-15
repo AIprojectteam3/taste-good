@@ -342,6 +342,7 @@ function handleSwipe() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    
     sentinel = document.createElement('div');
     sentinel.id = 'sentinel';
     

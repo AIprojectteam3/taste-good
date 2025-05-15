@@ -6,11 +6,13 @@
     <title>조합 추천 페이지</title>
     <link rel = "stylesheet" href = "css/index.css">
     <link rel = "stylesheet" href = "css/menu.css">
+    <link rel = "stylesheet" href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <script src = "js/DummyData/data.js"></script>
     <script src = "js/script.js"></script>
     <script src = "js/postmodal.js"></script>
     <script src = "js/index_mobile/comment_modal.js"></script>
+    <script src = "js/createPostModal.js"></script>
 </head>
 <body>
     <div class="container">
@@ -192,7 +194,32 @@
     </div>
 
     <div id = "openPostModalBtn" class = "create-post-button">
-        <span>+</span>
+        <i class="fas fa-plus"></i>
+    </div>
+
+    <div id="createPostFormModal" class="create-post-form-overlay">
+        <div class="create-post-form-window">
+            <div class="create-post-form-left">
+                <input type="file" id="createPostImageUpload" accept="image/*" multiple style="display: none;">
+                <div class="create-post-slider-area">
+                    <div class="create-post-main-image-container" id="createPostSliderMain">
+                        <!-- 이미지 슬라이드 및 '사진 추가' 슬라이드가 여기에 동적으로 삽입됩니다. -->
+                    </div>
+                    <!-- 슬라이드 네비게이션 버튼 -->
+                    <button class="create-post-slide-nav prev" id="createPostNavPrev" style="display: none;">‹</button>
+                    <button class="create-post-slide-nav next" id="createPostNavNext" style="display: none;">›</button>
+                    
+                    <div class="create-post-thumbnails-container" id="createPostThumbnails">
+                        <!-- 썸네일 및 '사진 추가' 썸네일이 여기에 동적으로 삽입됩니다. -->
+                    </div>
+                </div>
+            </div>
+            <div class="create-post-form-right">
+                <input type="text" id="createPostTitle" placeholder="제목을 입력하세요">
+                <textarea id="createPostContent" placeholder="내용을 입력하세요"></textarea>
+                <button id="submitCreatePostBtn">게시</button>
+            </div>
+        </div>
     </div>
 
     <!-- 모바일 하단 네비게이션 -->
