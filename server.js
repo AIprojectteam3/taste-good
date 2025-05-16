@@ -328,6 +328,7 @@ app.get('/naver/callback', async (req, res) => {
 //                 window.location.href = data.redirectUrl;
 //             } else {
 //                 // 실패 시 에러 메시지 표시
+
 //                 alert(data.message);
 //             }
 //         })
