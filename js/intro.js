@@ -1,5 +1,3 @@
-console.log("intro.js 파일이 로드되었습니다.");
-
 document.addEventListener('DOMContentLoaded', () => {
     // 스크롤 복원 방지
     if ('scrollRestoration' in history) {
@@ -220,83 +218,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Kakao SDK 초기화
     if (window.Kakao) {
-        window.Kakao.init("0ad0234b4cdaf5ff61c8c89276f01dcf"); // 카카오 JavaScript 키
+        window.Kakao.init("0a67ccd23eeb991c84d7900835e98db7");
         console.log("Kakao SDK 초기화 완료");
     } else {
         console.error("Kakao SDK 로드 실패");
     }
 
     // 카카오 로그인 함수
-    async function kakaoLogin() {
-        window.Kakao.Auth.authorize({
-            redirectUri: 'http://localhost:3000/kakao/callback', // Redirect URI
+    function kakaoLogin() {
+        window.Kakao.Auth.login({
+            scope: 'profile, account_email',
+            success: function (authObj) {
+                console.log(authObj);
+                window.Kakao.API.request({
+                    url: '/v2/user/me',
+                    success: function (res) {
+                        const kakao_account = res.kakao_account;
+                        console.log(kakao_account);
+                    },
+                    fail: function (error) {
+                        console.error(error);
+                    },
+                });
+            },
+            fail: function (err) {
+                console.error(err);
+            },
         });
-
-        // // 서버에서 사용자 정보를 가져오는 로직
-        // const response = await fetch('/kakao/callback');
-        // const result = await response.json();
-
-        // if (result.success) {
-        //     console.log('카카오 사용자 정보:', result.user);
-        //     alert(`환영합니다, ${result.user.properties.nickname}님!`);
-        // } else {
-        //     alert('카카오 로그인 실패');
-        // }
-    }
-
-    // 네이버 로그인 함수
-    function naverLogin() {
-        const clientId = '4tm4ibvzRt4UK09un3v9'; // 네이버 개발자 센터에서 발급받은 클라이언트 ID
-        const redirectUri = encodeURIComponent('http://localhost:3000/naver/callback'); // Redirect URI
-        const state = encodeURIComponent('random_state_string'); // CSRF 방지를 위한 상태 값
-
-        // 네이버 로그인 URL
-        const naverAuthUrl = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`;
-
-        // 네이버 로그인 페이지로 리다이렉트
-        window.location.href = naverAuthUrl;
     }
 
     // 로그인 버튼 이벤트
     // document.querySelector('.kakao-login-btn').addEventListener('click', kakaoLogin);
-    document.getElementById('kakaoSignBtn').addEventListener('click', kakaoLogin);
-
-    document.getElementById('loginButton').addEventListener('click', () => {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-
-        if (!email || !password) {
-            alert('이메일과 비밀번호를 입력해주세요.');
-            return;
-        }
-
-        fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 성공 시 리다이렉트
-                    window.location.href = data.redirectUrl;
-                } else {
-                    // 실패 시 에러 메시지 표시
-                    alert(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('로그인 처리 중 오류:', error);
-                alert('로그인 중 문제가 발생했습니다. 다시 시도해주세요.');
-            });
-    });또또
-
-    const obj = { key: "value", key2: "value2" }; // 콤마 누락 수정
-
-    // 수정된 JSON
-    const jsonString = '{ "key": "value" }';
-    const parsed = JSON.parse(jsonString);
-    
+    document.querySelector('.kakaoSignBtn').addEventListener('click', kakaoLogin());
 });
-
-
