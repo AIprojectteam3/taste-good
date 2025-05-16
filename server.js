@@ -254,7 +254,74 @@ app.listen(PORT, () => {
 //         headers: { 'Content-Type': 'application/json' },
 //         body: JSON.stringify({ email, password }),
 //     })
-//         .then(response => response.json())
+//         .then(response => response.json())// ...existing code...
+// 네이버 콜백 처리
+app.get('/naver/callback', async (req, res) => {
+    const { code, state } = req.query;
+
+    try {
+        // 네이버 인증 서버에서 액세스 토큰 요청
+        const tokenResponse = await axios.post('https://nid.naver.com/oauth2.0/token', null, {
+            params: {
+                grant_type: 'authorization_code',
+                client_id: NAVER_CLIENT_ID, // 네이버 클라이언트 ID
+                client_secret: NAVER_CLIENT_SECRET, // 네이버 클라이언트 시크릿
+                code, // 인가 코드
+                state, // CSRF 방지를 위한 상태 값
+            },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
+
+        const accessToken = tokenResponse.data.access_token;
+
+        // 액세스 토큰을 사용해 사용자 정보 요청
+        const userResponse = await axios.get('https://openapi.naver.com/v1/nid/me', {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+
+        const naverUser = userResponse.data.response;
+        console.log('네이버 사용자 정보:', naverUser);
+
+        // 사용자 정보 매핑
+        const sns_id = naverUser.id;
+        const username = naverUser.name || naverUser.nickname;
+        const email = naverUser.email;
+
+        // 1. sns_id로 기존 유저 조회
+        const selectQuery = 'SELECT * FROM users WHERE sns_id = ?';
+        db.query(selectQuery, [sns_id], (err, rows) => {
+            if (err) {
+                console.error('DB 조회 중 오류:', err);
+                return res.redirect('/');
+            }
+
+            if (rows.length > 0) {
+                // 이미 가입된 유저 → 로그인 처리(세션/토큰 등) 후 리다이렉트
+                console.log('이미 가입된 유저:', rows[0]);
+                return res.redirect('/index.html');
+            } else {
+                // 신규 유저 → 회원가입
+                const insertQuery = 'INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)';
+                db.query(insertQuery, [sns_id, username, email], (err, result) => {
+                    if (err) {
+                        console.error('DB 삽입 중 오류:', err);
+                        return res.redirect('/');
+                    }
+                    console.log('신규 유저 가입 성공:', result);
+                    res.redirect('/index.html');
+                });
+            }
+        });
+    } catch (error) {
+        console.error('네이버 로그인 오류:', error.response?.data || error.message);
+        res.status(500).send('네이버 로그인 실패');
+    }
+});
+// ...existing code...
 //         .then(data => {
 //             if (data.success) {
 //                 // 성공 시 리다이렉트
