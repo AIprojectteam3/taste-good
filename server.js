@@ -3,6 +3,7 @@ const path = require('path');
 const mysql = require('mysql2');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 
 const app = express();
 const PORT = 3000;
@@ -13,6 +14,10 @@ const JWT_SECRET = 'YOUR_JWT_SECRET';
 //4tm4ibvzRt4UK09un3v9 naver key
 const NAVER_CLIENT_ID = '4tm4ibvzRt4UK09un3v9';
 const NAVER_CLIENT_SECRET = 'aEIsjYJR1G';
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // 폼 데이터 처리를 위해 추가
+app.use(express.static(path.join(__dirname)));
 
 // JSON 요청 본문 처리
 app.use(express.json());
@@ -462,6 +467,87 @@ app.get('/api/user', (req, res) => {
             //     if (destroyErr) console.error('[ERROR] /api/user - Session destroy failed:', destroyErr);
             // });
             return res.json(null); // 클라이언트에서 비로그인 처리하도록 null 반환
+        }
+    });
+});
+
+// ==================================================================================================================
+// 게시글 DB에 저장
+// ==================================================================================================================
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = 'post/uploadImage/'; // 원하는 새 경로
+        // fs.mkdirSync(uploadPath, { recursive: true }); // 필요시 동기적으로 폴더 생성 (아래 주의사항 참고)
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ storage: storage });
+
+app.post('/api/createPost', upload.array('images', 10), (req, res) => { // 'images'는 클라이언트에서 보낸 파일 필드명, 최대 5개
+    // 1. 로그인 상태 확인
+    if (!req.session || !req.session.userId) {
+        return res.status(401).json({ success: false, message: '게시물을 작성하려면 로그인이 필요합니다.' });
+    }
+    const userId = req.session.userId; // 세션에서 사용자 ID 가져오기
+
+    const { title, content } = req.body; // 폼 데이터에서 제목과 내용 가져오기
+    const files = req.files; // 업로드된 파일 정보 (배열)
+
+    // 2. 제목 및 내용 유효성 검사
+    if (!title || title.trim() === '') {
+        return res.status(400).json({ success: false, message: '제목을 입력해주세요.' });
+    }
+    if (!content || content.trim() === '') {
+        return res.status(400).json({ success: false, message: '내용을 입력해주세요.' });
+    }
+
+    // 3. posts 테이블에 게시물 정보 삽입
+    const insertPostQuery = 'INSERT INTO posts (user_id, title, content) VALUES (?, ?, ?)';
+    db.query(insertPostQuery, [userId, title, content], (err, postResult) => {
+        if (err) {
+            console.error('DB posts 테이블 삽입 중 오류:', err);
+            return res.status(500).json({ success: false, message: '게시물 저장 중 서버 오류가 발생했습니다.' });
+        }
+
+        const postId = postResult.insertId; // 방금 삽입된 게시물의 ID
+
+        // 4. files 테이블에 파일 정보 삽입 (업로드된 파일이 있는 경우)
+        if (files && files.length > 0) {
+            const fileInsertPromises = files.map(file => {
+                return new Promise((resolve, reject) => {
+                    const insertFileQuery = 'INSERT INTO files (post_id, file_name, file_path, file_type) VALUES (?, ?, ?, ?)';
+                    // file.filename: multer가 생성한 파일명
+                    // file.path: multer가 저장한 전체 경로 (예: "uploads/images-1612345678901-123456789.jpg")
+                    // file.mimetype: 파일의 MIME 타입 (예: "image/jpeg")
+                    db.query(insertFileQuery, [postId, file.filename, file.path, file.mimetype], (fileErr, fileResult) => {
+                        if (fileErr) {
+                            console.error('DB files 테이블 삽입 중 오류:', fileErr);
+                            return reject(fileErr); // 오류 발생 시 Promise reject
+                        }
+                        resolve(fileResult); // 성공 시 Promise resolve
+                    });
+                });
+            });
+
+            Promise.all(fileInsertPromises)
+                .then(() => {
+                    res.json({ success: true, message: '게시물과 이미지가 성공적으로 등록되었습니다.', postId: postId });
+                })
+                .catch(promiseErr => {
+                    // 게시물은 등록되었으나 파일 정보 저장 중 오류 발생.
+                    // 실제 프로덕션 환경에서는 롤백(트랜잭션 처리)을 고려해야 합니다.
+                    console.error('파일 정보 일괄 추가 중 오류 발생:', promiseErr);
+                    res.status(500).json({ success: false, message: '게시물은 등록되었으나, 파일 정보 저장 중 오류가 발생했습니다.' });
+                });
+        } else {
+            // 업로드된 파일이 없는 경우
+            res.json({ success: true, message: '게시물이 성공적으로 등록되었습니다 (이미지 없음).', postId: postId });
         }
     });
 });
