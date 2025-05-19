@@ -340,18 +340,64 @@ document.addEventListener('DOMContentLoaded', function() {
     // 게시 버튼 클릭 이벤트
     if (submitCreatePostBtn) {
         submitCreatePostBtn.addEventListener('click', function() {
-            const title = createPostTitleInput.value;
-            const content = createPostContentInput.value;
+            const title = createPostTitleInput.value.trim(); // 양쪽 공백 제거
+            const content = createPostContentInput.value.trim(); // 양쪽 공백 제거
             const imageFiles = uploadedFilesForCreatePost.map(item => item.file);
 
-            console.log('새 게시물 제목:', title);
-            console.log('새 게시물 내용:', content);
-            if (imageFiles.length > 0) {
-                imageFiles.forEach(file => console.log('새 게시물 이미지 파일:', file.name));
+            // 클라이언트 측 유효성 검사 (선택 사항이지만 권장)
+            if (!title) {
+                alert('제목을 입력해주세요.');
+                createPostTitleInput.focus();
+                return;
+            }
+            if (!content) {
+                alert('내용을 입력해주세요.');
+                createPostContentInput.focus();
+                return;
             }
 
-            closeCreatePostModal(); // 게시 후 모달 닫기
-            alert('게시물이 등록되었습니다! (실제 서버 연동 필요)');
+            // FormData 객체 생성
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('content', content);
+
+            // 이미지 파일들을 FormData에 추가
+            // 서버의 upload.array('images', 10)에서 'images'와 필드명이 일치해야 합니다.
+            imageFiles.forEach((file, index) => {
+                formData.append('images', file, file.name); // file.name을 세 번째 인자로 전달하는 것이 좋습니다.
+            });
+
+            // 서버로 데이터 전송
+            fetch('/api/createPost', { // server.js에 정의된 API 엔드포인트
+                method: 'POST',
+                // FormData를 사용할 때는 'Content-Type' 헤더를 명시적으로 설정하지 않아도
+                // 브라우저가 자동으로 'multipart/form-data'로 설정하고 boundary를 추가해줍니다.
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // 서버에서 에러 응답 (4xx, 5xx)을 보낸 경우
+                    return response.json().then(errData => {
+                        throw new Error(errData.message || `서버 오류: ${response.status}`);
+                    });
+                }
+                return response.json(); // 성공적인 응답 (보통 200, 201)
+            })
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || '게시물이 성공적으로 등록되었습니다.');
+                    closeCreatePostModal(); // 성공 시 모달 닫기
+                    // 필요하다면 게시물 목록 새로고침 등의 추가 작업 수행
+                    // 예: window.location.reload(); 또는 특정 함수 호출
+                } else {
+                    // 서버에서 success: false를 반환했지만 HTTP 상태 코드는 2xx인 경우 (잘못된 설계일 수 있음)
+                    alert(data.message || '게시물 등록에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                console.error('게시물 생성 요청 중 오류 발생:', error);
+                alert(error.message || '게시물 등록 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+            });
         });
     }
 
