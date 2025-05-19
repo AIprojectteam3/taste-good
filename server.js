@@ -4,6 +4,7 @@ const mysql = require('mysql2');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const fs = require('fs'); // 상단에 추가
 
 const app = express();
 const PORT = 3000;
@@ -27,9 +28,9 @@ const users = [];
 // MySQL 연결 설정
 const db = mysql.createConnection({
   host: 'localhost',            // MySQL 서버 주소
-  port: 3306,                   // MySQL 포트 번호
+  port: 8306,                   // MySQL 포트 번호
   user: 'root',                 // MySQL 사용자 이름
-  password: '',                 // MySQL 비밀번호
+  password: '0000',                 // MySQL 비밀번호
   database: 'taste_good',       // 사용할 데이터베이스 이름
 });
 
@@ -346,7 +347,7 @@ app.get('/naver/callback', async (req, res) => {
                     // const insertAllergyQuery = 'INSERT INTO user_allergies (user_id) VALUES (?)';
                     // db.query(insertAllergyQuery, [userId], (errAlg) => {
                     //     if (errAlg) console.error('[ERROR] /naver/callback - Inserting into user_allergies failed for userId:', userId, errAlg);
-                        
+                    
                     // 3. 세션 저장 후 리다이렉션 (부가 정보 삽입이 없으므로 바로 실행)
                     req.session.save(errSave => {
                         if (errSave) {
@@ -378,10 +379,6 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// 서버 시작
-app.listen(PORT, () => {
-    console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
-});
 
 // // 예: HTML 폼에서 입력값 가져오기
 // document.getElementById('loginButton').addEventListener('click', () => {
@@ -476,8 +473,11 @@ app.get('/api/user', (req, res) => {
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadPath = 'post/uploadImage/'; // 원하는 새 경로
-        // fs.mkdirSync(uploadPath, { recursive: true }); // 필요시 동기적으로 폴더 생성 (아래 주의사항 참고)
+        const uploadPath = 'post/uploadImage/';
+        // 폴더가 없으면 생성
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
         cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
@@ -548,6 +548,25 @@ app.post('/api/createPost', upload.array('images', 10), (req, res) => { // 'imag
             // 업로드된 파일이 없는 경우
             res.json({ success: true, message: '게시물이 성공적으로 등록되었습니다 (이미지 없음).', postId: postId });
         }
+    });
+});
+
+// posts, files에서 데이터 조회 API
+app.get('/api/my-posts', (req, res) => {
+    const sql = `
+        SELECT p.id, p.title, f.file_path
+        FROM posts p
+        LEFT JOIN files f ON p.id = f.post_id
+        GROUP BY p.id
+        ORDER BY p.id DESC
+    `;
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: err });
+        const data = results.map(row => ({
+            title: row.title,
+            image_path: row.file_path ? row.file_path : 'default.jpg'
+        }));
+        res.json(data);
     });
 });
 

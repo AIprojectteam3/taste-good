@@ -1,21 +1,4 @@
 // 데이터 배열
-const mypostData = [
-    { title: '더미 게시글', image_path: '0001.jpg' },
-    { title: '더미 게시글', image_path: '0002.jpg' },
-    { title: '더미 게시글', image_path: '0003.jpg' },
-    { title: '더미 게시글', image_path: '0004.jpg' },
-    { title: '더미 게시글', image_path: '0005.png' },
-    { title: '더미 게시글', image_path: '0006.jpg' },
-    { title: '더미 게시글', image_path: '0007.jpg' },
-    { title: '더미 게시글', image_path: '0008.png' },
-    { title: '더미 게시글', image_path: '0009.webp' },
-    { title: '더미 게시글', image_path: '0010.jpg' },
-    { title: '더미 게시글', image_path: '0011.jpg' },
-    { title: '더미 게시글', image_path: '0012.png' },
-    { title: '더미 게시글', image_path: '0013.jpg' },
-    // ... 추가 데이터
-];
-
 const bookmarkData = [
     { title: '더미 게시글', image_path: '0014.jpg' },
     { title: '더미 게시글', image_path: '0015.jpg' },
@@ -279,10 +262,13 @@ document.querySelectorAll('.card').forEach(card => {
 });
 
   // 초기 렌더링 및 이벤트 등록
-document.addEventListener("DOMContentLoaded", () => {
-    
+document.addEventListener("DOMContentLoaded", async () => {
+    // 기존 mypostData 사용 대신 fetch로 데이터 받아오기
+    const response = await fetch('/api/my-posts');
+    const mypostData = await response.json();
+
     renderCardsTo('.tab-content#my-posts', mypostData);
-    renderCardsTo('.tab-content#favorites', bookmarkData);
+    renderCardsTo('.tab-content#favorites', bookmarkData); // 즐겨찾기는 별도 처리
     adjustGridRows();
 
     window.addEventListener('resize', () => {
