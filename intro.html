@@ -52,6 +52,7 @@
             <div class="container">
                 <!-- 회원가입 -->
                 <div class="container__form container--signup">
+                    <button class="modal-close-btn mobile-only" aria-label="닫기">&times;</button>
                     <form action="#" class="form" id="form1">
                         <h2 class="form__title">Sign Up</h2>
                         <input type="text" name="username" placeholder="닉네임" class="input" />
@@ -61,8 +62,8 @@
 
                         <div class="address-group">
                             <div class="address-row">
-                                <input type="text" name="address" id="address" placeholder="주소" class="input" readonly />
-                                <button type="button" id="searchAddress" class="address-btn">주소 검색</button>
+                                <input type="text" class = "input" id="address" name="address" placeholder="주소" required />
+                                <button type="button" class="address-btn" id="searchAddress"><span>검색</span></button>
                             </div>
                             <input type="text" name="detailAddress" id="detailAddress" placeholder="상세 주소" class="input" />
                         </div>
@@ -70,12 +71,24 @@
                         <button class="btn">Sign Up</button>
                     </form>
                     <!-- <a href="javascript:kakaolLogin():"><img src = "image/kakao_signup_large_wide.png" alt = "카카오로 로그인"></a> -->
-                    <button class = "SignApiBtn"><a href="javascript:kakaolLogin():"><img src = "image/kakao_signup_large_wide.png" alt = "카카오로 로그인"></a></button>
-                    <button class = "SignApiBtn"><a href="#"><img src = "image/Naver_signup.png" alt = "네이버로 로그인"></a></button>
+                    <div class = "socialDiv">
+                        <hr>
+                        <span>또는</span>
+                        <hr>
+                    </div>
+                    <div class = "socialBtnDiv social_sign">
+                        <button class = "SignApiBtn"><a href="javascript:kakaolLogin():"><img src = "image/kakaotalk-icon.png" alt = "카카오로 로그인"></a></button>
+                        <button class = "SignApiBtn"><a href="#"><img src = "image/naver-icon.png" alt = "네이버로 로그인"></a></button>
+                    </div>
+                    <p class="toggle-link mobile-only">
+                        이미 계정이 있으신가요?
+                        <a href="#" id="show-login">로그인</a>
+                    </p>
                 </div>
             
                 <!-- 로그인 -->
                 <div class="container__form container--signin">
+                    <button class="modal-close-btn mobile-only" aria-label="닫기">&times;</button>
                     <form action="#" class="form" id="form2">
                         <h2 class="form__title">Sign In</h2>
                         <input type="email" placeholder="이메일" class="input" />
@@ -83,9 +96,20 @@
                         <a href="#" class="link">Forgot your password?</a>
                         <button class="btn">Sign In</button>
                     </form>
+                    <div class = "socialDiv">
+                        <hr>
+                        <span>또는</span>
+                        <hr>
+                    </div>
                     <!-- <a href="javascript:kakaolLogin():"><img src = "image/kakao_login_large_wide.png" alt = "카카오로 로그인"></a> -->
-                    <button class = "SignApiBtn"><a href="javascript:kakaolLogin():"><img src = "image/kakao_login_large_wide.png" alt = "카카오로 로그인"></a></button>
-                    <button class = "SignApiBtn"><a href="#"><img src = "image/Naver_login.png" alt = "네이버로 로그인"></a></button>
+                    <div class = "socialBtnDiv social_login">
+                        <button class = "SignApiBtn"><a href="javascript:kakaolLogin():"><img src = "image/kakaotalk-icon.png" alt = "카카오로 로그인"></a></button>
+                        <button class = "SignApiBtn"><a href="#"><img src = "image/naver-icon.png" alt = "네이버로 로그인"></a></button>
+                    </div>
+                    <p class="toggle-link mobile-only">
+                        계정이 없으신가요?
+                        <a href="#" id="show-signup">회원가입</a>
+                    </p>
                 </div>
 
                 <!-- 오버레이 -->
