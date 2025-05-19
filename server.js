@@ -44,7 +44,22 @@ app.get('/', (req, res) => {
 });
 
 // 정적 파일 제공
-app.use(express.static(path.join(__dirname)));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'intro.html'));
+});
+app.use(express.static(path.join(__dirname))); // 정적 파일 제공
+
+const session = require('express-session');
+
+app.use(session({
+    secret: 'aVeryL0ngAndRandomStringThatIsHardToGuess!@#$%^&*()', // 세션 암호화 키 (보안상 중요)
+    resave: false,                      // 세션이 변경되지 않아도 다시 저장할지 여부
+    saveUninitialized: true,            // 초기화되지 않은 세션을 저장소에 저장할지 여부
+    cookie: {
+        secure: false,                   // HTTPS 환경에서는 true로 설정
+        maxAge: 1000 * 60 * 60 * 24     // 쿠키 유효 기간 (예: 1일)
+    }
+}));
 
 // ===============================================================================================================================================
 // 회원가입 처리
@@ -137,9 +152,9 @@ app.post('/api/login', (req, res) => {
 
     const { email, password } = req.body;
 
-    // if (!email || !password) {
-    //     return res.json({ success: false, message: '모든 필드를 입력해주세요.' });
-    // }
+    if (!email || !password) {
+        return res.json({ success: false, message: '모든 필드를 입력해주세요.' });
+    }
 
     const query = 'SELECT * FROM users WHERE email = ? AND password = ?';
     console.log('실행 쿼리:', query, [email, password]); // 디버깅용 로그
@@ -152,10 +167,12 @@ app.post('/api/login', (req, res) => {
 
         if (results.length > 0) {
             const user = results[0];
+            req.session.userId = user.id; // 세션에 사용자 ID 저장
+            req.session.isLoggedIn = true; // 로그인 상태 플래그 저장
             console.log('로그인 성공:', user);
 
             // 로그인 성공 시 JSON 응답 반환
-            return res.json({ success: true, message: '로그인 성공!' });
+            return res.json({ success: true, message: '로그인 성공!', redirectUrl: '/index.html' });
         } else {
             res.json({ success: false, message: '로그인 실패: 이메일 또는 비밀번호가 잘못되었습니다.' });
         }
@@ -197,26 +214,68 @@ app.get('/kakao/callback', async (req, res) => {
         const username = kakaoUser.kakao_account.profile.nickname;
         const email = kakaoUser.kakao_account.email;
 
-        // 데이터베이스에 사용자 정보 삽입
-        const query = `
-            INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)
-            `;
-
-        db.query(query, [sns_id, username, email], (err, result) => {
+        // 1. sns_id로 기존 유저 조회
+        const selectQuery = 'SELECT * FROM users WHERE sns_id = ?';
+        db.query(selectQuery, [sns_id], (err, rows) => {
             if (err) {
-                console.error('DB 삽입 중 오류 발생:', err);
-                if (err.code === 'ER_DUP_ENTRY') {
-                    console.log('이미 존재하는 sns_id:', sns_id);
-                }
-                return res.redirect('/'); // 에러 발생 시 리다이렉트
+                console.error('DB 조회 중 오류 발생:', err);
+                return res.redirect('/');
             }
 
-            console.log('DB 삽입 성공:', result);
-            res.redirect('/index.html'); // 성공 시 리다이렉트
+            if (rows.length > 0) {
+                const dbUser = rows[0];
+                req.session.userId = dbUser.id; // 세션에 사용자 ID 저장
+                req.session.isLoggedIn = true;  // 세션에 로그인 상태 저장
+                req.session.save(errSave => { // 세션 저장 후 리다이렉트
+                    if (errSave) {
+                        console.error('[ERROR] /kakao/callback - Session save failed for existing user:', dbUser.id, errSave);
+                        return res.redirect('/');
+                    }
+                    console.log('카카오 기존 사용자 로그인 성공, 세션 저장:', req.session);
+                    return res.redirect('/index.html');
+                });
+            } else { // 신규 사용자
+                // sns_type을 사용하지 않으므로, INSERT 쿼리에서 해당 컬럼 및 값 제거
+                const insertUserQuery = 'INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)';
+                db.query(insertUserQuery, [sns_id, username, email], (errInsertUser, result) => {
+                    if (errInsertUser) {
+                        console.error('[ERROR] /kakao/callback - DB users insert query failed:', errInsertUser);
+                        if (errInsertUser.code === 'ER_DUP_ENTRY' && email) {
+                            return res.status(409).send('이미 가입된 이메일입니다. 다른 방법으로 로그인해주세요.');
+                        }
+                        return res.redirect('/');
+                    }
+
+                    const userId = result.insertId;
+
+                    // 1. 세션 정보 설정
+                    req.session.userId = userId;
+                    req.session.isLoggedIn = true;
+                    console.log('[INFO] /kakao/callback - New Kakao user registered, userId:', userId, '. Session data set.');
+
+                    // 2. 부가 정보 삽입 (DB 트리거를 사용하지 않는 경우)
+                    // 예: user_allergies 테이블 삽입 (user_levels, user_points는 DB 스키마의 DEFAULT 값 또는 트리거로 처리 가정)
+                    // 만약 user_allergies도 트리거 등으로 처리한다면 이 부분은 생략 가능
+                    const insertAllergyQuery = 'INSERT INTO user_allergies (user_id) VALUES (?)';
+                    db.query(insertAllergyQuery, [userId], (errAlg) => {
+                        if (errAlg) console.error('[ERROR] /kakao/callback - Inserting into user_allergies failed for userId:', userId, errAlg);
+                        
+                        // 3. 세션 저장 후 리다이렉션 (가장 안쪽 콜백에서 수행)
+                        req.session.save(errSave => {
+                            if (errSave) {
+                                console.error('[ERROR] /kakao/callback - Session save failed for new user:', userId, errSave);
+                                return res.redirect('/');
+                            }
+                            console.log('[INFO] /kakao/callback - Session saved. Redirecting to /index.html for new user:', userId);
+                            return res.redirect('/index.html'); // 최종 리다이렉션
+                        });
+                    });
+                });
+            }
         });
     } catch (error) {
-        console.error('카카오 로그인 오류:', error.response?.data || error.message);
-        res.status(500).send('카카오 로그인 실패');
+        console.error('카카오 로그인 중 예외 발생:', error.response?.data || error.message);
+        res.status(500).send('카카오 로그인 처리 중 오류가 발생했습니다.');
     }
 });
 
@@ -252,30 +311,72 @@ app.get('/naver/callback', async (req, res) => {
         console.log('네이버 사용자 정보:', naverUser);
 
         // 사용자 정보 매핑
-        const sns_id = naverUser.id; // 네이버 고유 ID
-        const username = naverUser.name || naverUser.nickname; // 이름 또는 닉네임
-        const email = naverUser.email; // 이메일
+        const sns_id = naverUser.id;
+        const username = naverUser.name || naverUser.nickname;
+        const email = naverUser.email;
 
-        // 데이터베이스에 사용자 정보 삽입
-        const query = `
-            INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)
-        `;
-
-        db.query(query, [sns_id, username, email], (err, result) => {
+        // 1. sns_id로 기존 유저 조회
+        const selectQuery = 'SELECT * FROM users WHERE sns_id = ?';
+        db.query(selectQuery, [sns_id], (err, rows) => {
             if (err) {
-                console.error('DB 삽입 중 오류 발생:', err);
-                if (err.code === 'ER_DUP_ENTRY') {
-                    console.log('이미 존재하는 sns_id:', sns_id);
-                }
-                return res.redirect('/'); // 에러 발생 시 리다이렉트
+                console.error('DB 조회 중 오류:', err);
+                return res.redirect('/');
             }
 
-            console.log('DB 삽입 성공:', result);
-            res.redirect('/index.html'); // 성공 시 리다이렉트
+            if (rows.length > 0) {
+                const dbUser = rows[0];
+                req.session.userId = dbUser.id; // 세션에 사용자 ID 저장
+                req.session.isLoggedIn = true;  // 세션에 로그인 상태 저장
+                req.session.save(errSave => { // 세션 저장 후 리다이렉트
+                    if (errSave) {
+                        console.error('[ERROR] /naver/callback - Session save failed for existing user:', dbUser.id, errSave);
+                        return res.redirect('/');
+                    }
+                    console.log('네이버 기존 사용자 로그인 성공, 세션 저장:', req.session);
+                    return res.redirect('/index.html');
+                });
+            } else { // 신규 네이버 연동 사용자
+                // users 테이블에 sns_type 컬럼이 있다면 "naver" 값을 함께 저장
+                const insertUserQuery = 'INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)';
+                db.query(insertUserQuery, [sns_id, username, email], (errInsertUser, result) => {
+                    if (errInsertUser) {
+                        console.error('[ERROR] /naver/callback - DB users insert query failed:', errInsertUser);
+                        if (errInsertUser.code === 'ER_DUP_ENTRY' && email) { // 이메일 중복 시
+                            return res.status(409).send('이미 가입된 이메일입니다. 다른 방법으로 로그인해주세요.');
+                        }
+                        return res.redirect('/'); // 기타 DB 삽입 오류
+                    }
+
+                    const userId = result.insertId;
+
+                    // 1. 세션 정보 설정
+                    req.session.userId = userId;
+                    req.session.isLoggedIn = true;
+                    console.log('[INFO] /naver/callback - New Naver user registered, userId:', userId, '. Session data set.');
+
+                    // 2. 부가 정보 삽입 (만약 DB 트리거를 사용하지 않는다면 여기서 처리)
+                    // 예: user_allergies 테이블 삽입 (user_levels, user_points는 트리거로 처리한다고 가정)
+                    const insertAllergyQuery = 'INSERT INTO user_allergies (user_id) VALUES (?)';
+                    db.query(insertAllergyQuery, [userId], (errAlg) => {
+                        if (errAlg) console.error('[ERROR] /naver/callback - Inserting into user_allergies failed for userId:', userId, errAlg);
+                        
+                        // 3. 세션 저장 후 리다이렉션 (가장 안쪽 콜백에서 수행)
+                        req.session.save(errSave => {
+                            if (errSave) {
+                                console.error('[ERROR] /naver/callback - Session save failed for new user:', userId, errSave);
+                                return res.redirect('/'); // 세션 저장 실패 시 대처
+                            }
+                            console.log('[INFO] /naver/callback - Session saved. Redirecting to /index.html for new user:', userId);
+                            return res.redirect('/index.html'); // 최종 리다이렉션
+                        });
+                    });
+                });
+            }
         });
     } catch (error) {
-        console.error('네이버 로그인 오류:', error.response?.data || error.message);
-        res.status(500).send('네이버 로그인 실패');
+        console.error('네이버 로그인 중 예외 발생:', error.response?.data || error.message);
+        // 네이버 API 명세에 따르면, 토큰 요청 실패 시 응답 본문에 error, error_description 등이 포함될 수 있음 [4]
+        res.status(500).send('네이버 로그인 처리 중 오류가 발생했습니다.');
     }
 });
 
@@ -320,3 +421,70 @@ app.listen(PORT, () => {
 //             console.error('로그인 처리 중 오류:', error);
 //         });
 // });
+
+
+// ==================================================================================================================
+// 유저 정보 빼오기
+// ==================================================================================================================
+app.get('/api/user', (req, res) => {
+    if (!req.session.userId) {
+        console.log("로그인 안된 상태로 /api/user 접근 시도");
+        return res.json(null);
+    }
+
+    const userId = req.session.userId;
+    const query = `
+        SELECT
+            u.username,
+            ul.level,
+            up.point,
+            IFNULL(p.post_count, 0) AS post_count
+        FROM
+            users u
+        LEFT JOIN
+            user_levels ul ON u.id = ul.user_id
+        LEFT JOIN
+            user_points up ON u.id = up.user_id
+        LEFT JOIN (
+            SELECT
+                user_id,
+                COUNT(*) AS post_count
+            FROM
+                posts
+            WHERE user_id = ? -- 특정 사용자의 게시물만 카운트 (성능 개선)
+            GROUP BY
+                user_id
+        ) p ON u.id = p.user_id
+        WHERE
+            u.id = ?;
+    `;
+    // posts 서브쿼리의 WHERE 조건에도 userId를 추가하여 특정 유저의 글만 카운트하도록 최적화
+    db.query(query, [userId, userId], (err, results) => { // 파라미터 두 번 전달
+        if (err) {
+            console.error(`[ERROR] /api/user DB query failed for userId ${userId}:`, err);
+            return res.status(500).json({ message: '서버 오류로 사용자 정보를 가져오지 못했습니다.' });
+        }
+
+        if (results.length > 0) {
+            const userData = results[0];
+            // level 또는 points가 null일 경우 기본값 설정 (DB에 해당 user_id의 레코드가 없을 수 있음)
+            userData.level = userData.level || 1;
+            userData.points = userData.points || 0;
+            // post_count는 IFNULL로 이미 처리됨
+            console.log('[INFO] /api/user - User data fetched for userId:', userId, userData);
+            return res.json(userData);
+        } else {
+            console.warn('[WARN] /api/user - User not found in DB for session userId:', userId);
+            // 세션은 유효하나 DB에 해당 유저가 없는 이례적인 상황
+            // req.session.destroy((destroyErr) => { // 세션 파기
+            //     if (destroyErr) console.error('[ERROR] /api/user - Session destroy failed:', destroyErr);
+            // });
+            return res.json(null); // 클라이언트에서 비로그인 처리하도록 null 반환
+        }
+    });
+});
+
+// 서버 시작
+app.listen(PORT, () => {
+    console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+});
