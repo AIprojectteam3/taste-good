@@ -65,16 +65,31 @@ app.post('/api/signup', (req, res) => {
       return res.status(500).json({ message: '회원가입 실패: 데이터베이스 오류' });
     }
 
-    // 방금 삽입된 데이터 조회
-    const selectQuery = 'SELECT * FROM users WHERE id = ?';
-    db.query(selectQuery, [result.insertId], (err, rows) => {
-      if (err) {
-        console.error('데이터 조회 중 오류 발생:', err);
-        return res.status(500).json({ message: '회원가입 성공, 그러나 데이터 조회 실패' });
-      }
+    const userId = result.insertId;
 
-      console.log('회원가입 성공:', rows[0]); // 삽입된 데이터 출력
-      res.json({ success: true, message: '회원가입 성공!', user: rows[0] });
+    // user_levels, user_points, user_allergies에 기본값 삽입
+    const insertLevel = 'INSERT INTO user_levels (user_id, level) VALUES (?, 1)';
+    const insertPoint = 'INSERT INTO user_points (user_id, point) VALUES (?, 0)';
+    const insertAllergy = 'INSERT INTO user_allergies (user_id) VALUES (?)';
+
+    db.query(insertLevel, [userId], (err1) => {
+      if (err1) console.error('user_levels 입력 오류:', err1);
+      db.query(insertPoint, [userId], (err2) => {
+        if (err2) console.error('user_points 입력 오류:', err2);
+        db.query(insertAllergy, [userId], (err3) => {
+          if (err3) console.error('user_allergies 입력 오류:', err3);
+
+          // 방금 삽입된 데이터 조회
+          const selectQuery = 'SELECT * FROM users WHERE id = ?';
+          db.query(selectQuery, [userId], (err, rows) => {
+            if (err) {
+              console.error('데이터 조회 중 오류 발생:', err);
+              return res.status(500).json({ message: '회원가입 성공, 그러나 데이터 조회 실패' });
+            }
+            res.json({ success: true, message: '회원가입 성공!', user: rows[0] });
+          });
+        });
+      });
     });
   });
 });
@@ -100,10 +115,10 @@ app.post('/api/login', (req, res) => {
 
         if (results.length > 0) {
             const user = results[0];
-            console.log('로그인 성공:', user);
-
-            // 로그인 성공 시 JSON 응답 반환
-            return res.json({ success: true, message: '로그인 성공!', redirectUrl: '/index.html' });
+            // JWT 토큰 생성
+            const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+            // 토큰을 응답에 포함
+            return res.json({ success: true, message: '로그인 성공!', token, redirectUrl: '/index.html' });
         } else {
             res.json({ success: false, message: '로그인 실패: 이메일 또는 비밀번호가 잘못되었습니다.' });
         }
@@ -145,22 +160,46 @@ app.get('/kakao/callback', async (req, res) => {
         const username = kakaoUser.kakao_account.profile.nickname;
         const email = kakaoUser.kakao_account.email;
 
-        // 데이터베이스에 사용자 정보 삽입
-        const query = `
-            INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)
-            `;
-
-        db.query(query, [sns_id, username, email], (err, result) => {
+        // 1. sns_id로 기존 유저 조회
+        const selectQuery = 'SELECT * FROM users WHERE sns_id = ?';
+        db.query(selectQuery, [sns_id], (err, rows) => {
             if (err) {
-                console.error('DB 삽입 중 오류 발생:', err);
-                if (err.code === 'ER_DUP_ENTRY') {
-                    console.log('이미 존재하는 sns_id:', sns_id);
-                }
-                return res.redirect('/'); // 에러 발생 시 리다이렉트
+                console.error('DB 조회 중 오류 발생:', err);
+                return res.redirect('/');
             }
 
-            console.log('DB 삽입 성공:', result);
-            res.redirect('/index.html'); // 성공 시 리다이렉트
+            if (rows.length > 0) {
+                // 이미 가입된 유저 → 로그인 처리(세션/토큰 등)
+                // 예시: 세션에 user 정보 저장 (세션 미사용 시 생략)
+                // req.session.user = rows[0];
+                return res.redirect('/index.html');
+            } else {
+                // 신규 유저 → 회원가입
+                const insertQuery = 'INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)';
+                db.query(insertQuery, [sns_id, username, email], (err, result) => {
+                    if (err) {
+                        console.error('DB 삽입 중 오류 발생:', err);
+                        return res.redirect('/');
+                    }
+                    const userId = result.insertId;
+
+                    // user_levels, user_points, user_allergies에 기본값 삽입
+                    const insertLevel = 'INSERT INTO user_levels (user_id, level) VALUES (?, 1)';
+                    const insertPoint = 'INSERT INTO user_points (user_id, point) VALUES (?, 0)';
+                    const insertAllergy = 'INSERT INTO user_allergies (user_id) VALUES (?)';
+
+                    db.query(insertLevel, [userId], (err1) => {
+                        if (err1) console.error('user_levels 입력 오류:', err1);
+                        db.query(insertPoint, [userId], (err2) => {
+                            if (err2) console.error('user_points 입력 오류:', err2);
+                            db.query(insertAllergy, [userId], (err3) => {
+                                if (err3) console.error('user_allergies 입력 오류:', err3);
+                                res.redirect('/index.html');
+                            });
+                        });
+                    });
+                });
+            }
         });
     } catch (error) {
         console.error('카카오 로그인 오류:', error.response?.data || error.message);
@@ -168,93 +207,6 @@ app.get('/kakao/callback', async (req, res) => {
     }
 });
 
-// 네이버 콜백 처리
-app.get('/naver/callback', async (req, res) => {
-    const { code, state } = req.query;
-
-    try {
-        // 네이버 인증 서버에서 액세스 토큰 요청
-        const tokenResponse = await axios.post('https://nid.naver.com/oauth2.0/token', null, {
-            params: {
-                grant_type: 'authorization_code',
-                client_id: NAVER_CLIENT_ID, // 네이버 클라이언트 ID
-                client_secret: NAVER_CLIENT_SECRET, // 네이버 클라이언트 시크릿
-                code, // 인가 코드
-                state, // CSRF 방지를 위한 상태 값
-            },
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-        });
-
-        const accessToken = tokenResponse.data.access_token;
-
-        // 액세스 토큰을 사용해 사용자 정보 요청
-        const userResponse = await axios.get('https://openapi.naver.com/v1/nid/me', {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-        });
-
-        const naverUser = userResponse.data.response;
-        console.log('네이버 사용자 정보:', naverUser);
-
-        // 사용자 정보 매핑
-        const sns_id = naverUser.id; // 네이버 고유 ID
-        const username = naverUser.name || naverUser.nickname; // 이름 또는 닉네임
-        const email = naverUser.email; // 이메일
-
-        // 데이터베이스에 사용자 정보 삽입
-        const query = `
-            INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)
-        `;
-
-        db.query(query, [sns_id, username, email], (err, result) => {
-            if (err) {
-                console.error('DB 삽입 중 오류 발생:', err);
-                if (err.code === 'ER_DUP_ENTRY') {
-                    console.log('이미 존재하는 sns_id:', sns_id);
-                }
-                return res.redirect('/'); // 에러 발생 시 리다이렉트
-            }
-
-            console.log('DB 삽입 성공:', result);
-            res.redirect('/index.html'); // 성공 시 리다이렉트
-        });
-    } catch (error) {
-        console.error('네이버 로그인 오류:', error.response?.data || error.message);
-        res.status(500).send('네이버 로그인 실패');
-    }
-});
-
-function authenticateToken(req, res, next) {
-  const token = req.headers['authorization'];
-
-  if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: '유효하지 않은 토큰입니다.' });
-    req.user = user;
-    next();
-  });
-}
-
-// 서버 시작
-app.listen(PORT, () => {
-  console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
-});
-
-// // 예: HTML 폼에서 입력값 가져오기
-// document.getElementById('loginButton').addEventListener('click', () => {
-//     const email = document.getElementById('email').value;
-//     const password = document.getElementById('password').value;
-
-//     fetch('/api/login', {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ email, password }),
-//     })
-//         .then(response => response.json())// ...existing code...
 // 네이버 콜백 처리
 app.get('/naver/callback', async (req, res) => {
     const { code, state } = req.query;
@@ -311,8 +263,23 @@ app.get('/naver/callback', async (req, res) => {
                         console.error('DB 삽입 중 오류:', err);
                         return res.redirect('/');
                     }
-                    console.log('신규 유저 가입 성공:', result);
-                    res.redirect('/index.html');
+                    const userId = result.insertId;
+
+                    // user_levels, user_points, user_allergies에 기본값 삽입
+                    const insertLevel = 'INSERT INTO user_levels (user_id, level) VALUES (?, 1)';
+                    const insertPoint = 'INSERT INTO user_points (user_id, point) VALUES (?, 0)';
+                    const insertAllergy = 'INSERT INTO user_allergies (user_id) VALUES (?)';
+
+                    db.query(insertLevel, [userId], (err1) => {
+                        if (err1) console.error('user_levels 입력 오류:', err1);
+                        db.query(insertPoint, [userId], (err2) => {
+                            if (err2) console.error('user_points 입력 오류:', err2);
+                            db.query(insertAllergy, [userId], (err3) => {
+                                if (err3) console.error('user_allergies 입력 오류:', err3);
+                                res.redirect('/index.html');
+                            });
+                        });
+                    });
                 });
             }
         });
@@ -321,18 +288,162 @@ app.get('/naver/callback', async (req, res) => {
         res.status(500).send('네이버 로그인 실패');
     }
 });
-// ...existing code...
-//         .then(data => {
-//             if (data.success) {
-//                 // 성공 시 리다이렉트
-//                 window.location.href = data.redirectUrl;
-//             } else {
-//                 // 실패 시 에러 메시지 표시
 
-//                 alert(data.message);
-//             }
-//         })
-//         .catch(error => {
-//             console.error('로그인 처리 중 오류:', error);
-//         });
+// JWT 인증 미들웨어 예시
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ message: '유효하지 않은 토큰입니다.' });
+        req.user = user;
+        next();
+    });
+}
+
+
+// 서버 시작
+app.listen(PORT, () => {
+  console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+});
+
+// 게시글 등록 API (토큰 인증 예시)
+app.post('/api/posts', authenticateToken, (req, res) => {
+    const user_id = req.user.id; // 토큰에서 추출
+    const { title, content } = req.body;
+    if (!user_id || !title || !content) {
+        return res.status(400).json({ success: false, message: '필수 항목이 누락되었습니다.' });
+    }
+    const query = 'INSERT INTO posts (user_id, title, content) VALUES (?, ?, ?)';
+    db.query(query, [user_id, title, content], (err, result) => {
+        if (err) {
+            console.error('게시글 등록 오류:', err);
+            return res.status(500).json({ success: false, message: 'DB 오류' });
+        }
+        res.json({ success: true, postId: result.insertId });
+    });
+});
+
+// 게시글 목록 조회 API
+app.get('/api/posts', async (req, res) => {
+    const query = `
+        SELECT p.*, u.username
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        ORDER BY p.created_at DESC
+    `;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('게시글 조회 오류:', err);
+            return res.status(500).json({ success: false, message: 'DB 오류' });
+        }
+        res.json({ success: true, posts: results });
+    });
+});
+
+// 게시글 수정 API
+app.put('/api/posts/:id', authenticateToken, (req, res) => {
+    const postId = req.params.id;
+    const { title, content } = req.body;
+    const user_id = req.user.id; // 토큰에서 추출
+
+    if (!title || !content) {
+        return res.status(400).json({ success: false, message: '제목과 내용을 입력해주세요.' });
+    }
+
+    // 게시글 소유자 확인 쿼리
+    const ownerQuery = 'SELECT * FROM posts WHERE id = ? AND user_id = ?';
+    db.query(ownerQuery, [postId, user_id], (err, results) => {
+        if (err) {
+            console.error('게시글 소유자 확인 오류:', err);
+            return res.status(500).json({ success: false, message: 'DB 오류' });
+        }
+
+        if (results.length === 0) {
+            return res.status(403).json({ success: false, message: '수정 권한이 없습니다.' });
+        }
+
+        // 게시글 수정 쿼리
+        const updateQuery = 'UPDATE posts SET title = ?, content = ? WHERE id = ?';
+        db.query(updateQuery, [title, content, postId], (err, result) => {
+            if (err) {
+                console.error('게시글 수정 오류:', err);
+                return res.status(500).json({ success: false, message: 'DB 오류' });
+            }
+            res.json({ success: true, message: '게시글이 수정되었습니다.' });
+        });
+    });
+});
+
+// 게시글 삭제 API
+app.delete('/api/posts/:id', authenticateToken, (req, res) => {
+    const postId = req.params.id;
+    const user_id = req.user.id; // 토큰에서 추출
+
+    // 게시글 소유자 확인 쿼리
+    const ownerQuery = 'SELECT * FROM posts WHERE id = ? AND user_id = ?';
+    db.query(ownerQuery, [postId, user_id], (err, results) => {
+        if (err) {
+            console.error('게시글 소유자 확인 오류:', err);
+            return res.status(500).json({ success: false, message: 'DB 오류' });
+        }
+
+        if (results.length === 0) {
+            return res.status(403).json({ success: false, message: '삭제 권한이 없습니다.' });
+        }
+
+        // 게시글 삭제 쿼리
+        const deleteQuery = 'DELETE FROM posts WHERE id = ?';
+        db.query(deleteQuery, [postId], (err, result) => {
+            if (err) {
+                console.error('게시글 삭제 오류:', err);
+                return res.status(500).json({ success: false, message: 'DB 오류' });
+            }
+            res.json({ success: true, message: '게시글이 삭제되었습니다.' });
+        });
+    });
+});
+
+// // 유저 정보 조회 API (user_id를 쿼리로 받는 예시)
+// app.get('/api/user/:userId', (req, res) => {
+//     const userId = req.params.userId;
+//     const userQuery = `
+//         SELECT 
+//             username, 
+//             level, 
+//             (SELECT COUNT(*) FROM posts WHERE user_id = users.id) AS postCount,
+//             point,
+//             (SELECT COUNT(*) FROM followers WHERE followee_id = users.id) AS followerCount
+//         FROM users
+//         WHERE id = ?
+//     `;
+//     db.query(userQuery, [userId], (err, results) => {
+//         if (err) return res.status(500).json({ success: false });
+//         if (results.length === 0) return res.status(404).json({ success: false });
+//         res.json({ success: true, user: results[0] });
+//     });
 // });
+
+app.get('/api/user/me', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    const userQuery = `
+        SELECT 
+            u.username,
+            IFNULL(l.level, 1) AS level,
+            (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS postCount,
+            IFNULL(p.point, 0) AS point
+        FROM users u
+        LEFT JOIN user_levels l ON u.id = l.user_id
+        LEFT JOIN user_points p ON u.id = p.user_id
+        WHERE u.id = ?
+    `;
+    db.query(userQuery, [userId], (err, results) => {
+        console.log('user/me 결과:', results); // ← 이 줄 추가!
+        if (err) return res.status(500).json({ success: false });
+        if (results.length === 0) return res.status(404).json({ success: false });
+        res.json({ success: true, user: results[0] });
+    });
+});
+

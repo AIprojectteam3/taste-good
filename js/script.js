@@ -384,4 +384,34 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
     });
+
+    // 예시: js/profile.js
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProfile();
+    });
+
+    async function loadProfile() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const res = await fetch('/api/user/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            console.error('유저 정보 조회 실패:', res.status);
+            return;
+        }
+        const data = await res.json();
+        if (data.success) {
+            document.querySelector('.nickname').textContent = data.user.username;
+            document.querySelector('.level-text').textContent = `LV.${data.user.level}`;
+            document.querySelector('.post-count').textContent = data.user.postCount;
+            document.querySelector('.point-count').textContent = data.user.point;
+        }
+    }
 });
+
+// const token = localStorage.getItem('token');
+// fetch('/api/user/me', {
+//     headers: { 'Authorization': `Bearer ${token}` }
+// });

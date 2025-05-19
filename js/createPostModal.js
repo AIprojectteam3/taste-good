@@ -315,19 +315,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 게시 버튼 클릭 이벤트
     if (submitCreatePostBtn) {
-        submitCreatePostBtn.addEventListener('click', function() {
-            const title = createPostTitleInput.value;
-            const content = createPostContentInput.value;
-            const imageFiles = uploadedFilesForCreatePost.map(item => item.file);
+        submitCreatePostBtn.addEventListener('click', async function() {
+            const title = document.getElementById('createPostTitle').value;
+            const content = document.getElementById('createPostContent').value;
+            // 실제 로그인 유저의 user_id를 가져와야 함(예시로 1 사용)
+            const user_id = 1;
 
-            console.log('새 게시물 제목:', title);
-            console.log('새 게시물 내용:', content);
-            if (imageFiles.length > 0) {
-                imageFiles.forEach(file => console.log('새 게시물 이미지 파일:', file.name));
+            const res = await fetch('/api/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id, title, content })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('게시글이 등록되었습니다!');
+                // 폼 초기화 및 모달 닫기 등 추가 작업
+            } else {
+                alert('게시글 등록 실패: ' + data.message);
             }
-
-            closeCreatePostModal(); // 게시 후 모달 닫기
-            alert('게시물이 등록되었습니다! (실제 서버 연동 필요)');
         });
     }
 

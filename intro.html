@@ -115,11 +115,20 @@
                         </a>
                     </button>
                     <button class="SignApiBtn">
-                        <a href="javascript:naverLogin();">
+                        <a href="#" onclick="naverLoginOnly();">
                             <img src="image/Naver_login.png" alt="네이버로 로그인">
                         </a>
                     </button>
                 </div>
+                <script>
+                function naverLoginOnly() {
+                    const clientId = '4tm4ibvzRt4UK09un3v9'; // 네이버 클라이언트 ID
+                    const redirectUri = encodeURIComponent('http://localhost:3000/naver/callback');
+                    const state = encodeURIComponent('random_state_login'); // 로그인용 state
+                    const naverAuthUrl = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`;
+                    window.location.href = naverAuthUrl;
+                }
+                </script>
 
                 <!-- 오버레이 -->
                 <div class="container__overlay">
@@ -204,7 +213,7 @@
 
     <script src="https://developers.kakao.com/sdk/js/kakao.js"></script>
     <script src="js/intro.js?v=1"></script>
-    <script src="server.js"></script>
+    <!-- <script src="server.js"></script> -->
     <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </body>
 </html>

@@ -1,0 +1,146 @@
+1. attendance (출석 기록)
+CREATE TABLE attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    attendance_date DATE NOT NULL,
+    attendance_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+설명: 유저의 출석(출근/출석 체크 등) 기록을 저장
+2. comments (댓글)
+CREATE TABLE comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    content VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+설명: 게시글에 달린 댓글 정보
+3. favorites (즐겨찾기/북마크)
+CREATE TABLE favorites (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    post_id INT NOT NULL
+);
+설명: 유저가 즐겨찾기한 게시글 정보
+4. files (게시글 첨부파일/이미지)
+CREATE TABLE files (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    file_name VARCHAR(100) NOT NULL,
+    file_path VARCHAR(200) NOT NULL,
+    file_type VARCHAR(50) NOT NULL
+);
+설명: 게시글에 첨부된 파일(이미지 등) 정보
+5. levels (레벨 기준표)
+CREATE TABLE levels (
+    level INT PRIMARY KEY,
+    required_experience INT NOT NULL
+);
+설명: 각 레벨별 필요 경험치 등 기준표
+6. point_history (포인트 변동 내역)
+CREATE TABLE point_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    points_changed INT NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+설명: 유저의 포인트 증감 내역
+7. post_likes (게시글 좋아요)
+CREATE TABLE post_likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    liked_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+설명: 유저가 게시글에 누른 좋아요 기록
+8. post_views (게시글 조회 기록)
+CREATE TABLE post_views (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    viewed_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+설명: 게시글을 누가 언제 봤는지 기록
+9. posts (게시글)
+CREATE TABLE posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    views INT DEFAULT 0,
+    likes INT DEFAULT 0
+);
+설명: 게시글 본문 정보
+10. survey_answers (설문 답변)
+CREATE TABLE survey_answers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    question_id INT NOT NULL,
+    user_id INT NOT NULL,
+    content VARCHAR(255) NOT NULL
+);
+설명: 설문조사 답변 정보
+11. survey_questions (설문 질문)
+CREATE TABLE survey_questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category VARCHAR(50) NOT NULL,
+    content VARCHAR(255) NOT NULL
+);
+설명: 설문조사 질문 정보
+12. tags (태그)
+CREATE TABLE tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    post_id INT,
+    comment_id INT
+);
+설명: 게시글/댓글에 달린 태그 정보
+13. user_allergies (유저별 알레르기)
+CREATE TABLE user_allergies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    egg TINYINT(1) DEFAULT 0,
+    milk TINYINT(1) DEFAULT 0,
+    wheat TINYINT(1) DEFAULT 0,
+    peanut TINYINT(1) DEFAULT 0,
+    fish TINYINT(1) DEFAULT 0,
+    meat TINYINT(1) DEFAULT 0,
+    shellfish TINYINT(1) DEFAULT 0,
+    crustacean TINYINT(1) DEFAULT 0,
+    user_id INT NOT NULL
+);
+설명: 유저별 알레르기 정보(각 항목별 0/1)
+14. user_levels (유저별 레벨)
+CREATE TABLE user_levels (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    level INT
+);
+설명: 유저별 현재 레벨 정보
+15. user_logins (로그인 기록)
+CREATE TABLE user_logins (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    login_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    device_info VARCHAR(255),
+    login_status ENUM('success','failure') DEFAULT 'success'
+);
+설명: 유저 로그인 시도 기록
+16. user_points (유저별 포인트)
+CREATE TABLE user_points (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    point INT
+);
+설명: 유저별 현재 포인트 정보
+17. users (회원)
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sns_id VARCHAR(100) UNIQUE,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255),
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+설명: 회원 기본 정보

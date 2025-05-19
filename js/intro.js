@@ -186,24 +186,31 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(result.message);
     });
 
-    document.getElementById('form2').addEventListener('submit', async (e) => {
-        e.preventDefault();
+    const loginBtn = document.getElementById('loginButton');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
 
-        const email = e.target.querySelector('input[placeholder="이메일"]').value;
-        const password = e.target.querySelector('input[placeholder="비밀번호"]').value;
+            // 입력값 가져오기
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
 
-        console.log('전송 데이터:', { email, password }); // 디버깅용 로그
+            // 서버에 로그인 요청
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
 
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
+            const result = await response.json();
+            if (result.success && result.token) {
+                localStorage.setItem('token', result.token); // 토큰 저장
+                window.location.href = result.redirectUrl || '/index.html'; // 이동
+            } else {
+                alert(result.message || '잘못된 정보입니다');
+            }
         });
-
-        const result = await response.json();
-        console.log('서버 응답:', result); // 디버깅용 로그
-        alert(result.message);
-    });
+    }
 
     document.getElementById('searchAddress').addEventListener('click', function () {
         daum.postcode.load(function() {
@@ -217,37 +224,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Kakao SDK 초기화
-    if (window.Kakao) {
-        window.Kakao.init("0a67ccd23eeb991c84d7900835e98db7");
-        console.log("Kakao SDK 초기화 완료");
-    } else {
-        console.error("Kakao SDK 로드 실패");
-    }
+    // if (window.Kakao) {
+    //     window.Kakao.init("0a67ccd23eeb991c84d7900835e98db7");
+    //     console.log("Kakao SDK 초기화 완료");
+    // } else {
+    //     console.error("Kakao SDK 로드 실패");
+    // }
 
-    // 카카오 로그인 함수
-    function kakaoLogin() {
-        window.Kakao.Auth.login({
-            scope: 'profile, account_email',
-            success: function (authObj) {
-                console.log(authObj);
-                window.Kakao.API.request({
-                    url: '/v2/user/me',
-                    success: function (res) {
-                        const kakao_account = res.kakao_account;
-                        console.log(kakao_account);
-                    },
-                    fail: function (error) {
-                        console.error(error);
-                    },
-                });
-            },
-            fail: function (err) {
-                console.error(err);
-            },
-        });
-    }
+    // // 카카오 로그인 함수
+    // function kakaoLogin() {
+    //     window.Kakao.Auth.login({
+    //         scope: 'profile, account_email',
+    //         success: function (authObj) {
+    //             console.log(authObj);
+    //             window.Kakao.API.request({
+    //                 url: '/v2/user/me',
+    //                 success: function (res) {
+    //                     const kakao_account = res.kakao_account;
+    //                     console.log(kakao_account);
+    //                 },
+    //                 fail: function (error) {
+    //                     console.error(error);
+    //                 },
+    //             });
+    //         },
+    //         fail: function (err) {
+    //             console.error(err);
+    //         },
+    //     });
+    // }
 
-    // 로그인 버튼 이벤트
-    // document.querySelector('.kakao-login-btn').addEventListener('click', kakaoLogin);
-    document.querySelector('.kakaoSignBtn').addEventListener('click', kakaoLogin());
+    // // 로그인 버튼 이벤트
+    // // document.querySelector('.kakao-login-btn').addEventListener('click', kakaoLogin);
+    // document.querySelector('.kakaoSignBtn').addEventListener('click', kakaoLogin());
 });
