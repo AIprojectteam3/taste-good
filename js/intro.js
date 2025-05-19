@@ -224,12 +224,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Kakao SDK 초기화
-    // if (window.Kakao) {
-    //     window.Kakao.init("0a67ccd23eeb991c84d7900835e98db7");
-    //     console.log("Kakao SDK 초기화 완료");
-    // } else {
-    //     console.error("Kakao SDK 로드 실패");
-    // }
+    if (window.Kakao) {
+        window.Kakao.init("0ad0234b4cdaf5ff61c8c89276f01dcf");
+        console.log("Kakao SDK 초기화 완료");
+    } else {
+        console.error("Kakao SDK 로드 실패");
+    }
 
     // // 카카오 로그인 함수
     // function kakaoLogin() {
