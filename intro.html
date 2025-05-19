@@ -5,31 +5,11 @@
     <meta name = "viewport" content = "width=device-width, initial-scale=1.0">
     <title>맛잘알 연구소</title>
     <link rel = "stylesheet" href = "css/intro.css">
-    <script src="https://developers.kakao.com/sdk/js/kakao.js" defer></script>
-    <script src="js/intro.js" defer></script>
-    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script src = "https://developers.kakao.com/sdk/js/kakao.js" defer></script>
+    <script src = "js/intro.js" defer></script>
+    <script src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </head>
-<!-- HTML 구조 -->
 <body>
-    <!-- <script>
-        window.Kakao.init("0a67ccd23eeb991c84d7900835e98db7");
-    
-        function kakaoLogin(){
-            window.KaKao.Auth.login({
-                scope: 'profile, account_email',
-                success: function(autoObj){
-                    console.log(autoObj);
-                    window.kakao.API.request({
-                        url:'/v2/user/me',
-                        success: res => {
-                            const kakao_account = res.kakao_account;
-                            console.log(kakao_account);
-                        }
-                    })
-                }
-            });
-        }
-    </script> -->
     <div class = "dots">
         <div class = "dot"></div>
         <div class = "dot"></div>
@@ -70,15 +50,61 @@
 
                         <button class="btn">Sign Up</button>
                     </form>
-                    <!-- <a href="javascript:kakaolLogin():"><img src = "image/kakao_signup_large_wide.png" alt = "카카오로 로그인"></a> -->
+                    <script>
+                        function kakaoLogin() {
+                            window.Kakao.Auth.login({
+                                scope: 'profile_nickname, account_email',
+                                success: function (authObj) {
+                                    console.log(authObj);
+                                    window.Kakao.API.request({
+                                        url: '/v2/user/me',
+                                        success: function (res) {
+                                            const kakao_account = res.kakao_account;
+                                            console.log(kakao_account);
+                                        },
+                                        fail: function (error) {
+                                            console.error(error);
+                                        },
+                                    });
+                                },
+                                fail: function (err) {
+                                    console.error(err);
+                                },
+                            });
+                        };
+                        function kakaoLogin() {
+                            window.Kakao.Auth.authorize({
+                                redirectUri: 'http://localhost:3000/kakao/callback', // Redirect URI
+                            });
+                        }
+                        function naverLogin() {
+                            const clientId = '4tm4ibvzRt4UK09un3v9'; // 네이버 개발자 센터에서 발급받은 클라이언트 ID
+                            const redirectUri = encodeURIComponent('http://localhost:3000/naver/callback'); // Redirect URI
+                            const state = encodeURIComponent('random_state_string'); // CSRF 방지를 위한 상태 값
+                    
+                            // 네이버 로그인 URL
+                            const naverAuthUrl = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`;
+                    
+                            // 네이버 로그인 페이지로 리다이렉트
+                            window.location.href = naverAuthUrl;
+                        }
+                    </script>
                     <div class = "socialDiv">
                         <hr>
                         <span>또는</span>
                         <hr>
                     </div>
                     <div class = "socialBtnDiv social_sign">
-                        <button class = "SignApiBtn"><a href="javascript:kakaolLogin():"><img src = "image/kakaotalk-icon.png" alt = "카카오로 로그인"></a></button>
-                        <button class = "SignApiBtn"><a href="#"><img src = "image/naver-icon.png" alt = "네이버로 로그인"></a></button>
+                        <button class="SignApiBtn" id="kakaoSignBtn">
+                            <a href="#" onclick="kakaoLogin();">
+                                <img src="image/kakaotalk-icon.png" alt="카카오로 로그인">
+                            </a>
+                        </button>
+                        <button class="SignApiBtn">
+                            <a href="#" onclick="naverLogin();">
+                                <img src="image/naver-icon.png" alt="네이버로 로그인">
+                            </a>
+                        </button>
                     </div>
                     <p class="toggle-link mobile-only">
                         이미 계정이 있으신가요?
@@ -103,8 +129,8 @@
                     </div>
                     <!-- <a href="javascript:kakaolLogin():"><img src = "image/kakao_login_large_wide.png" alt = "카카오로 로그인"></a> -->
                     <div class = "socialBtnDiv social_login">
-                        <button class = "SignApiBtn"><a href="javascript:kakaolLogin():"><img src = "image/kakaotalk-icon.png" alt = "카카오로 로그인"></a></button>
-                        <button class = "SignApiBtn"><a href="#"><img src = "image/naver-icon.png" alt = "네이버로 로그인"></a></button>
+                        <button class = "SignApiBtn"><a href="javascript:kakaoLogin();"><img src = "image/kakaotalk-icon.png" alt = "카카오로 로그인"></a></button>
+                        <button class = "SignApiBtn"><a href="javascript:naverLogin();"><img src = "image/naver-icon.png" alt = "네이버로 로그인"></a></button>
                     </div>
                     <p class="toggle-link mobile-only">
                         계정이 없으신가요?
