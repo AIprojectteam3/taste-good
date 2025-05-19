@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const createPostTitleInput = document.getElementById('createPostTitle');
     const createPostContentInput = document.getElementById('createPostContent');
     const submitCreatePostBtn = document.getElementById('submitCreatePostBtn');
+    const MAX_FILES_ALLOWED = 10;
     let uploadedFilesForCreatePost = []; // { file: FileObject, blobUrl: "blob:..." }
     let currentCreatePostSlideIndex = 0;
     let draggedItem = null;
@@ -214,21 +215,44 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 파일 선택 시 처리
     createPostImageUpload.addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
-        const initialLength = uploadedFilesForCreatePost.length;
+        const newFiles = Array.from(e.target.files); // 새로 선택된 파일들
+        const currentFileCount = uploadedFilesForCreatePost.length; // 현재 업로드된(선택된) 파일 수
+        const remainingSlots = MAX_FILES_ALLOWED - currentFileCount; // 추가로 업로드 가능한 슬롯 수
 
-        files.forEach(file => {
+        if (newFiles.length === 0) { // 사용자가 파일 선택 창에서 아무것도 선택하지 않고 닫은 경우
+            createPostImageUpload.value = ''; // input 값 초기화 (다음 선택을 위해)
+            return;
+        }
+
+        if (remainingSlots <= 0) { // 이미 최대 개수에 도달한 경우
+            alert(`최대 ${MAX_FILES_ALLOWED}개의 이미지만 업로드할 수 있습니다. 더 이상 추가할 수 없습니다.`);
+            createPostImageUpload.value = ''; // input 값 초기화
+            return;
+        }
+
+        let filesToProcess = newFiles;
+        if (newFiles.length > remainingSlots) {
+            alert(`최대 ${MAX_FILES_ALLOWED}개까지 이미지를 추가할 수 있습니다. 선택하신 파일 중 처음 ${remainingSlots}개만 추가됩니다.`);
+            filesToProcess = newFiles.slice(0, remainingSlots); // 허용된 개수만큼만 잘라서 사용
+        }
+
+        const newlyAddedFilesStartIndex = currentFileCount; // 새로 추가될 파일들이 `uploadedFilesForCreatePost` 배열에서 시작될 인덱스
+
+        filesToProcess.forEach(file => {
             uploadedFilesForCreatePost.push({ file: file, blobUrl: URL.createObjectURL(file) });
         });
 
-        if (files.length > 0) {
-            // 새로 추가된 첫 번째 이미지로 슬라이드 인덱스 설정
-            // 또는 기존 로직 유지: currentCreatePostSlideIndex = uploadedFilesForCreatePost.length - files.length;
-            currentCreatePostSlideIndex = initialLength; // 새로 추가된 이미지 그룹의 첫번째를 보여줌
+        if (filesToProcess.length > 0) {
+            // 새로 추가된 이미지 그룹의 첫 번째 이미지를 보여주도록 슬라이드 인덱스 설정
+            // (예: 기존 2개 + 새로 3개 추가 시, 새로 추가된 3개 중 첫 번째는 전체 배열에서 인덱스 2가 됨)
+            currentCreatePostSlideIndex = newlyAddedFilesStartIndex;
         }
 
+        // 파일 선택 input의 값을 초기화합니다.
+        // 이를 통해 사용자가 동일한 파일을 다시 선택해도 change 이벤트가 발생합니다.
         createPostImageUpload.value = '';
-        updateCreatePostSliderView();
+
+        updateCreatePostSliderView(); // 슬라이더 UI 업데이트
     });
 
     // 이전/다음 버튼 이벤트 리스너
