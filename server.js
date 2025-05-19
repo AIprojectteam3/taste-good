@@ -151,7 +151,7 @@ app.post('/api/login', (req, res) => {
             console.log('로그인 성공:', user);
 
             // 로그인 성공 시 JSON 응답 반환
-            return res.json({ success: true, message: '로그인 성공!', redirectUrl: '/index.html' });
+            return res.json({ success: true, message: '로그인 성공!' });
         } else {
             res.json({ success: false, message: '로그인 실패: 이메일 또는 비밀번호가 잘못되었습니다.' });
         }
