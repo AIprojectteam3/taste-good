@@ -361,34 +361,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Kakao SDK 초기화
     if (window.Kakao) {
-        window.Kakao.init("0a67ccd23eeb991c84d7900835e98db7");
+        window.Kakao.init("0ad0234b4cdaf5ff61c8c89276f01dcf");
         console.log("Kakao SDK 초기화 완료");
     } else {
         console.error("Kakao SDK 로드 실패");
     }
 
-    // 카카오 로그인 함수
-    function kakaoLogin() {
-        window.Kakao.Auth.login({
-            scope: 'profile, account_email',
-            success: function (authObj) {
-                console.log(authObj);
-                window.Kakao.API.request({
-                    url: '/v2/user/me',
-                    success: function (res) {
-                        const kakao_account = res.kakao_account;
-                        console.log(kakao_account);
-                    },
-                    fail: function (error) {
-                        console.error(error);
-                    },
-                });
-            },
-            fail: function (err) {
-                console.error(err);
-            },
-        });
-    }
+    // // 카카오 로그인 함수
+    // function kakaoLogin() {
+    //     window.Kakao.Auth.login({
+    //         scope: 'profile, account_email',
+    //         success: function (authObj) {
+    //             console.log(authObj);
+    //             window.Kakao.API.request({
+    //                 url: '/v2/user/me',
+    //                 success: function (res) {
+    //                     const kakao_account = res.kakao_account;
+    //                     console.log(kakao_account);
+    //                 },
+    //                 fail: function (error) {
+    //                     console.error(error);
+    //                 },
+    //             });
+    //         },
+    //         fail: function (err) {
+    //             console.error(err);
+    //         },
+    //     });
+    // }
 
     // 로그인 버튼 이벤트
     // document.querySelector('.kakao-login-btn').addEventListener('click', kakaoLogin);
