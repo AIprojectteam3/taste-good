@@ -279,6 +279,18 @@ app.get('/naver/callback', async (req, res) => {
     }
 });
 
+function authenticateToken(req, res, next) {
+    const token = req.headers['authorization'];
+
+    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ message: '유효하지 않은 토큰입니다.' });
+        req.user = user;
+        next();
+    });
+}
+
 // 서버 시작
 app.listen(PORT, () => {
     console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
