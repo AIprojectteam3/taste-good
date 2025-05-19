@@ -305,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
             username: e.target.querySelector('input[name="username"]').value,
             email: e.target.querySelector('input[name="email"]').value,
             password: e.target.querySelector('input[name="password"]').value,
+            passwordConfirm: e.target.querySelector('input[name="passwordConfirm"]').value,
             address: e.target.querySelector('input[name="address"]').value,
             detailAddress: e.target.querySelector('input[name="detailAddress"]').value,
         };
