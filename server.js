@@ -9,12 +9,10 @@ const PORT = 3000;
 //89ad63367f00d39537ef72651c1dce55 rest api key
 //0ad0234b4cdaf5ff61c8c89276f01dcf js key
 const KAKAO_REST_API_KEY = '89ad63367f00d39537ef72651c1dce55';
-const KAKAO_REDIRECT_URI = 'http://localhost:3000/kakao/callback';
 const JWT_SECRET = 'YOUR_JWT_SECRET';
 //4tm4ibvzRt4UK09un3v9 naver key
 const NAVER_CLIENT_ID = '4tm4ibvzRt4UK09un3v9';
 const NAVER_CLIENT_SECRET = 'aEIsjYJR1G';
-const NAVER_REDIRECT_URI = 'http://localhost:3000/naver/callback';
 
 // JSON 요청 본문 처리
 app.use(express.json());
@@ -58,16 +56,22 @@ app.post('/api/signup', async (req, res) => {
 
     // 1. 개별 필수 입력값 검증
     if (!username) {
-        return res.status(400).json({ message: '을 입력해주세요.' });
+        return res.status(400).json({ message: '닉네임을 입력해주세요.' });
     }
     if (!email) {
-        return res.status(400).json({ message: '이메일(email)을 입력해주세요.' });
+        return res.status(400).json({ message: '이메일을 입력해주세요.' });
     }
     if (!password) {
-        return res.status(400).json({ message: '비밀번호(password)를 입력해주세요.' });
+        return res.status(400).json({ message: '비밀번호를 입력해주세요.' });
     }
     if (!passwordConfirm) {
-        return res.status(400).json({ message: '비밀번호 확인(passwordConfirm)을 입력해주세요.' });
+        return res.status(400).json({ message: '비밀번호 확인을 입력해주세요.' });
+    }
+    if (!address) {
+        return res.status(400).json({ message: '주소를 입력해주세요.' });
+    }
+    if (!detailAddress) {
+        return res.status(400).json({ message: '상세주소를 입력해주세요.' });
     }
 
     if (password !== passwordConfirm) {
@@ -274,18 +278,6 @@ app.get('/naver/callback', async (req, res) => {
         res.status(500).send('네이버 로그인 실패');
     }
 });
-
-function authenticateToken(req, res, next) {
-    const token = req.headers['authorization'];
-
-    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ message: '유효하지 않은 토큰입니다.' });
-        req.user = user;
-        next();
-    });
-}
 
 // 서버 시작
 app.listen(PORT, () => {
