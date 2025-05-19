@@ -24,11 +24,11 @@ const users = [];
 
 // MySQL 연결 설정
 const db = mysql.createConnection({
-  host: 'localhost',      // MySQL 서버 주소
-  port: 3306,             // MySQL 포트 번호
-  user: 'root',           // MySQL 사용자 이름
-  password: '',       // MySQL 비밀번호
-  database: 'taste_good',     // 사용할 데이터베이스 이름
+  host: 'localhost',            // MySQL 서버 주소
+  port: 3306,                   // MySQL 포트 번호
+  user: 'root',                 // MySQL 사용자 이름
+  password: '',                 // MySQL 비밀번호
+  database: 'taste_good',       // 사용할 데이터베이스 이름
 });
 
 // MySQL 연결
@@ -48,21 +48,69 @@ app.get('/', (req, res) => {
 // 정적 파일 제공
 app.use(express.static(path.join(__dirname)));
 
+// ===============================================================================================================================================
 // 회원가입 처리
-app.post('/api/signup', (req, res) => {
-    const { username, email, password, address, detailAddress } = req.body;
+// ===============================================================================================================================================
+app.post('/api/signup', async (req, res) => {
+    const { username, email, password, passwordConfirm, address, detailAddress } = req.body;
 
-    console.log('받은 데이터:', { username, email, password, address, detailAddress }); // 디버깅용 로그
+    console.log('받은 데이터:', { username, email, password, passwordConfirm, address, detailAddress }); // 디버깅용 로그
 
-    if (!username || !email || !password || !address || !detailAddress) {
-        return res.json({ success: false, message: '모든 필드를 입력해주세요.' });
+    // 1. 개별 필수 입력값 검증
+    if (!username) {
+        return res.status(400).json({ message: '을 입력해주세요.' });
+    }
+    if (!email) {
+        return res.status(400).json({ message: '이메일(email)을 입력해주세요.' });
+    }
+    if (!password) {
+        return res.status(400).json({ message: '비밀번호(password)를 입력해주세요.' });
+    }
+    if (!passwordConfirm) {
+        return res.status(400).json({ message: '비밀번호 확인(passwordConfirm)을 입력해주세요.' });
+    }
+
+    if (password !== passwordConfirm) {
+        return res.status(400).json({ message: '비밀번호와 비밀번호 확인이 일치하지 않습니다.' });
     }
 
     const insertQuery = 'INSERT INTO users (username, email, password, address, detail_address) VALUES (?, ?, ?, ?, ?)';
     db.query(insertQuery, [username, email, password, address, detailAddress], (err, result) => {
         if (err) {
-        console.error('회원가입 중 오류 발생:', err);
-        return res.status(500).json({ message: '회원가입 실패: 데이터베이스 오류' });
+            console.error('회원가입 중 오류 발생:', err);
+            if (err.code === 'ER_DUP_ENTRY') { // MySQL의 중복 항목 오류 코드 [5]
+                // 어떤 키가 중복되었는지 err.sqlMessage 등을 파싱하여 더 구체적인 메시지 제공 가능
+                // 예: "Duplicate entry 'test@example.com' for key 'users.email_UNIQUE'"
+                let dupField = '알 수 없는 필드';
+                if (err.sqlMessage && err.sqlMessage.includes('for key')) {
+                    try {
+                        // 'users.email_UNIQUE' 와 같은 부분을 추출 시도
+                        const keyInfo = err.sqlMessage.split('for key ')[1].replace(/'/g, "");
+                        if (keyInfo.includes('.')) {
+                            dupField = keyInfo.split('.')[1].replace('_UNIQUE', '').replace('_PRIMARY', '');
+                        } else {
+                            dupField = keyInfo.replace('_UNIQUE', '').replace('_PRIMARY', '');
+                        }
+                    } catch (parseError) {
+                        console.error("중복 필드 파싱 오류:", parseError);
+                    }
+                }
+
+                // email 필드가 users 테이블의 PRIMARY KEY 또는 UNIQUE KEY로 설정되어 있어야 함
+                // DB 테이블 스키마에 따르면 email은 UNI (UNIQUE)로 설정되어 있음.
+                if (dupField.toLowerCase().includes('email')) {
+                    return res.status(409).json({ message: '이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요.' });
+                }
+                // 만약 username도 UNIQUE 제약조건이 있다면 추가 처리 가능
+                // else if (dupField.toLowerCase().includes('username')) {
+                //     return res.status(409).json({ message: '이미 사용 중인 사용자 이름입니다.' });
+                // }
+                // 그 외 일반적인 중복 오류 (예: auto_increment id를 수동으로 중복 삽입 시도 등)
+                return res.status(409).json({ message: `이미 존재하는 ${dupField} 값입니다.` });
+
+            }
+        // 그 외 데이터베이스 오류
+        return res.status(500).json({ message: '회원가입 실패: 데이터베이스 처리 중 오류가 발생했습니다.' });
         }
 
         // 방금 삽입된 데이터 조회
@@ -85,9 +133,9 @@ app.post('/api/login', (req, res) => {
 
     const { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.json({ success: false, message: '모든 필드를 입력해주세요.' });
-    }
+    // if (!email || !password) {
+    //     return res.json({ success: false, message: '모든 필드를 입력해주세요.' });
+    // }
 
     const query = 'SELECT * FROM users WHERE email = ? AND password = ?';
     console.log('실행 쿼리:', query, [email, password]); // 디버깅용 로그
