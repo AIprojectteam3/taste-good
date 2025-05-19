@@ -338,7 +338,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const result = await response.json();
         console.log('서버 응답:', result); // 디버깅용 로그
-        alert(result.message);
+
+        if (result.success) {
+            alert(result.message); // "로그인 성공!" 알림
+            // !!!! 여기가 중요: 서버에서 받은 redirectUrl로 페이지 이동 !!!!
+            window.location.href = '/index.html'; // 기본값으로 설정 (선택 사항)
+        } else {
+            alert(result.message); // "로그인 실패..." 알림
+        }
     });
 
     document.getElementById('searchAddress').addEventListener('click', function () {
