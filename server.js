@@ -17,7 +17,6 @@ const NAVER_CLIENT_SECRET = 'aEIsjYJR1G';
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // 폼 데이터 처리를 위해 추가
-app.use(express.static(path.join(__dirname)));
 
 // JSON 요청 본문 처리
 app.use(express.json());
