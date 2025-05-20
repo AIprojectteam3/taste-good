@@ -597,64 +597,139 @@ app.get('/api/posts', (req, res) => {
 // ==================================================================================================================
 app.get('/api/post/:postId', (req, res) => {
     const postId = req.params.postId;
-    if (!postId) {
-        return res.status(400).json({ message: '게시물 ID가 필요합니다.' });
+    const userId = req.session.userId; // 세션에서 현재 로그인한 사용자 ID 가져오기
+
+    if (!postId || isNaN(parseInt(postId))) { // postId 유효성 검사 추가
+        return res.status(400).json({ message: '유효한 게시물 ID가 필요합니다.' });
     }
 
-    const query = `
-        SELECT
-            p.id,
-            p.title,
-            p.content,
-            p.created_at,
-            p.views,
-            p.likes,
-            u.id AS user_id,      -- 작성자 ID
-            u.username AS author_username, -- 작성자 닉네임
-            u.profile_image_path AS author_profile_path, -- 작성자 프로필 이미지 경로 (users 테이블에 profile_image 컬럼이 있다고 가정)
-            (
-                SELECT REPLACE(file_path, '\\\\', '/')
-                FROM files
-                WHERE post_id = p.id
-                ORDER BY id ASC -- 필요하다면 정렬 기준 추가
-                LIMIT 1
-            ) AS thumbnail_path,
-            COALESCE((
-                SELECT JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/'))
-                FROM files
-                WHERE post_id = p.id
-                ORDER BY id ASC -- 썸네일과 순서를 일치시키거나 원하는 기준으로 정렬
-            ), '[]') AS images
-        FROM
-            posts p
-        JOIN
-            users u ON p.user_id = u.id -- users 테이블과 JOIN하여 작성자 정보 가져오기
-        WHERE
-            p.id = ?;
-    `;
-
-    db.query(query, [postId], (err, results) => {
-        if (err) {
-            console.error(`게시물 상세 정보(ID: ${postId}) 가져오기 중 DB 오류:`, err);
-            return res.status(500).json({ message: '게시물 정보를 가져오는 데 실패했습니다.' });
+    // 1단계: 조회수 처리 함수 (로그인 사용자 대상)
+    const processViewAndIncrement = (callback) => {
+        if (!userId) {
+            // 비로그인 사용자는 조회수 로직을 건너뛰고 바로 다음 단계로 진행
+            return callback();
         }
 
-        if (results.length > 0) {
-            const postDetail = results[0];
-            try {
-                postDetail.images = JSON.parse(postDetail.images);
-                // 썸네일이 images 배열의 첫 번째 요소가 되도록 조정 (만약 썸네일이 images 배열에 포함되어 있다면)
-                // 만약 thumbnail_path가 images 배열에 중복으로 포함되지 않도록 쿼리에서 이미 처리했다면 이 부분은 필요 없을 수 있습니다.
-                // 또는, 클라이언트에서 썸네일을 images 배열의 첫 요소로 추가하는 로직을 유지할 수 있습니다.
-                // 여기서는 서버에서 보낼 때 이미 정렬되었거나, 클라이언트에서 처리한다고 가정합니다.
-            } catch (e) {
-                console.error(`게시물(ID: ${postId}) 이미지 파싱 오류:`, e);
-                postDetail.images = [];
+        // 24시간 내 조회 기록 확인
+        const checkViewQuery = `
+            SELECT id FROM post_views
+            WHERE post_id = ? AND user_id = ? AND viewed_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)
+            LIMIT 1;
+        `;
+        db.query(checkViewQuery, [postId, userId], (err, viewResults) => {
+            if (err) {
+                console.error(`[ERROR] 조회수 중복 확인 중 DB 오류 (post_id: ${postId}, user_id: ${userId}):`, err);
+                // 오류가 발생해도 게시물 정보 조회는 시도하도록 콜백 호출
+                return callback(err);
             }
-            res.json(postDetail);
-        } else {
-            res.status(404).json({ message: '해당 게시물을 찾을 수 없습니다.' });
+
+            if (viewResults.length > 0) {
+                // 이미 24시간 내에 조회한 경우, 조회수 증가 및 기록 안 함
+                console.log(`[INFO] User ${userId} recently viewed post ${postId}. No view count increment.`);
+                return callback();
+            }
+
+            // 24시간 내 조회 기록이 없는 경우, 트랜잭션으로 조회 기록 및 조회수 업데이트
+            db.beginTransaction(txErr => {
+                if (txErr) {
+                    console.error('[ERROR] 조회수 트랜잭션 시작 오류:', txErr);
+                    return callback(txErr);
+                }
+
+                // 1. post_views 테이블에 기록 삽입
+                const insertViewQuery = 'INSERT INTO post_views (post_id, user_id) VALUES (?, ?)';
+                db.query(insertViewQuery, [postId, userId], (insertErr, insertResult) => {
+                    if (insertErr) {
+                        console.error('[ERROR] post_views 삽입 오류:', insertErr);
+                        return db.rollback(() => callback(insertErr));
+                    }
+
+                    // 2. posts 테이블의 views 컬럼 +1 업데이트
+                    const updateViewsQuery = 'UPDATE posts SET views = views + 1 WHERE id = ?';
+                    db.query(updateViewsQuery, [postId], (updateErr, updateResult) => {
+                        if (updateErr) {
+                            console.error('[ERROR] posts 조회수 업데이트 오류:', updateErr);
+                            return db.rollback(() => callback(updateErr));
+                        }
+
+                        // 트랜잭션 커밋
+                        db.commit(commitErr => {
+                            if (commitErr) {
+                                console.error('[ERROR] 조회수 트랜잭션 커밋 오류:', commitErr);
+                                return db.rollback(() => callback(commitErr));
+                            }
+                            console.log(`[INFO] Post ${postId} view count incremented by user ${userId}.`);
+                            callback(); // 성공적으로 모든 작업 완료
+                        });
+                    });
+                });
+            });
+        });
+    };
+
+    // 2단계: 조회수 처리 후 게시물 상세 정보 가져오기
+    processViewAndIncrement((viewError) => {
+        if (viewError) {
+            // 조회수 처리 중 오류가 발생했더라도, 게시물 상세 정보는 반환을 시도합니다.
+            // 필요에 따라 이 부분의 오류 처리 정책을 변경할 수 있습니다.
+            console.warn("[WARN] 조회수 처리 중 오류가 발생했으나, 게시물 정보 조회는 계속합니다.");
         }
+
+        // 기존 게시물 상세 정보 조회 쿼리
+        const query = `
+            SELECT
+                p.id,
+                p.title,
+                p.content,
+                p.created_at,
+                p.views,
+                p.likes,
+                u.id AS user_id,
+                u.username AS author_username,
+                u.profile_image_path AS author_profile_path, /* users 테이블에 이 컬럼이 존재해야 합니다 */
+                (
+                    SELECT REPLACE(file_path, '\\\\', '/')
+                    FROM files
+                    WHERE post_id = p.id
+                    ORDER BY id ASC
+                    LIMIT 1
+                ) AS thumbnail_path,
+                COALESCE(
+                    (
+                        SELECT JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/'))
+                        FROM files
+                        WHERE post_id = p.id
+                        ORDER BY id ASC
+                    ),
+                    '[]'
+                ) AS images
+            FROM
+                posts p
+            JOIN
+                users u ON p.user_id = u.id
+            WHERE
+                p.id = ?;
+        `;
+
+        db.query(query, [postId], (err, results) => {
+            if (err) {
+                console.error(`[ERROR] 게시물 상세 정보(ID: ${postId}) 가져오기 중 DB 오류:`, err);
+                return res.status(500).json({ message: '게시물 정보를 가져오는 데 실패했습니다.' });
+            }
+
+            if (results.length > 0) {
+                const postDetail = results[0];
+                try {
+                    postDetail.images = JSON.parse(postDetail.images);
+                } catch (e) {
+                    console.error(`[ERROR] 게시물(ID: ${postId}) 이미지 파싱 오류:`, e);
+                    postDetail.images = []; // 파싱 실패 시 빈 배열로 설정
+                }
+                res.json(postDetail);
+            } else {
+                res.status(404).json({ message: '해당 게시물을 찾을 수 없습니다.' });
+            }
+        });
     });
 });
 
