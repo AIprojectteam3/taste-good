@@ -1,4 +1,6 @@
+// =======================================================================================================
 // 게시물(카드) 생성 함수
+// =======================================================================================================
 function createCard(item, isPlaceholder = false) {
     const card = document.createElement('div');
     card.className = 'card';
@@ -15,17 +17,16 @@ function createCard(item, isPlaceholder = false) {
             images = [item.thumbnail_path, ...item.images.filter(img => img !== item.thumbnail_path)];
         }
 
-        // PC 환경: 썸네일만 표시
-        if (!isMobile()) {
+        if (!isMobile()) {      // PC 환경
             const img = document.createElement('img');
-            img.src = `post_Tempdata/image/${item.thumbnail_path}`;
+            img.src = item.thumbnail_path;
             img.alt = item.title;
             sliderContainer.appendChild(img);
-        } else {
+        } else {                // 모바일 환경
             images.forEach((imgPath, index) => {
                 const slide = document.createElement('img');
                 slide.className = `slide ${index === 0 ? 'active' : ''}`;
-                slide.src = `post_Tempdata/image/${imgPath}`;
+                slide.src = imgPath;
                 slide.alt = item.title;
                 sliderContainer.appendChild(slide);
             });
@@ -220,81 +221,34 @@ function createCard(item, isPlaceholder = false) {
     return card;
 }
 
+// =======================================================================================================
+// 카드 렌더링 함수
+// =======================================================================================================
+async function renderCards() {
+    const cardContainer = document.querySelector('.content');
+    cardContainer.innerHTML = ''; // 기존 카드 비우기
 
-let currentPage = 0;
-const itemsPerPage = 30;
-const sentinelag = 5;
-let isLoading = false;
-let sentinel = null;
-
-// 카드 렌더링 함수 (start~end 구간만)
-function renderCards(start, end) {
-    const fragment = document.createDocumentFragment();
-    const dataChunk = cardData.slice(start, end);
-
-    dataChunk.forEach(item => {
-        const card = createCard(item);
-        fragment.appendChild(card);
-    });
-
-    const contentEl = document.querySelector('.content');
-    contentEl.appendChild(fragment);
-    adjustGridRows();
-}
-
-function loadMoreData() {
-    if (isLoading || currentPage * itemsPerPage >= cardData.length) {
-        if (sentinel) observer.unobserve(sentinel); // 데이터 끝나면 관찰 중지
-        return;
-    }
-    isLoading = true;
-
-    setTimeout(() => {
-        const start = currentPage * itemsPerPage;
-        const end = start + itemsPerPage;
-
-        // 데이터가 남아있을 때만 생성
-        if (start >= cardData.length) {
-            if (sentinel) observer.unobserve(sentinel);
-            isLoading = false;
-            return;
+    try {
+        const response = await fetch('/api/posts');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        const posts = await response.json();
 
-        renderCards(start, end);
-        placeSentinelAboveLastNCards(sentinelag);
-        currentPage++;
-        isLoading = false;
-
-        if (isMobile()) {
-            setTimeout(() => {
-                window.scrollBy(0, -25650); // 50px 위로 이동
-            }, 100);
+        if (posts && posts.length > 0) {
+            posts.forEach(post => {
+                const cardElement = createCard(post); // createCard가 card 요소를 반환하도록 수정 필요
+                if (cardElement) {
+                    cardContainer.appendChild(cardElement);
+                }
+            });
+        } else {
+            cardContainer.innerHTML = '<p>게시물이 없습니다.</p>';
         }
-
-        // 마지막 데이터까지 생성했으면 관찰 중지
-        if (currentPage * itemsPerPage >= cardData.length && sentinel) {
-            observer.unobserve(sentinel);
-        }
-    }, 300);
-}
-
-const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !isLoading) {
-                loadMoreData();
-            }
-        });
-    }, { 
-    threshold: 0.1
-});
-
-function placeSentinelAboveLastNCards(n = 2) {
-    const content = document.querySelector('.content');
-    const cards = content.querySelectorAll('.card:not(.hidden)');
-    if (cards.length < n) {
-        content.appendChild(sentinel);
-    } else {
-        content.insertBefore(sentinel, cards[cards.length - n]);
+        adjustGridRows(); // 카드가 추가된 후 그리드 레이아웃 조정
+    } catch (error) {
+        console.error('게시물 데이터를 가져오는 중 오류 발생:', error);
+        cardContainer.innerHTML = '<p>게시물을 불러오는 데 실패했습니다.</p>';
     }
 }
 
@@ -342,15 +296,7 @@ function handleSwipe() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    
-    sentinel = document.createElement('div');
-    sentinel.id = 'sentinel';
-    
-    renderCards(0, itemsPerPage);
-    placeSentinelAboveLastNCards(sentinelag);
-    
-    observer.observe(sentinel);
-    currentPage = 1;
+    renderCards();
 
     adjustGridRows();
 

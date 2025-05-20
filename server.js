@@ -378,11 +378,6 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// 서버 시작
-app.listen(PORT, () => {
-    console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
-});
-
 // // 예: HTML 폼에서 입력값 가져오기
 // document.getElementById('loginButton').addEventListener('click', () => {
 //     const email = document.getElementById('email').value;
@@ -473,7 +468,6 @@ app.get('/api/user', (req, res) => {
 // ==================================================================================================================
 // 게시글 DB에 저장
 // ==================================================================================================================
-
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const uploadPath = 'post/uploadImage/'; // 원하는 새 경로
@@ -551,7 +545,56 @@ app.post('/api/createPost', upload.array('images', 10), (req, res) => { // 'imag
     });
 });
 
+// ==================================================================================================================
+// 게시글 목록 가져오기
+// ==================================================================================================================
+app.get('/api/posts', (req, res) => {
+    const query = `
+        SELECT
+            p.id,
+            p.user_id,
+            p.title,
+            p.content,
+            p.created_at,
+            p.views,
+            p.likes,
+            (
+                SELECT file_path FROM files WHERE post_id = p.id LIMIT 1
+            ) AS thumbnail_path,
+            COALESCE((
+                SELECT
+                    JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/')) -- 역슬래시를 슬래시로 변경
+                FROM
+                    files
+                WHERE
+                    post_id = p.id
+            ), '[]') AS images -- NULL 대신 빈 배열 반환
+        FROM
+            posts p
+    `;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('게시물 데이터를 가져오는 중 오류 발생:', err);
+            return res.status(500).json({ message: '게시물 데이터를 가져오는 데 실패했습니다.' });
+        }
+
+        results.forEach(post => {
+            try {
+                post.images = JSON.parse(post.images); // 항상 JSON 파싱 시도
+            } catch (e) {
+                console.error(`Failed to parse images for post ${post.id}:`, e);
+                post.images = []; // 파싱 실패 시 빈 배열로 설정
+            }
+        });
+
+        res.json(results);
+    });
+});
+
+// ==================================================================================================================
 // 서버 시작
+// ==================================================================================================================
 app.listen(PORT, () => {
     console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
 });
