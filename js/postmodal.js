@@ -244,14 +244,16 @@ document.addEventListener("DOMContentLoaded", () => {
                         let commentTextHtml = comment.comment.replace(/\n/g, '<br>');
 
                         commentUserDiv.innerHTML = `
+                        <div class = "comment-div">
                             <div class="user-profile-img">
                                 <img src="${profileImgPath}" alt="${comment.author_username || '사용자'} 프로필">
                             </div>
                             <div class="comment-main">
                                 <span class="comment-user-nickname">${comment.author_username || '익명'}</span>
                                 <p class="comment-content">${commentTextHtml}</p> <!-- CSS 클래스명 일치 확인 -->
-                                <span class="comment-date" style="font-size:0.8em; color:gray;">${new Date(comment.created_at).toLocaleString()}</span>
                             </div>
+                        </div>
+                        <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
                         `;
                         commentContainerDiv.appendChild(commentUserDiv);
                     });
