@@ -599,7 +599,7 @@ app.get('/api/post/:postId', (req, res) => {
     const postId = req.params.postId;
     const userId = req.session.userId; // 세션에서 현재 로그인한 사용자 ID 가져오기
 
-    if (!postId || isNaN(parseInt(postId))) { // postId 유효성 검사 추가
+    if (!postId || isNaN(parseInt(postId))) {
         return res.status(400).json({ message: '유효한 게시물 ID가 필요합니다.' });
     }
 
@@ -610,7 +610,6 @@ app.get('/api/post/:postId', (req, res) => {
             return callback();
         }
 
-        // 24시간 내 조회 기록 확인
         const checkViewQuery = `
             SELECT id FROM post_views
             WHERE post_id = ? AND user_id = ? AND viewed_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)
@@ -619,47 +618,38 @@ app.get('/api/post/:postId', (req, res) => {
         db.query(checkViewQuery, [postId, userId], (err, viewResults) => {
             if (err) {
                 console.error(`[ERROR] 조회수 중복 확인 중 DB 오류 (post_id: ${postId}, user_id: ${userId}):`, err);
-                // 오류가 발생해도 게시물 정보 조회는 시도하도록 콜백 호출
-                return callback(err);
+                return callback(err); // 오류 발생 시 콜백
             }
 
             if (viewResults.length > 0) {
-                // 이미 24시간 내에 조회한 경우, 조회수 증가 및 기록 안 함
                 console.log(`[INFO] User ${userId} recently viewed post ${postId}. No view count increment.`);
-                return callback();
+                return callback(); // 24시간 내 조회 기록 있으면 콜백
             }
 
-            // 24시간 내 조회 기록이 없는 경우, 트랜잭션으로 조회 기록 및 조회수 업데이트
             db.beginTransaction(txErr => {
                 if (txErr) {
                     console.error('[ERROR] 조회수 트랜잭션 시작 오류:', txErr);
                     return callback(txErr);
                 }
-
-                // 1. post_views 테이블에 기록 삽입
                 const insertViewQuery = 'INSERT INTO post_views (post_id, user_id) VALUES (?, ?)';
-                db.query(insertViewQuery, [postId, userId], (insertErr, insertResult) => {
+                db.query(insertViewQuery, [postId, userId], (insertErr) => {
                     if (insertErr) {
                         console.error('[ERROR] post_views 삽입 오류:', insertErr);
                         return db.rollback(() => callback(insertErr));
                     }
-
-                    // 2. posts 테이블의 views 컬럼 +1 업데이트
                     const updateViewsQuery = 'UPDATE posts SET views = views + 1 WHERE id = ?';
-                    db.query(updateViewsQuery, [postId], (updateErr, updateResult) => {
+                    db.query(updateViewsQuery, [postId], (updateErr) => {
                         if (updateErr) {
                             console.error('[ERROR] posts 조회수 업데이트 오류:', updateErr);
                             return db.rollback(() => callback(updateErr));
                         }
-
-                        // 트랜잭션 커밋
                         db.commit(commitErr => {
                             if (commitErr) {
                                 console.error('[ERROR] 조회수 트랜잭션 커밋 오류:', commitErr);
                                 return db.rollback(() => callback(commitErr));
                             }
                             console.log(`[INFO] Post ${postId} view count incremented by user ${userId}.`);
-                            callback(); // 성공적으로 모든 작업 완료
+                            callback(); // 성공 콜백
                         });
                     });
                 });
@@ -667,69 +657,142 @@ app.get('/api/post/:postId', (req, res) => {
         });
     };
 
-    // 2단계: 조회수 처리 후 게시물 상세 정보 가져오기
+    // 2단계: 조회수 처리 후 게시물 상세 정보 및 댓글 가져오기
     processViewAndIncrement((viewError) => {
         if (viewError) {
-            // 조회수 처리 중 오류가 발생했더라도, 게시물 상세 정보는 반환을 시도합니다.
-            // 필요에 따라 이 부분의 오류 처리 정책을 변경할 수 있습니다.
             console.warn("[WARN] 조회수 처리 중 오류가 발생했으나, 게시물 정보 조회는 계속합니다.");
         }
 
-        // 기존 게시물 상세 정보 조회 쿼리
-        const query = `
+        // 게시물 상세 정보 조회 쿼리
+        const postDetailQuery = `
             SELECT
-                p.id,
-                p.title,
-                p.content,
-                p.created_at,
-                p.views,
-                p.likes,
-                u.id AS user_id,
-                u.username AS author_username,
-                u.profile_image_path AS author_profile_path, /* users 테이블에 이 컬럼이 존재해야 합니다 */
-                (
-                    SELECT REPLACE(file_path, '\\\\', '/')
-                    FROM files
-                    WHERE post_id = p.id
-                    ORDER BY id ASC
-                    LIMIT 1
-                ) AS thumbnail_path,
-                COALESCE(
-                    (
-                        SELECT JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/'))
-                        FROM files
-                        WHERE post_id = p.id
-                        ORDER BY id ASC
-                    ),
-                    '[]'
-                ) AS images
-            FROM
-                posts p
-            JOIN
-                users u ON p.user_id = u.id
-            WHERE
-                p.id = ?;
+                p.id, p.title, p.content, p.created_at, p.views, p.likes,
+                u.id AS user_id, u.username AS author_username, u.profile_image_path AS author_profile_path,
+                (SELECT REPLACE(file_path, '\\\\', '/') FROM files WHERE post_id = p.id ORDER BY id ASC LIMIT 1) AS thumbnail_path,
+                COALESCE((SELECT JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/')) FROM files WHERE post_id = p.id ORDER BY id ASC), '[]') AS images
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            WHERE p.id = ?;
         `;
 
-        db.query(query, [postId], (err, results) => {
+        db.query(postDetailQuery, [postId], (err, postResults) => {
             if (err) {
                 console.error(`[ERROR] 게시물 상세 정보(ID: ${postId}) 가져오기 중 DB 오류:`, err);
                 return res.status(500).json({ message: '게시물 정보를 가져오는 데 실패했습니다.' });
             }
-
-            if (results.length > 0) {
-                const postDetail = results[0];
-                try {
-                    postDetail.images = JSON.parse(postDetail.images);
-                } catch (e) {
-                    console.error(`[ERROR] 게시물(ID: ${postId}) 이미지 파싱 오류:`, e);
-                    postDetail.images = []; // 파싱 실패 시 빈 배열로 설정
-                }
-                res.json(postDetail);
-            } else {
-                res.status(404).json({ message: '해당 게시물을 찾을 수 없습니다.' });
+            if (postResults.length === 0) {
+                return res.status(404).json({ message: '해당 게시물을 찾을 수 없습니다.' });
             }
+
+            const postDetail = postResults[0];
+            try {
+                postDetail.images = JSON.parse(postDetail.images);
+            } catch (e) {
+                console.error(`[ERROR] 게시물(ID: ${postId}) 이미지 파싱 오류:`, e);
+                postDetail.images = [];
+            }
+
+            // 댓글 정보 가져오기
+            const getCommentsQuery = `
+                SELECT 
+                    c.id, c.user_id, c.comment, c.created_at,
+                    u.username AS author_username,
+                    u.profile_image_path AS author_profile_path
+                FROM comments c
+                JOIN users u ON c.user_id = u.id
+                WHERE c.post_id = ?
+                ORDER BY c.created_at ASC;
+            `;
+            db.query(getCommentsQuery, [postId], (commentErr, comments) => {
+                if (commentErr) {
+                    console.error(`[ERROR] 게시물(ID: ${postId})의 댓글 가져오기 중 DB 오류:`, commentErr);
+                    postDetail.comments = []; // 댓글 조회 실패 시 빈 배열
+                } else {
+                    console.log(`[INFO] 게시물(ID: ${postId}) 댓글 조회 완료 (개수: ${comments.length})`);
+                    postDetail.comments = comments;
+                }
+                res.json(postDetail); // 게시물 상세 정보와 댓글 함께 반환
+            });
         });
+    });
+});
+
+// ==================================================================================================================
+// 댓글 작성 API
+// ==================================================================================================================
+app.post('/api/post/:postId/comment', (req, res) => {
+    const postId = req.params.postId;
+    const userId = req.session.userId; // 세션에서 현재 로그인한 사용자 ID 가져오기
+    const { comment } = req.body;
+
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '댓글을 작성하려면 로그인이 필요합니다.' });
+    }
+    if (!comment || comment.trim() === '') {
+        return res.status(400).json({ success: false, message: '댓글 내용을 입력해주세요.' });
+    }
+    if (!postId || isNaN(parseInt(postId))) {
+        return res.status(400).json({ success: false, message: '유효한 게시물 ID가 필요합니다.' });
+    }
+
+    const insertCommentQuery = 'INSERT INTO comments (post_id, user_id, comment) VALUES (?, ?, ?)';
+    db.query(insertCommentQuery, [postId, userId, comment], (err, result) => {
+        if (err) {
+            console.error(`[ERROR] 댓글 작성 중 DB 오류 (post_id: ${postId}, user_id: ${userId}):`, err);
+            return res.status(500).json({ success: false, message: '댓글 작성 중 서버 오류가 발생했습니다.' });
+        }
+
+        // 방금 작성된 댓글 정보와 함께 사용자 정보도 반환하여 클라이언트에서 바로 표시할 수 있도록 함
+        const newCommentId = result.insertId;
+        const getNewCommentQuery = `
+            SELECT 
+                c.id, c.post_id, c.user_id, c.comment, c.created_at,
+                u.username AS author_username,
+                u.profile_image_path AS author_profile_path 
+            FROM comments c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.id = ?
+        `;
+        db.query(getNewCommentQuery, [newCommentId], (errComment, commentData) => {
+            if (errComment || commentData.length === 0) {
+                console.error(`[ERROR] 방금 작성된 댓글 정보 조회 오류 (comment_id: ${newCommentId}):`, errComment);
+                // 댓글 삽입은 성공했으므로 일단 성공으로 응답하되, 데이터 없이 응답할 수 있음
+                return res.status(201).json({ success: true, message: '댓글이 성공적으로 등록되었습니다 (정보 조회 실패).', commentId: newCommentId });
+            }
+            res.status(201).json({ success: true, message: '댓글이 성공적으로 등록되었습니다.', comment: commentData[0] });
+        });
+    });
+});
+
+
+// ==================================================================================================================
+// 댓글 목록 가져오기 API
+// ==================================================================================================================
+app.get('/api/post/:postId/comments', (req, res) => {
+    const postId = req.params.postId;
+
+    if (!postId || isNaN(parseInt(postId))) {
+        return res.status(400).json({ message: '유효한 게시물 ID가 필요합니다.' });
+    }
+
+    // 댓글 작성자 정보(닉네임, 프로필 이미지)도 함께 가져오기 위해 users 테이블과 JOIN
+    // comments 테이블의 created_at을 기준으로 오름차순 정렬 (오래된 댓글부터)
+    const getCommentsQuery = `
+        SELECT 
+            c.id, c.post_id, c.user_id, c.comment, c.created_at,
+            u.username AS author_username,
+            u.profile_image_path AS author_profile_path 
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
+        WHERE c.post_id = ?
+        ORDER BY c.created_at ASC; 
+    `;
+    db.query(getCommentsQuery, [postId], (err, comments) => {
+        if (err) {
+            console.error(`[ERROR] 댓글 목록 가져오기 중 DB 오류 (post_id: ${postId}):`, err);
+            return res.status(500).json({ message: '댓글 목록을 가져오는 데 실패했습니다.' });
+        }
+        res.json(comments);
     });
 });
 
