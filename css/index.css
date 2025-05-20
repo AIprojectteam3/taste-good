@@ -255,9 +255,9 @@ body {
     box-shadow: 0 2px 8px rgba(255,0,0,0.15);
 }
 .slide-thumb {
-    width: 48px;
-    height: 48px;
-    object-fit: cover;
+    width: 55px !important;
+    height: 55px !important;
+    object-fit: cover !important;
     border-radius: 6px;
     cursor: pointer;
     border: 2px solid rgba(255,255,255,0.7);
@@ -408,7 +408,7 @@ body {
 }
 
 .post-content {
-    max-height: 270px;
+    max-height: 290px;
     overflow: hidden;
     position: relative;
     transition: max-height 0.3s;
@@ -851,10 +851,6 @@ body {
 
 /* PC 환경 */
 @media (min-width : 768px) {
-    .post-user {
-        display : none;
-    }
-
     .slider-container img {
         width: 100%;
         height: 100%;

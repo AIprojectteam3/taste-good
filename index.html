@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>조합 추천 페이지</title>
     <link rel = "stylesheet" href = "css/index.css">
-    <link rel = "stylesheet" hret = "css/postmodal.css">
     <link rel = "stylesheet" href = "css/menu.css">
     <link rel = "stylesheet" href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
@@ -139,8 +138,15 @@
         <div class = "modal-window">
             <div class = "modal-left">
                 <div class = "modal-img">
-                    <img src = "" alt = "게시물 이미지">
-                    
+                    <button class = "slide-nav prev">‹</button>
+                    <div class = "slide-container">
+                        <!-- 여기에 이미지 슬라이드 -->
+                        <img class = "slide-img" src = "" alt = "이미지 슬라이드 삽입할 곳">
+                        <div class = "slide-thumbnails">
+                            <!-- 여기 이미지 썸네일들 삽입하기기 -->
+                        </div>
+                    </div>
+                    <button class = "slide-nav next">›</button>
                 </div>
             </div>
             <div class = "modal-right">
@@ -151,18 +157,23 @@
                         </div>
                         <div class = "user-nickname">
                             <span>유저 닉네임</span>
-                            <span>···</span>
+                            <span class = "postMenuBtn">···</span>
                         </div>
                     </div>
                     <div class = "post-content-div">
                         <div>
-                            <h3 class = "post-title"></h3>
-                            <div class = "post-content"></div>
+                            <h3 class = "post-title">여기에 게시물 타이틀 삽입</h3>
+                            <div class = "post-content">여기에 게시물 콘텐츠 삽입</div>
                             <button class="read-more-btn" style="display:none;">더보기</button>
                         </div>
                     </div>
                     <div class = "post-comment">
-
+                        <!-- 여기에 댓글 밑의 구조대로 삽입 -->
+                        <!--<div class = "comment-user">
+                                <div class = "user-profile-img"><img src = "" alt = "댓글 작성자 프로필 사진"></div>
+                                <div clsss = "comment-user-nickname"><span>댓글 작성자 닉네임</span></div>
+                                <div class = "comment-content"><span>댓글 내용</span></div>
+                            </div> -->
                     </div>
                 </div>
                 <div class = "comment-input-div">

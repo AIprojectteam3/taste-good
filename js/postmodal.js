@@ -1,281 +1,188 @@
 document.addEventListener("DOMContentLoaded", () => {
-    let currentSlideIndex = 0;
-    let currentImages = []; // 현재 모달에서 사용 중인 이미지 목록
-
-    // --- DOM 요소 선택 ---
-    // 게시물 목록 컨테이너
-    const contentContainer = document.querySelector('.content');
-
-    // 게시물 상세 모달 (PC 환경)
-    const postDetailModal = document.getElementById('index-modal');
-
-    // 모달 내부 요소들 (선택자는 index.html 구조에 맞게 조정 필요)
-    const modalTitle = postDetailModal ? postDetailModal.querySelector('.post-title') : null; // 예시, 실제 클래스명으로 변경
-    const modalContentElement = postDetailModal ? postDetailModal.querySelector('.post-content') : null; // 예시
-    const modalUserImg = postDetailModal ? postDetailModal.querySelector('.post-user .user-profile-img img') : null; // 예시
-    const modalUserNickname = postDetailModal ? postDetailModal.querySelector('.post-user .user-nickname span:first-child') : null; // 예시
-    const readMoreButton = postDetailModal ? postDetailModal.querySelector('.post-content-div .read-more-btn') : null; // 예시
-
-    // 이미지 슬라이더 관련 요소 (PC 모달)
-    const modalMainImageContainer = postDetailModal ? postDetailModal.querySelector('.modal-img .slides') : null; // 메인 이미지가 표시될 컨테이너 (.slides 내부)
-    const modalThumbnailsContainer = postDetailModal ? postDetailModal.querySelector('.modal-img .slide-thumbnails') : null; // 썸네일 컨테이너
-    const prevSlideButton = postDetailModal ? postDetailModal.querySelector('.modal-img .slide-nav.prev') : null; // 이전 버튼
-    const nextSlideButton = postDetailModal ? postDetailModal.querySelector('.modal-img .slide-nav.next') : null; // 다음 버튼
-    const closeModalButton = postDetailModal ? postDetailModal.querySelector('.close-area') : null; // 닫기 버튼
-
-    // ================================================================================================
-    // 게시물 상세 데이터 가져오기
-    // ================================================================================================
-    async function fetchPostData(postId) {
-        console.log(`[fetchPostData] postId ${postId}로 상세 정보 요청 시작...`);
+    // 게시물 모달을 표시하는 함수
+    async function displayPostModal(postId) {
         try {
+            // 1. 서버로부터 게시물 상세 정보를 가져옵니다.
+            //    `/api/post/${postId}` 엔드포인트를 호출합니다.
             const response = await fetch(`/api/post/${postId}`);
-            console.log('[fetchPostData] fetch 응답 객체:', response);
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: '서버 응답 JSON 파싱 실패' }));
-                console.error('[fetchPostData] 서버 응답 오류:', response.status, errorData);
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP 오류! 상태: ${response.status}`);
             }
-            const postData = await response.json();
-            console.log('[fetchPostData] 서버로부터 받은 postData:', postData);
-            return postData;
-        } catch (error) {
-            console.error('[fetchPostData] 게시물 상세 정보 가져오기 중 오류:', error);
-            alert(error.message || '게시물 정보를 불러오는 데 실패했습니다.');
-            return null;
-        }
-    }
+            const postDetail = await response.json(); // 응답 예시: { id, title, content, ..., author_username, author_profile_path, images: [...] }
 
-    // ================================================================================================
-    // 모달 내용 채우기
-    // ================================================================================================
-    function populateModalWithData(postData) {
-        if (!postData) return;
+            // 2. 모달창의 각 HTML 요소를 선택합니다.
+            const modalOverlay = document.getElementById('index-modal');
+            const slideContainerDiv = modalOverlay.querySelector('.slide-container');
+            const mainSlideImg = slideContainerDiv.querySelector('.slide-img'); // 메인 슬라이드 이미지
+            const slideThumbnailsDiv = slideContainerDiv.querySelector('.slide-thumbnails'); // 썸네일 컨테이너
+            const userProfileImg = modalOverlay.querySelector('.post-user .user-profile-img img'); // 작성자 프로필 이미지
+            const userNicknameSpan = modalOverlay.querySelector('.post-user .user-nickname > span:first-child'); // 작성자 닉네임
+            const postTitleH3 = modalOverlay.querySelector('.post-title'); // 게시물 제목
+            const postContentDiv = modalOverlay.querySelector('.post-content'); // 게시물 내용
+            const postCommentDiv = modalOverlay.querySelector('.post-comment'); // 댓글 영역
+            const readMoreBtn = modalOverlay.querySelector('.read-more-btn'); // 더보기 버튼
 
-        console.log('[populateModalWithData] 모달 내용 채우기 시작:', postData);
+            // 3. 이미지 슬라이드 및 썸네일을 채웁니다.
+            if (postDetail.images && postDetail.images.length > 0) {
+                mainSlideImg.src = postDetail.images[0];
+                mainSlideImg.alt = postDetail.title + " 이미지 슬라이드";
 
-        if (modalTitle) modalTitle.textContent = postData.title || '제목 없음';
-        if (modalContentElement) modalContentElement.textContent = postData.content || '내용 없음';
+                slideThumbnailsDiv.innerHTML = ''; // 기존 썸네일 초기화
 
-        if (modalUserImg) modalUserImg.src = postData.author_profile_path || 'image/profile-icon.png'; // 기본 프로필 이미지 경로
-        if (modalUserNickname) modalUserNickname.textContent = postData.author_username || '익명';
+                // 썸네일 이미지들을 동적으로 생성하고 삽입합니다.
+                postDetail.images.forEach((imagePath, index) => {
+                    const thumbImg = document.createElement('img');
+                    thumbImg.classList.add('slide-thumb');
+                    thumbImg.src = imagePath;
+                    thumbImg.alt = `썸네일 ${index + 1}`;
+                    thumbImg.dataset.index = index; // 클릭 시 해당 이미지로 변경하기 위한 인덱스
 
-        // 이미지 데이터 준비
-        currentImages = [];
-        if (postData.thumbnail_path) {
-            currentImages.push(postData.thumbnail_path);
-        }
-        if (Array.isArray(postData.images)) {
-            postData.images.forEach(imgPath => {
-                if (imgPath !== postData.thumbnail_path) { // 썸네일과 중복 방지
-                    currentImages.push(imgPath);
-                }
-            });
-        }
-        console.log('[populateModalWithData] 모달에 사용할 이미지 목록:', currentImages);
-        populateModalImageSlider(currentImages);
+                    if (index === 0) {
+                        thumbImg.classList.add('active'); // 첫 번째 썸네일을 활성화 상태로 표시
+                    }
 
-        // '더보기' 버튼 상태 업데이트
-        if (readMoreButton && modalContentElement) {
-            modalContentElement.classList.remove('expanded');
-            readMoreButton.textContent = '더보기';
-            // DOM 업데이트 후 실제 높이 계산 위해 setTimeout 사용
+                    // 썸네일 클릭 이벤트: 메인 이미지 변경
+                    thumbImg.addEventListener('click', () => {
+                        mainSlideImg.src = imagePath;
+                        // 모든 썸네일에서 'active' 클래스 제거 후 현재 클릭된 썸네일에 추가
+                        slideThumbnailsDiv.querySelectorAll('.slide-thumb').forEach(t => t.classList.remove('active'));
+                        thumbImg.classList.add('active');
+                    });
+                    slideThumbnailsDiv.appendChild(thumbImg);
+                });
+
+                // 썸네일 컨테이너 마우스 휠 가로 스크롤 기능 추가
+                const newWheelHandler = (event) => {
+                    if (slideThumbnailsDiv.scrollWidth > slideThumbnailsDiv.clientWidth) {
+                        event.preventDefault(); // 기본 세로 스크롤 방지
+                        slideThumbnailsDiv.scrollLeft += event.deltaY; // 휠의 Y축 변화량만큼 가로로 스크롤
+                    }
+                };
+                // 기존 이벤트 리스너가 있다면 제거 (옵션)
+                // if (slideThumbnailsDiv._wheelHandler) {
+                //     slideThumbnailsDiv.removeEventListener('wheel', slideThumbnailsDiv._wheelHandler);
+                // }
+                slideThumbnailsDiv.addEventListener('wheel', newWheelHandler);
+                // slideThumbnailsDiv._wheelHandler = newWheelHandler; // 핸들러 참조 저장 (옵션)
+
+            } else {
+                // 이미지가 없는 경우 처리
+                mainSlideImg.src = ""; // 기본 이미지 또는 빈 값
+                mainSlideImg.alt = "이미지 없음";
+                slideThumbnailsDiv.innerHTML = ''; // 썸네일 없음
+            }
+
+            // 4. 작성자 정보를 채웁니다.
+            userProfileImg.src = postDetail.author_profile_path || 'image/profile-icon.png'; // 프로필 이미지 경로, 없을 경우 기본값 (기본 이미지 경로 수정)
+            userProfileImg.alt = (postDetail.author_username || "사용자") + " 프로필 사진";
+            userNicknameSpan.textContent = postDetail.author_username || "알 수 없는 사용자";
+
+            // 5. 게시물 제목 및 내용을 채웁니다.
+            postTitleH3.textContent = postDetail.title;
+            postContentDiv.textContent = postDetail.content; // 내용에 HTML 태그가 포함되어 있다면 `.innerHTML` 사용을 고려하세요.
+            modalOverlay.style.display = 'flex';
+
             setTimeout(() => {
-                if (modalContentElement.scrollHeight > modalContentElement.clientHeight) {
-                    readMoreButton.style.display = 'block';
+                if (postContentDiv && readMoreBtn) { // 요소들이 존재하는지 먼저 확인
+                    console.log("readMoreBtn Check - scrollHeight (after timeout):", postContentDiv.scrollHeight);
+                    console.log("readMoreBtn Check - clientHeight (after timeout):", postContentDiv.clientHeight);
+                    console.log("readMoreBtn Check - Element (after timeout):", readMoreBtn);
+
+                    if (postContentDiv.scrollHeight > postContentDiv.clientHeight) {
+                        console.log("readMoreBtn: 표시 조건 충족 (내용 김)");
+                        readMoreBtn.style.display = 'block'; // 내용이 넘치면 "더보기" 버튼 표시
+                        readMoreBtn.onclick = () => {
+                            postContentDiv.classList.toggle('expanded');
+                            if (postContentDiv.classList.contains('expanded')) {
+                                readMoreBtn.textContent = '닫기';
+                            } else {
+                                readMoreBtn.textContent = '더보기';
+                                postContentDiv.scrollTop = 0;
+                            }
+                        };
+                    } else {
+                        console.log("readMoreBtn: 숨김 조건 충족 (내용 짧음 또는 같음)");
+                        readMoreBtn.style.display = 'none'; // 내용이 짧으면 "더보기" 버튼 숨김
+                    }
+                    console.log("readMoreBtn Check - 최종 display 스타일 (after timeout):", readMoreBtn.style.display);
                 } else {
-                    readMoreButton.style.display = 'none';
+                    if (!postContentDiv) console.error(".post-content 요소를 찾을 수 없습니다.");
+                    if (!readMoreBtn) console.error(".read-more-btn 요소를 찾을 수 없습니다.");
                 }
             }, 0);
-        }
-        // TODO: 댓글 로드 로직 호출
-        // loadComments(postData.id);
-    }
 
-    // ================================================================================================
-    // 이미지 슬라이더(메인 이미지, 썸네일) 채우기
-    // ================================================================================================
-    function populateModalImageSlider(images) {
-        console.log('[populateModalImageSlider] 이미지 슬라이더 채우기 시작. 이미지 개수:', images.length);
-        if (modalMainImageContainer) modalMainImageContainer.innerHTML = '';
-        if (modalThumbnailsContainer) modalThumbnailsContainer.innerHTML = '';
-
-        if (!images || images.length === 0) {
-            if (modalMainImageContainer) modalMainImageContainer.innerHTML = '<p style="color: white; text-align: center; width:100%;">이미지가 없습니다.</p>';
-            console.log('[populateModalImageSlider] 이미지가 없어 메시지 표시.');
-            updateSlideNavigation(0, 0); // 버튼 비활성화
-            return;
-        }
-
-        images.forEach((imgPath, index) => {
-            // 메인 슬라이드 이미지 생성
-            if (modalMainImageContainer) {
-                const slideElement = document.createElement('img');
-                slideElement.src = imgPath;
-                slideElement.alt = `게시물 이미지 ${index + 1}`;
-                slideElement.classList.add('slide'); // CSS 클래스: .slide
-                if (index === 0) {
-                    slideElement.classList.add('active'); // 첫 번째 슬라이드 활성화
-                }
-                modalMainImageContainer.appendChild(slideElement);
-            }
-
-            // 썸네일 이미지 생성
-            if (modalThumbnailsContainer) {
-                const thumbElement = document.createElement('img');
-                thumbElement.src = imgPath;
-                thumbElement.alt = `썸네일 ${index + 1}`;
-                thumbElement.classList.add('slide-thumb'); // CSS 클래스: .slide-thumb
-                if (index === 0) {
-                    thumbElement.classList.add('active');
-                }
-                thumbElement.addEventListener('click', () => {
-                    displaySpecificSlide(index);
+            // 6. 댓글 영역을 채웁니다.
+            // 현재 서버 응답에 댓글 데이터가 포함되어 있지 않으므로, 이 부분은 예시로 남겨둡니다.
+            // 실제 댓글 데이터를 가져오려면 서버 API 수정 및 추가 fetch 요청이 필요합니다.
+            if (postDetail.comments && postDetail.comments.length > 0) { // API가 'comments' 배열을 반환한다고 가정
+                postCommentDiv.innerHTML = ''; // 기존 댓글 내용 초기화
+                postDetail.comments.forEach(comment => {
+                    const commentUserDiv = document.createElement('div');
+                    commentUserDiv.classList.add('comment-user'); // index.html의 실제 댓글 구조에 맞게 수정 필요
+                    commentUserDiv.innerHTML = `
+                        <div class="user-profile-img">
+                            <img src="${comment.author_profile_path || 'image/profile-icon.png'}" alt="${comment.author_username} 프로필">
+                        </div>
+                        <div class="comment-main">
+                            <span class="comment-user-nickname">${comment.author_username}</span>
+                            <p class="comment-text">${comment.text}</p>
+                        </div>
+                        <!-- 필요한 경우 날짜, 수정/삭제 버튼 등 추가 -->
+                    `;
+                    postCommentDiv.appendChild(commentUserDiv);
                 });
-                modalThumbnailsContainer.appendChild(thumbElement);
-            }
-        });
-        displaySpecificSlide(0); // 첫 번째 슬라이드 표시 및 네비게이션 업데이트
-        console.log('[populateModalImageSlider] 이미지 슬라이더 구성 완료.');
-    }
-
-    // ================================================================================================
-    // 특정 인덱스의 슬라이드 표시
-    // ================================================================================================
-    function displaySpecificSlide(index) {
-        console.log(`[displaySpecificSlide] 인덱스 ${index} 슬라이드 표시 시도.`);
-        if (!modalMainImageContainer || !currentImages || currentImages.length === 0) {
-            console.log('[displaySpecificSlide] 메인 이미지 컨테이너 없거나 이미지 목록 비어있음.');
-            updateSlideNavigation(0, 0);
-            return;
-        }
-
-        currentSlideIndex = index;
-
-        const allSlides = modalMainImageContainer.querySelectorAll('.slide');
-        allSlides.forEach((slide, idx) => {
-            slide.classList.toggle('active', idx === currentSlideIndex);
-        });
-
-        const allThumbs = modalThumbnailsContainer ? modalThumbnailsContainer.querySelectorAll('.slide-thumb') : [];
-        allThumbs.forEach((thumb, idx) => {
-            thumb.classList.toggle('active', idx === currentSlideIndex);
-        });
-
-        updateSlideNavigation(currentSlideIndex, currentImages.length);
-        console.log(`[displaySpecificSlide] 인덱스 ${currentSlideIndex} 슬라이드 표시 완료.`);
-    }
-
-    // ================================================================================================
-    // 슬라이드 네비게이션 버튼 활성화/비활성화
-    // ================================================================================================
-    function updateSlideNavigation(currentIndex, totalSlides) {
-        if (prevSlideButton) {
-            prevSlideButton.disabled = totalSlides <= 1 || currentIndex === 0;
-        }
-        if (nextSlideButton) {
-            nextSlideButton.disabled = totalSlides <= 1 || currentIndex >= totalSlides - 1;
-        }
-        console.log(`[updateSlideNavigation] 네비게이션 버튼 상태 업데이트: 현재 ${currentIndex}, 전체 ${totalSlides}`);
-    }
-
-    // ================================================================================================
-    // 게시물 상세 모달 열기 및 닫기
-    // ================================================================================================
-    function openPostDetailModal() {
-        if (postDetailModal) {
-            postDetailModal.style.display = 'flex';
-            console.log('[openPostDetailModal] 상세 모달 열림.');
-        } else {
-            console.error('[openPostDetailModal] 상세 모달 요소를 찾을 수 없습니다.');
-        }
-    }
-    function closePostDetailModal() {
-        if (postDetailModal) {
-            postDetailModal.style.display = 'none';
-            console.log('[closePostDetailModal] 상세 모달 닫힘.');
-            // 모달 닫을 때 내용 초기화 (선택 사항)
-            if (modalMainImageContainer) modalMainImageContainer.innerHTML = '';
-            if (modalThumbnailsContainer) modalThumbnailsContainer.innerHTML = '';
-            if (modalTitle) modalTitle.textContent = '';
-            if (modalContentElement) modalContentElement.textContent = '';
-            // ... 기타 초기화
-        }
-    }
-
-    // ================================================================================================
-    // 이벤트 리스너 등록
-    // ================================================================================================
-    // 게시물 목록 클릭 시 모달 열기
-    if (contentContainer) {
-        console.log('[DOMContentLoaded] .content 요소를 찾았습니다. 이벤트 리스너 설정합니다.');
-        contentContainer.addEventListener('click', async (event) => {
-            console.log('[카드 클릭] .content 내부 클릭 감지됨. 클릭된 대상:', event.target);
-
-            const cardElement = event.target.closest('.card'); // 클릭된 요소 또는 그 부모 중 .card 찾기
-            console.log('[카드 클릭] 찾은 .card 요소:', cardElement);
-            if (!cardElement) {
-                console.log('[카드 클릭] .card 요소를 찾지 못했습니다.');
-                return;
+            } else {
+                postCommentDiv.innerHTML = '<div class="no-comment">아직 댓글이 없습니다.</div>'; // 댓글 없을 때 메시지 (index.css 참고)
             }
 
-            const postId = cardElement.getAttribute('data-post-id');
-            console.log('[카드 클릭] 가져온 postId:', postId);
-            if (!postId) {
-                console.log('[카드 클릭] data-post-id 속성 또는 값을 찾지 못했습니다.');
-                return;
-            }
+            // 마지막으로, 모달을 화면에 표시합니다.
+            modalOverlay.style.display = 'flex'; // 또는 'block', CSS 설정에 따라 다릅니다.
 
-            const postData = await fetchPostData(postId);
-            if (postData) {
-                populateModalWithData(postData);
-                openPostDetailModal();
+        } catch (error) {
+            console.error("게시물 모달 표시 중 오류 발생:", error);
+            alert("게시물 정보를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
+        }
+    }
+
+    // 이벤트 위임(Event Delegation)을 사용하여 게시물 카드 클릭 처리
+    // 카드를 감싸는 정적 부모 요소에 이벤트 리스너를 추가합니다.
+    // '.content'는 index.html에서 카드들을 감싸는 컨테이너로 사용됨 [2][3]
+    const cardContainer = document.querySelector('.content'); // 카드 컨테이너 선택자 수정
+
+    if (cardContainer) {
+        cardContainer.addEventListener('click', function(event) {
+            const clickedCard = event.target.closest('.card'); // 클릭된 요소 또는 그 부모 중 .card 찾기
+
+            if (clickedCard) {
+                console.log("게시물 카드 클릭됨 (이벤트 위임):", clickedCard);
+                const postId = clickedCard.getAttribute('data-post-id');
+                if (postId) {
+                    displayPostModal(postId);
+                } else {
+                    console.warn(`클릭된 카드에서 'data-post-id' 속성을 찾을 수 없습니다. HTML 태그: <${clickedCard.tagName.toLowerCase()} class="${clickedCard.className}">`);
+                }
             }
         });
     } else {
-        console.error('[DOMContentLoaded] .content 요소를 찾지 못했습니다.');
+        console.warn("'.content' (카드 컨테이너) 요소를 찾을 수 없습니다. 카드 클릭 이벤트 리스너가 설정되지 않았습니다.");
     }
 
-    // 더보기 버튼 클릭 이벤트
-    if (readMoreButton && modalContentElement) {
-        readMoreButton.addEventListener('click', () => {
-            modalContentElement.classList.toggle('expanded');
-            readMoreButton.textContent = modalContentElement.classList.contains('expanded') ? '닫기' : '더보기';
-            console.log(`[더보기 클릭] 'expanded' 클래스 상태: ${modalContentElement.classList.contains('expanded')}`);
+    // 모달 닫기 기능
+    const modalOverlay = document.getElementById('index-modal');
+    const closeButton = modalOverlay.querySelector('.close-area'); // HTML에 정의된 닫기 버튼 선택자 (예: .close-area 또는 내부의 특정 버튼) [3]
+
+    if (closeButton) {
+        closeButton.addEventListener('click', () => {
+            modalOverlay.style.display = 'none';
         });
+    } else {
+        console.warn("모달 닫기 버튼 ('.close-area')을 찾을 수 없습니다.");
     }
 
-    // 모달 닫기 버튼 클릭 이벤트
-    if (closeModalButton) {
-        closeModalButton.addEventListener('click', closePostDetailModal);
-    }
-
-    // 모달 외부 영역 클릭 시 닫기
-    if (postDetailModal) {
-        postDetailModal.addEventListener('click', (event) => {
-            if (event.target === postDetailModal) { // 클릭된 요소가 모달 오버레이 자체인지 확인
-                closePostDetailModal();
-            }
-        });
-    }
-
-    // 이전 슬라이드 버튼 클릭
-    if (prevSlideButton) {
-        prevSlideButton.addEventListener('click', () => {
-            if (currentSlideIndex > 0) {
-                displaySpecificSlide(currentSlideIndex - 1);
-            }
-        });
-    }
-
-    // 다음 슬라이드 버튼 클릭
-    if (nextSlideButton) {
-        nextSlideButton.addEventListener('click', () => {
-            if (currentImages && currentSlideIndex < currentImages.length - 1) {
-                displaySpecificSlide(currentSlideIndex + 1);
-            }
-        });
-    }
-
-    console.log('[postmodal.js] 스크립트 로드 및 초기 설정 완료.');
+    // 선택 사항: 모달 외부(배경)를 클릭했을 때 모달을 닫는 기능
+    modalOverlay.addEventListener('click', (event) => {
+        if (event.target === modalOverlay) { // 클릭된 요소가 모달 오버레이 자체인 경우
+            modalOverlay.style.display = 'none';
+        }
+    });
 });
