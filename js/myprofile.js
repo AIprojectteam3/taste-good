@@ -64,7 +64,7 @@ function updateTabContentAndContainerHeight(tabContentSelector) {
     
     // 모든 그리드 계산 지연
     setTimeout(() => {
-      // 1. 실제 열 개수 계산 (첫 행에 있는 카드 개수)
+        // 1. 실제 열 개수 계산 (첫 행에 있는 카드 개수)
         let firstRowTop = cards[0].offsetTop;
         let columns = 0;
     

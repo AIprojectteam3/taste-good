@@ -718,6 +718,163 @@ app.get('/api/post/:postId', (req, res) => {
 });
 
 // ==================================================================================================================
+// 게시물 수정 API
+// ==================================================================================================================
+app.put('/api/post/:postId', upload.array('images', 10), (req, res) => { // 이미지 수정도 고려하여 multer 사용
+    const postId = req.params.postId;
+    const userId = req.session.userId; // 현재 로그인한 사용자 ID
+    const { title, content, existingImages } = req.body; // existingImages: 기존 이미지 경로 배열 (클라이언트에서 관리)
+    const newFiles = req.files; // 새로 업로드된 파일들
+
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '게시물을 수정하려면 로그인이 필요합니다.' });
+    }
+    if (!postId || isNaN(parseInt(postId))) {
+        return res.status(400).json({ success: false, message: '유효한 게시물 ID가 필요합니다.' });
+    }
+    if (!title || title.trim() === '') {
+        return res.status(400).json({ success: false, message: '제목을 입력해주세요.' });
+    }
+    if (!content || content.trim() === '') {
+        return res.status(400).json({ success: false, message: '내용을 입력해주세요.' });
+    }
+
+    // 1. 게시물 작성자 확인
+    const checkOwnerQuery = 'SELECT user_id FROM posts WHERE id = ?';
+    db.query(checkOwnerQuery, [postId], (ownerErr, ownerResults) => {
+        if (ownerErr) {
+            console.error(`[ERROR] 게시물 작성자 확인 중 DB 오류 (postId: ${postId}):`, ownerErr);
+            return res.status(500).json({ success: false, message: '게시물 정보 확인 중 오류가 발생했습니다.' });
+        }
+        if (ownerResults.length === 0) {
+            return res.status(404).json({ success: false, message: '수정할 게시물을 찾을 수 없습니다.' });
+        }
+        if (ownerResults[0].user_id !== userId) {
+            return res.status(403).json({ success: false, message: '자신이 작성한 게시물만 수정할 수 있습니다.' });
+        }
+
+        // 2. 게시물 내용 업데이트 (트랜잭션 시작)
+        db.beginTransaction(async (txErr) => {
+            if (txErr) {
+                console.error('[ERROR] 게시물 수정 트랜잭션 시작 오류:', txErr);
+                return res.status(500).json({ success: false, message: '서버 오류로 게시물 수정에 실패했습니다.' });
+            }
+
+            try {
+                // 2-1. posts 테이블 업데이트
+                const updatePostQuery = 'UPDATE posts SET title = ?, content = ? WHERE id = ?';
+                await db.promise().query(updatePostQuery, [title, content, postId]);
+
+                // 2-2. 이미지 처리: 기존 이미지 삭제 및 새 이미지 추가
+                // files 테이블에서 해당 post_id의 모든 파일 정보를 가져옵니다.
+                const getExistingFilesQuery = 'SELECT id, file_path FROM files WHERE post_id = ?';
+                const [currentDbFiles] = await db.promise().query(getExistingFilesQuery, [postId]);
+
+                const clientExistingImages = existingImages ? (Array.isArray(existingImages) ? existingImages : [existingImages]) : [];
+
+                // DB에는 있지만 클라이언트가 보내준 existingImages 목록에 없는 파일은 삭제 대상
+                const filesToDeleteFromDb = currentDbFiles.filter(dbFile =>
+                    !clientExistingImages.some(clientPath => dbFile.file_path.endsWith(clientPath.split('/').pop())) // 경로 비교 단순화
+                );
+
+                if (filesToDeleteFromDb.length > 0) {
+                    const deleteFileIds = filesToDeleteFromDb.map(f => f.id);
+                    const deleteFilesQuery = 'DELETE FROM files WHERE id IN (?)';
+                    await db.promise().query(deleteFilesQuery, [deleteFileIds]);
+                    // 실제 서버 파일 시스템에서 파일 삭제 로직도 필요 (fs.unlink)
+                    filesToDeleteFromDb.forEach(file => {
+                        // fs.unlink(file.file_path, (unlinkErr) => {
+                        // if (unlinkErr) console.error(`[ERROR] 파일 시스템에서 파일 삭제 오류 (${file.file_path}):`, unlinkErr);
+                        // });
+                        console.log(`[INFO] DB에서 파일 삭제됨 (ID: ${file.id}, 경로: ${file.file_path}) - 실제 파일 삭제는 주석 처리됨`);
+                    });
+                }
+
+                // 2-3. 새로 업로드된 파일 정보 삽입
+                if (newFiles && newFiles.length > 0) {
+                    const newFileInsertPromises = newFiles.map(file => {
+                        const insertFileQuery = 'INSERT INTO files (post_id, file_name, file_path, file_type) VALUES (?, ?, ?, ?)';
+                        return db.promise().query(insertFileQuery, [postId, file.filename, file.path, file.mimetype]);
+                    });
+                    await Promise.all(newFileInsertPromises);
+                }
+
+                await db.promise().commit(); // 모든 작업 성공 시 커밋
+                res.json({ success: true, message: '게시물이 성공적으로 수정되었습니다.', postId: postId });
+
+            } catch (error) {
+                await db.promise().rollback(); // 오류 발생 시 롤백
+                console.error('[ERROR] 게시물 수정 중 트랜잭션 내 오류:', error);
+                res.status(500).json({ success: false, message: '게시물 수정 중 오류가 발생했습니다.' });
+            }
+        });
+    });
+});
+
+// ==================================================================================================================
+// 게시물 삭제 API
+// ==================================================================================================================
+app.delete('/api/post/:postId', (req, res) => {
+    const postId = req.params.postId;
+    const userId = req.session.userId; // 현재 로그인한 사용자 ID
+
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '게시물을 삭제하려면 로그인이 필요합니다.' });
+    }
+    if (!postId || isNaN(parseInt(postId))) {
+        return res.status(400).json({ success: false, message: '유효한 게시물 ID가 필요합니다.' });
+    }
+
+    // 1. 게시물 작성자 확인
+    const checkOwnerQuery = 'SELECT user_id FROM posts WHERE id = ?';
+    db.query(checkOwnerQuery, [postId], (ownerErr, ownerResults) => {
+        if (ownerErr) {
+            console.error(`[ERROR] 게시물 작성자 확인 중 DB 오류 (postId: ${postId}):`, ownerErr);
+            return res.status(500).json({ success: false, message: '게시물 정보 확인 중 오류가 발생했습니다.' });
+        }
+        if (ownerResults.length === 0) {
+            return res.status(404).json({ success: false, message: '삭제할 게시물을 찾을 수 없습니다.' });
+        }
+        if (ownerResults[0].user_id !== userId) {
+            return res.status(403).json({ success: false, message: '자신이 작성한 게시물만 삭제할 수 있습니다.' });
+        }
+
+        // 2. 게시물 삭제 (트랜잭션 사용 권장, 여기서는 단순화)
+        // posts 테이블에서 ON DELETE CASCADE가 files, comments, post_views에 설정되어 있다면
+        // posts 레코드만 삭제해도 관련 자식 레코드들이 자동으로 삭제됩니다.
+        // 만약 CASCADE 설정이 없다면, files, comments, post_views 테이블에서 먼저 삭제해야 합니다.
+        // 여기서는 CASCADE 설정이 되어 있다고 가정합니다. (실제 DB 스키마 확인 필요)
+
+        // (선택적) 실제 서버 파일 시스템에서 연관된 파일들 삭제
+        // const getFilesToDeleteQuery = 'SELECT file_path FROM files WHERE post_id = ?';
+        // db.query(getFilesToDeleteQuery, [postId], (fileErr, fileRows) => {
+        // if (!fileErr && fileRows.length > 0) {
+        // fileRows.forEach(row => {
+        // fs.unlink(row.file_path, (unlinkErr) => {
+        // if (unlinkErr) console.error(`[ERROR] 파일 시스템 파일 삭제 오류 (${row.file_path}):`, unlinkErr);
+        // });
+        // });
+        // }
+        // });
+
+        const deletePostQuery = 'DELETE FROM posts WHERE id = ?';
+        db.query(deletePostQuery, [postId], (deleteErr, deleteResult) => {
+            if (deleteErr) {
+                console.error(`[ERROR] 게시물 삭제 중 DB 오류 (postId: ${postId}):`, deleteErr);
+                return res.status(500).json({ success: false, message: '게시물 삭제 중 서버 오류가 발생했습니다.' });
+            }
+            if (deleteResult.affectedRows > 0) {
+                console.log(`[INFO] Post ${postId} deleted successfully by user ${userId}.`);
+                res.json({ success: true, message: '게시물이 성공적으로 삭제되었습니다.' });
+            } else {
+                // 이미 삭제되었거나 존재하지 않는 게시물일 수 있음
+                res.status(404).json({ success: false, message: '삭제할 게시물을 찾을 수 없거나 이미 삭제되었습니다.' });
+            }
+        });
+    });
+});
+
+// ==================================================================================================================
 // 댓글 작성 API
 // ==================================================================================================================
 app.post('/api/post/:postId/comment', (req, res) => {

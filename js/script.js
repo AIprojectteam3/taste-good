@@ -1,3 +1,7 @@
+function isMobile() {
+    return window.matchMedia("(max-width: 768px)").matches;
+}
+
 // =======================================================================================================
 // 게시물(카드) 생성 함수
 // =======================================================================================================
@@ -155,8 +159,10 @@ function createCard(item, isPlaceholder = false) {
 
     centerBox.appendChild(title);
     centerBox.appendChild(contentDiv);
+    if (isMobile()) { // 모바일 환경에서만 "더보기" 버튼을 DOM에 추가
+        centerBox.appendChild(readmoreBtn);
+    }
     overlay.appendChild(centerBox);
-    centerBox.appendChild(readmoreBtn);
     card.appendChild(overlay);
 
     const commentInput = document.createElement('div');
@@ -219,6 +225,92 @@ function createCard(item, isPlaceholder = false) {
     }
 
     return card;
+}
+
+function setupMobileCardSliderAndReadMore() {
+    if (!isMobile()) {
+        // PC 환경에서는 "더보기" 버튼 숨김 및 expanded 클래스 제거
+        document.querySelectorAll('.card .read-more-btn').forEach(btn => {
+            btn.style.display = 'none';
+            const contentDiv = btn.closest('.card-center-box')?.querySelector('.card-center-content');
+            if (contentDiv) {
+                contentDiv.classList.remove('expanded');
+            }
+        });
+        return;
+    }
+
+    const cardContainer = document.querySelector('.content');
+    if (!cardContainer) return;
+
+    // "더보기" 버튼 로직 (이벤트 위임 사용)
+    cardContainer.addEventListener('click', function(event) {
+        if (event.target.classList.contains('read-more-btn')) {
+            const btn = event.target;
+            const contentDiv = btn.closest('.card-center-box')?.querySelector('.card-center-content');
+            if (contentDiv) {
+                contentDiv.classList.toggle('expanded');
+                btn.textContent = contentDiv.classList.contains('expanded') ? '닫기' : '더보기';
+                if (!contentDiv.classList.contains('expanded')) {
+                    contentDiv.scrollTop = 0;
+                    // contentDiv.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        }
+
+        // 모바일 카드 슬라이더 네비게이션 버튼 로직 (이벤트 위임 사용)
+        if (event.target.classList.contains('slide-nav')) {
+            event.stopPropagation(); // 카드 클릭 이벤트(모달 열기 등) 방지
+            const navBtn = event.target;
+            const slider = navBtn.closest('.slider-container');
+            if (!slider) return;
+
+            const slides = Array.from(slider.querySelectorAll('.slide'));
+            if (slides.length <= 1) return;
+
+            let activeIndex = slides.findIndex(slide => slide.classList.contains('active'));
+
+            slides[activeIndex].classList.remove('active'); // 현재 활성 슬라이드 숨김
+
+            if (navBtn.classList.contains('prev')) {
+                activeIndex = (activeIndex - 1 + slides.length) % slides.length;
+            } else if (navBtn.classList.contains('next')) {
+                activeIndex = (activeIndex + 1) % slides.length;
+            }
+
+            slides[activeIndex].classList.add('active'); // 새 슬라이드 표시
+
+            // 네비게이션 버튼 활성/비활성 업데이트
+            const prevButton = slider.querySelector('.slide-nav.prev');
+            const nextButton = slider.querySelector('.slide-nav.next');
+            if (prevButton && nextButton) {
+                prevButton.disabled = activeIndex === 0;
+                nextButton.disabled = activeIndex === slides.length - 1;
+                prevButton.classList.toggle('disabled', activeIndex === 0);
+                nextButton.classList.toggle('disabled', activeIndex === slides.length - 1);
+            }
+        }
+    });
+
+    // 각 카드에 대해 초기 "더보기" 버튼 표시 여부 설정
+    document.querySelectorAll('.card').forEach(function(cardElement) {
+        const content = cardElement.querySelector('.card-center-content');
+        const btn = cardElement.querySelector('.read-more-btn');
+
+        if (content && btn) {
+            // index.css 에 모바일용 .card-center-content { max-height: 6.9em; overflow: hidden; } 등이 있어야 합니다.
+            // 이 값은 line-height * 줄 수로 계산됩니다.
+            // scrollHeight > clientHeight 비교는 CSS의 max-height로 인해 내용이 잘렸는지 확인합니다.
+            if (content.scrollHeight > content.clientHeight) {
+                btn.style.display = 'block';
+                btn.textContent = '더보기';
+            } else {
+                btn.style.display = 'none';
+            }
+             // 초기 상태는 항상 '더보기' (펼쳐지지 않음)
+            content.classList.remove('expanded');
+        }
+    });
 }
 
 // =======================================================================================================
