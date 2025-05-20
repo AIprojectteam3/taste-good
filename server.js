@@ -593,6 +593,72 @@ app.get('/api/posts', (req, res) => {
 });
 
 // ==================================================================================================================
+// 게시글 상세보기
+// ==================================================================================================================
+app.get('/api/post/:postId', (req, res) => {
+    const postId = req.params.postId;
+    if (!postId) {
+        return res.status(400).json({ message: '게시물 ID가 필요합니다.' });
+    }
+
+    const query = `
+        SELECT
+            p.id,
+            p.title,
+            p.content,
+            p.created_at,
+            p.views,
+            p.likes,
+            u.id AS user_id,      -- 작성자 ID
+            u.username AS author_username, -- 작성자 닉네임
+            u.profile_image_path AS author_profile_path, -- 작성자 프로필 이미지 경로 (users 테이블에 profile_image 컬럼이 있다고 가정)
+            (
+                SELECT REPLACE(file_path, '\\\\', '/')
+                FROM files
+                WHERE post_id = p.id
+                ORDER BY id ASC -- 필요하다면 정렬 기준 추가
+                LIMIT 1
+            ) AS thumbnail_path,
+            COALESCE((
+                SELECT JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/'))
+                FROM files
+                WHERE post_id = p.id
+                ORDER BY id ASC -- 썸네일과 순서를 일치시키거나 원하는 기준으로 정렬
+            ), '[]') AS images
+        FROM
+            posts p
+        JOIN
+            users u ON p.user_id = u.id -- users 테이블과 JOIN하여 작성자 정보 가져오기
+        WHERE
+            p.id = ?;
+    `;
+
+    db.query(query, [postId], (err, results) => {
+        if (err) {
+            console.error(`게시물 상세 정보(ID: ${postId}) 가져오기 중 DB 오류:`, err);
+            return res.status(500).json({ message: '게시물 정보를 가져오는 데 실패했습니다.' });
+        }
+
+        if (results.length > 0) {
+            const postDetail = results[0];
+            try {
+                postDetail.images = JSON.parse(postDetail.images);
+                // 썸네일이 images 배열의 첫 번째 요소가 되도록 조정 (만약 썸네일이 images 배열에 포함되어 있다면)
+                // 만약 thumbnail_path가 images 배열에 중복으로 포함되지 않도록 쿼리에서 이미 처리했다면 이 부분은 필요 없을 수 있습니다.
+                // 또는, 클라이언트에서 썸네일을 images 배열의 첫 요소로 추가하는 로직을 유지할 수 있습니다.
+                // 여기서는 서버에서 보낼 때 이미 정렬되었거나, 클라이언트에서 처리한다고 가정합니다.
+            } catch (e) {
+                console.error(`게시물(ID: ${postId}) 이미지 파싱 오류:`, e);
+                postDetail.images = [];
+            }
+            res.json(postDetail);
+        } else {
+            res.status(404).json({ message: '해당 게시물을 찾을 수 없습니다.' });
+        }
+    });
+});
+
+// ==================================================================================================================
 // 서버 시작
 // ==================================================================================================================
 app.listen(PORT, () => {
