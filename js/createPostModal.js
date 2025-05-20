@@ -16,6 +16,25 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentCreatePostSlideIndex = 0;
     let draggedItem = null;
 
+    // ============================================================================
+    // 로그인 상태 확인 함수
+    // ============================================================================
+    async function checkLoginStatus() {
+        try {
+            const response = await fetch('/api/user'); // 서버에 사용자 정보 요청
+            if (!response.ok) {
+                // 서버 응답이 OK가 아니면 로그인되지 않은 것으로 간주하거나 오류 처리
+                console.error('로그인 상태 확인 중 서버 오류:', response.status);
+                return false;
+            }
+            const userData = await response.json();
+            return userData !== null; // userData가 null이 아니면 로그인된 상태
+        } catch (error) {
+            console.error('로그인 상태 확인 중 오류 발생:', error);
+            return false; // 오류 발생 시 로그인되지 않은 것으로 간주
+        }
+    }
+
     // 파일 업로드 input 숨김 해제 및 이벤트 연결
     function triggerImageUpload() {
         createPostImageUpload.click();
@@ -284,7 +303,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 모달 열기/닫기 로직
     if (openCreatePostModalBtn) {
-        openCreatePostModalBtn.addEventListener('click', function() {
+        openCreatePostModalBtn.addEventListener('click', async function() {
+
+            // 로그인 상태 확인
+            const isLoggedIn = await checkLoginStatus();
+
+            if (!isLoggedIn) {
+                alert('로그인해야만 글 작성이 가능합니다.');
+                window.location.href = '/';
+                return; // 함수 실행 중단
+            }
+
             openCreatePostModalBtn.classList.toggle('active');
             if (openCreatePostModalBtn.classList.contains('active')) {
                 if (createPostModal) {
