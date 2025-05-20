@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const createPostTitleInput = document.getElementById('createPostTitle');
     const createPostContentInput = document.getElementById('createPostContent');
     const submitCreatePostBtn = document.getElementById('submitCreatePostBtn');
-    const MAX_FILES_ALLOWED = 10;
+    const MAX_FILES_ALLOWED = 8;
     let uploadedFilesForCreatePost = []; // { file: FileObject, blobUrl: "blob:..." }
     let currentCreatePostSlideIndex = 0;
     let draggedItem = null;
