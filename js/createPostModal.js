@@ -416,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     alert(data.message || '게시물이 성공적으로 등록되었습니다.');
                     closeCreatePostModal(); // 성공 시 모달 닫기
+                    location.reload();
                     // 필요하다면 게시물 목록 새로고침 등의 추가 작업 수행
                     // 예: window.location.reload(); 또는 특정 함수 호출
                 } else {

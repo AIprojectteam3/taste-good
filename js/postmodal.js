@@ -24,30 +24,90 @@ document.addEventListener("DOMContentLoaded", () => {
             const postCommentDiv = modalOverlay.querySelector('.post-comment');
             const readMoreBtn = modalOverlay.querySelector('.read-more-btn');
 
+            const prevButton = modalOverlay.querySelector('.slide-nav.prev'); // 이전 버튼 선택
+            const nextButton = modalOverlay.querySelector('.slide-nav.next'); // 다음 버튼 선택
+
+            let currentImageIndex = 0; // 현재 표시된 이미지의 인덱스
+            let images = []; // 게시물의 이미지 경로 배열
+
+            // 이미지 업데이트 함수 (메인 이미지와 썸네일 활성화 상태 변경)
+            function updateSlideView() {
+                if (images.length > 0) {
+                    mainSlideImg.src = images[currentImageIndex];
+                    mainSlideImg.alt = `${postDetail.title} 이미지 ${currentImageIndex + 1}`;
+
+                    // 모든 썸네일에서 'active' 클래스 제거
+                    slideThumbnailsDiv.querySelectorAll('.slide-thumb').forEach(thumb => {
+                        thumb.classList.remove('active');
+                    });
+                    // 현재 인덱스에 해당하는 썸네일에 'active' 클래스 추가
+                    const activeThumb = slideThumbnailsDiv.querySelector(`.slide-thumb[data-index="${currentImageIndex}"]`);
+                    if (activeThumb) {
+                        activeThumb.classList.add('active');
+                        // 활성화된 썸네일이 화면 중앙에 오도록 스크롤 (선택적)
+                        activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }
+                } else {
+                    mainSlideImg.src = "";
+                    mainSlideImg.alt = "이미지 없음";
+                }
+                // 네비게이션 버튼 활성화/비활성화 상태 업데이트
+                if (prevButton && nextButton) { // 버튼이 존재하는 경우에만
+                    prevButton.disabled = images.length <= 1 || currentImageIndex === 0;
+                    nextButton.disabled = images.length <= 1 || currentImageIndex === images.length - 1;
+                }
+            }
+
             // 3. 이미지 슬라이드 및 썸네일을 채웁니다.
             if (postDetail.images && postDetail.images.length > 0) {
-                mainSlideImg.src = postDetail.images[0];
-                mainSlideImg.alt = postDetail.title + " 이미지 슬라이드";
-                slideThumbnailsDiv.innerHTML = '';
+                images = postDetail.images; // 이미지 배열 저장
+                currentImageIndex = 0; // 첫 번째 이미지로 초기화
 
-                postDetail.images.forEach((imagePath, index) => {
+                slideThumbnailsDiv.innerHTML = ''; // 기존 썸네일 초기화
+                images.forEach((imagePath, index) => {
                     const thumbImg = document.createElement('img');
                     thumbImg.classList.add('slide-thumb');
                     thumbImg.src = imagePath;
                     thumbImg.alt = `썸네일 ${index + 1}`;
-                    thumbImg.dataset.index = index;
-
-                    if (index === 0) {
-                        thumbImg.classList.add('active');
-                    }
+                    thumbImg.dataset.index = index; // 각 썸네일에 인덱스 저장
 
                     thumbImg.addEventListener('click', () => {
-                        mainSlideImg.src = imagePath;
-                        slideThumbnailsDiv.querySelectorAll('.slide-thumb').forEach(t => t.classList.remove('active'));
-                        thumbImg.classList.add('active');
+                        currentImageIndex = index; // 클릭된 썸네일의 인덱스로 현재 인덱스 변경
+                        updateSlideView(); // 슬라이드 뷰 업데이트
                     });
                     slideThumbnailsDiv.appendChild(thumbImg);
                 });
+
+                updateSlideView(); // 초기 슬라이드 뷰 설정 (첫 이미지 표시 및 썸네일 활성화)
+
+                // 이전 버튼 클릭 이벤트 리스너
+                if (prevButton) { // 버튼이 존재하는 경우에만 리스너 추가
+                    // 기존 리스너 제거 (모달이 여러 번 열릴 경우 중복 방지)
+                    if (prevButton._clickHandler) {
+                        prevButton.removeEventListener('click', prevButton._clickHandler);
+                    }
+                    prevButton._clickHandler = () => {
+                        if (currentImageIndex > 0) {
+                            currentImageIndex--;
+                            updateSlideView();
+                        }
+                    };
+                    prevButton.addEventListener('click', prevButton._clickHandler);
+                }
+
+                // 다음 버튼 클릭 이벤트 리스너
+                if (nextButton) { // 버튼이 존재하는 경우에만 리스너 추가
+                    if (nextButton._clickHandler) {
+                        nextButton.removeEventListener('click', nextButton._clickHandler);
+                    }
+                    nextButton._clickHandler = () => {
+                        if (currentImageIndex < images.length - 1) {
+                            currentImageIndex++;
+                            updateSlideView();
+                        }
+                    };
+                    nextButton.addEventListener('click', nextButton._clickHandler);
+                }
 
                 const wheelHandler = (event) => {
                     if (slideThumbnailsDiv.scrollWidth > slideThumbnailsDiv.clientWidth) {
@@ -72,6 +132,66 @@ document.addEventListener("DOMContentLoaded", () => {
             userProfileImg.src = postDetail.author_profile_path || 'image/profile-icon.png';
             userProfileImg.alt = (postDetail.author_username || "사용자") + " 프로필 사진";
             userNicknameSpan.textContent = postDetail.author_username || "알 수 없는 사용자";
+
+            const currentUserId = sessionStorage.getItem('loggedInUserId');
+            const postMenuContainer = modalOverlay.querySelector('.user-nickname');
+
+            const existingMenu = postMenuContainer.querySelector('.post-actions-menu');
+            if (existingMenu) existingMenu.remove();
+
+            if (currentUserId && parseInt(currentUserId) === postDetail.user_id) {
+                const menuDiv = document.createElement('div');
+                menuDiv.classList.add('post-actions-menu'); // CSS 스타일링용
+                menuDiv.style.marginLeft = "auto"; // 오른쪽 정렬 예시
+
+                const editButton = document.createElement('button');
+                editButton.textContent = '수정';
+                editButton.classList.add('edit-post-btn'); // CSS 클래스
+                editButton.onclick = () => {
+                    console.log(`게시물 ${postDetail.id} 수정 기능 실행`);
+                    alert('게시물 수정 기능은 아직 구현되지 않았습니다. (UI/폼 필요)');
+                };
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = '삭제';
+                deleteButton.classList.add('delete-post-btn'); // CSS 클래스
+                deleteButton.onclick = async () => {
+                    if (confirm('정말로 이 게시물을 삭제하시겠습니까?')) {
+                        try {
+                            const response = await fetch(`/api/post/${postDetail.id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    // 'Authorization': `Bearer ${token}` // JWT 사용 시
+                                }
+                            });
+                            const result = await response.json();
+                            if (result.success) {
+                                alert('게시물이 삭제되었습니다.');
+                                modalOverlay.style.display = 'none';
+                                const cardToRemove = document.querySelector(`.card[data-post-id="${postDetail.id}"]`);
+                                if (cardToRemove) cardToRemove.remove();
+                                location.reload();
+                            } else {
+                                alert(result.message || '게시물 삭제에 실패했습니다.');
+                            }
+                        } catch (error) {
+                            console.error('게시물 삭제 중 오류:', error);
+                            alert('게시물 삭제 중 오류가 발생했습니다.');
+                        }
+                    }
+                };
+
+                menuDiv.appendChild(editButton);
+                menuDiv.appendChild(deleteButton);
+                // userNicknameSpan의 부모에 추가하거나, 적절한 위치에 메뉴 버튼들 추가
+                const nicknameContainer = userNicknameSpan.closest('.user-nickname');
+                if (nicknameContainer) {
+                    nicknameContainer.appendChild(menuDiv);
+                } else {
+                    userProfileImg.parentElement.appendChild(menuDiv); // 예비 위치
+                }
+
+            }
 
             // 5. 게시물 제목 및 내용을 채웁니다.
             postTitleH3.textContent = postDetail.title;
@@ -229,13 +349,25 @@ document.addEventListener("DOMContentLoaded", () => {
         cardContainer.addEventListener('click', function(event) {
             const clickedCard = event.target.closest('.card');
             if (clickedCard) {
-                console.log("게시물 카드 클릭됨 (이벤트 위임):", clickedCard);
-                const postId = clickedCard.getAttribute('data-post-id');
-                if (postId) {
-                    displayPostModal(postId);
+                // [수정된 부분 시작] 화면 너비 확인하여 PC 환경에서만 모달 띄우기
+                const screenWidth = window.innerWidth;
+                const pcMinWidth = 768; // PC로 간주할 최소 너비 (예: 768px) - index.css의 미디어쿼리 기준과 맞춤
+
+                if (screenWidth >= pcMinWidth) {
+                    console.log("게시물 카드 클릭됨 (PC 환경 - 모달 표시):", clickedCard);
+                    const postId = clickedCard.getAttribute('data-post-id');
+                    if (postId) {
+                        displayPostModal(postId); // PC 환경에서만 displayPostModal 호출
+                    } else {
+                        console.warn(`클릭된 카드에서 'data-post-id' 속성을 찾을 수 없습니다.`);
+                    }
                 } else {
-                    console.warn(`클릭된 카드에서 'data-post-id' 속성을 찾을 수 없습니다.`);
+                    console.log("게시물 카드 클릭됨 (모바일 환경 - 모달 표시 안 함). screenWidth:", screenWidth);
+                    // 모바일 환경에서는 다른 동작을 하도록 설정할 수 있습니다.
+                    // (예: alert('모바일에서는 상세 페이지로 이동합니다.'); 또는 특정 함수 호출)
+                    // 현재는 아무 작업도 하지 않습니다.
                 }
+                // [수정된 부분 끝]
             }
         });
     } else {
