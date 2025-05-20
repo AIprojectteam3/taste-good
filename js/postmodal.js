@@ -80,7 +80,6 @@ document.addEventListener("DOMContentLoaded", () => {
             // 5. 게시물 제목 및 내용을 채웁니다.
             postTitleH3.textContent = postDetail.title;
             postContentDiv.textContent = postDetail.content; // 내용에 HTML 태그가 포함되어 있다면 `.innerHTML` 사용을 고려하세요.
-            modalOverlay.style.display = 'flex';
 
             setTimeout(() => {
                 if (postContentDiv && readMoreBtn) { // 요소들이 존재하는지 먼저 확인
