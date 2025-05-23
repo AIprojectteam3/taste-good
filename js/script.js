@@ -16,9 +16,11 @@ function createCard(item, isPlaceholder = false) {
 
     if (!isPlaceholder) {
         // 데이터에서 이미지 배열 가져오기 (썸네일을 첫 번째로)
-        let images = [item.thumbnail_path];
+        let images = [];
         if (Array.isArray(item.images) && item.images.length > 0) {
-            images = [item.thumbnail_path, ...item.images.filter(img => img !== item.thumbnail_path)];
+            item.images.forEach(img => {
+                images.push(img);
+            });
         }
 
         if (!isMobile()) {      // PC 환경
