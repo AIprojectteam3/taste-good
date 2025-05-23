@@ -174,7 +174,7 @@ function createCard(item, isPlaceholder = false) {
             <img src = "../image/SpeechBubble-icon.png" alt = "댓글" class = "comment-icon" data-post-id = "${item.id}">
         </div>
         <input class = "comInput" type = "text" placeholder = "댓글 입력">
-        <input class = "comSubmit" type = "submit" value = "쓰기">
+        <input class = "comSubmit" type = "submit" value = "등록">
     `
 
     // 하단 아이콘 버튼

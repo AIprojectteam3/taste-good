@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    function openCommentOnlyModal(postId) {
+    async function openCommentOnlyModal(postId) {
         const modal = document.getElementById('commentOnlyModal');
         const closeBtn = modal.querySelector('.close');
         const commentListDiv = modal.querySelector('.comment-modal-list');
@@ -8,8 +8,50 @@ document.addEventListener('DOMContentLoaded', () => {
     
         const filteredComments = commentData.filter(com => String(com.postId) === String(postId));
 
-        // 댓글 데이터 가져오기 (postId로 필터링, 예시는 전체 사용)
-        commentListDiv.innerHTML = '';
+        // 1. 서버로부터 게시물 상세 정보를 가져옵니다.
+        const response = await fetch(`/api/post/${postId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP 오류! 상태: ${response.status}`);
+        }
+        const postDetail = await response.json();
+        console.log("[CLIENT LOG] 서버로부터 받은 postDetail:", JSON.parse(JSON.stringify(postDetail)));
+
+        function renderComments(commentsData, commentContainerDiv, currentPostId) {
+            commentContainerDiv.innerHTML = '';
+            console.log("[CLIENT LOG] renderComments 호출됨, commentsData:", JSON.parse(JSON.stringify(commentsData)));
+
+            if (commentsData && commentsData.length > 0) {
+                commentsData.forEach(comment => {
+                    const commentUserDiv = document.createElement('div');
+                    commentUserDiv.classList.add('comment-item');
+                    const profileImgPath = comment.author_profile_path || 'image/profile-icon.png';
+                    
+                    // HTML로 렌더링할 때 XSS를 방지하기 위해 텍스트 내용은 textContent로 설정하거나,
+                    // 서버 사이드에서 이스케이프 처리된 데이터를 받아야 합니다.
+                    // 여기서는 간단히 줄바꿈만 <br>로 변경합니다.
+                    let commentTextHtml = comment.comment.replace(/\n/g, '<br>');
+
+                    commentUserDiv.innerHTML = `
+                    <div class = "comment-div">
+                        <div class="user-profile-img">
+                            <img src="${profileImgPath}" alt="${comment.author_username || '사용자'} 프로필">
+                        </div>
+                        <div class="comment-main">
+                            <div class="comment-user-div">
+                                <span class="comment-user-nickname">${comment.author_username || '익명'}</span>
+                                <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
+                            </div>
+                            <p class="comment-content">${commentTextHtml}</p> <!-- CSS 클래스명 일치 확인 -->
+                        </div>
+                    </div>
+                    `;
+                    commentContainerDiv.appendChild(commentUserDiv);
+                });
+            } else {
+                commentContainerDiv.innerHTML = '<div class="no-comment">아직 댓글이 없습니다.</div>';
+            }
+        }
+        renderComments(postDetail.comments, commentListDiv, postDetail.id);
 
         if (filteredComments.length === 0) {
             const div = document.createElement('div');
@@ -20,21 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             commentListDiv.appendChild(div);
         }
-
-        filteredComments.forEach(com => {
-            const div = document.createElement('div');
-            div.className = 'comment-item';
-            div.innerHTML = `
-                <div class="user-profile-img">
-                    <img src="${com.profile_path}" alt="${com.profile_path} 프로필 사진">
-                </div>
-                <div class = "comment-mobile-content">
-                    <div class="comment-user-nickname" style="font-weight:bold;">${com.user_nickname}</div>
-                    <div><span class="comment-content">${com.comment}</span></div>
-                </div>
-            `;
-            commentListDiv.appendChild(div);
-        });
     
         // 입력 초기화
         input.value = '';
