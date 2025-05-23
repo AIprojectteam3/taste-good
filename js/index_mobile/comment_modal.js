@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     commentUserDiv.innerHTML = `
                     <div class = "comment-div">
-                        <div class="user-profile-img">
+                        <div class="comment-profile-img">
                             <img src="${profileImgPath}" alt="${comment.author_username || '사용자'} 프로필">
                         </div>
                         <div class="comment-main">
