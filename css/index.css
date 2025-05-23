@@ -1079,7 +1079,9 @@ body {
         display: none; 
         position: fixed; 
         z-index: 1001;
-        left: 0; top: 0; width: 100vw; height: 100vh;
+        left: 50%; top: 50%;
+        transform: translate(-50%, -50%);
+        width: 100vw; height: 100vh;
         background: rgba(0,0,0,0.5);
     }
     .modal.comment-modal .modal-content {
@@ -1090,10 +1092,14 @@ body {
         padding: 0;
         width: 90%;
         max-width : 400px;
-        height: 90%;
+        height: 80%;
         background: #fff;
         border-radius: 12px;
         box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+    }
+    .modal-content {
+        top: 50%;
+        transform : translateY(-55%);
     }
     .modal.comment-modal .close {
         position: absolute;
@@ -1122,12 +1128,16 @@ body {
         gap: 10px;
         width: 100%;
     }
+
+    .comment-div {
+        width : 100%;
+    }
     
     .user-profile-img {
         display : flex;
-        align-items : center;
-        justify-content : center;
-        margin-top : 2px;
+        padding : 12px;
+        width : 15%;
+        height : 100%;
     }
     
     .user-profile-img img {
@@ -1143,12 +1153,30 @@ body {
         align-items: flex-start; /* 왼쪽 정렬 */
         width: 100%;
     }
+
+    .comment-main {
+        width : 100%;
+    }
+
+    .comment-user-div {
+        display : flex;
+        width : 100%;
+    }
+
+    .comment-user-div span {
+        display : flex;
+        align-items : center;
+    }
     
     .comment-user-nickname {
         margin-bottom: 1px;
-        width : 100%;
         font-weight: bold;
         /* 필요하다면 white-space: nowrap; 추가 */
+    }
+
+    .comment-date {
+        flex : 1;
+        font-size : 0.7rem;
     }
     
     .comment-content {
