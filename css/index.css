@@ -1139,7 +1139,7 @@ body {
     
     .comment-profile-img {
         display : flex;
-        padding : 12px;
+        padding-top : 10px;
         width : 15%;
         height : 100%;
     }
