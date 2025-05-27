@@ -1,0 +1,22 @@
+// =====================================================================================
+// 유저 테이블 생성 명령어
+// =====================================================================================
+CREATE TABLE users (
+    id INT NOT NULL AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    sns_id VARCHAR(255) DEFAULT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    address VARCHAR(255) DEFAULT NULL,
+    detail_address VARCHAR(255) DEFAULT NULL,
+    profile_image_path VARCHAR(255) DEFAULT NULL,
+    profile_intro TEXT DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY (email)
+);
+// =====================================================================================
+// 유저 테이블에 프로필 설명 컬럼 추가 명령어
+// =====================================================================================
+ALTER TABLE users
+ADD COLUMN profile_intro TEXT DEFAULT NULL;
