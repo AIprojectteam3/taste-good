@@ -417,6 +417,7 @@ app.get('/api/user', (req, res) => {
     const query = `
         SELECT
             u.username,
+            u.profile_intro,
             ul.level,
             up.point,
             IFNULL(p.post_count, 0) AS post_count
@@ -920,7 +921,6 @@ app.post('/api/post/:postId/comment', (req, res) => {
         });
     });
 });
-
 
 // ==================================================================================================================
 // 댓글 목록 가져오기 API

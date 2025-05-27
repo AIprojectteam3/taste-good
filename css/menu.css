@@ -43,11 +43,11 @@ body {
     display : flex;
     align-items : center;
     justify-content : space-between;
-    padding : 20px 20px 0 20px;
+    padding : 15px 15px 0 15px;
 }
 
 .profile-header .image img {
-    width: 50px;
+    width: 40px;
     border-radius: 50%;
 }
 
@@ -59,14 +59,17 @@ body {
 
 .profile .level {
     display: flex;
-    align-items: center;
     gap: 5px;
+}
+
+.profile .level > span {
+    font-size: 14px;
 }
 
 .profile .profile-stats {
     display: flex;
     justify-content: space-between;
-    padding : 20px;
+    padding : 15px;
 }
 
 .profile-stats > div > a {
@@ -159,6 +162,13 @@ body {
     height: 100%; /* 셀 크기에 맞추기 */
     object-fit: cover; /* 비율을 유지하며 셀을 채우기 */
     display: block; /* 이미지 주변 여백 제거 */
+}
+
+.level_icon {
+    display : flex;
+    align-items: center;
+    width : 20px;
+    height : 20px;
 }
 
 /* 모바일 화면에서 main-menu 숨기기 */
