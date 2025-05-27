@@ -31,6 +31,80 @@ const bookmarkData = [
     { title: '더미 게시글', image_path: '0025.jpg' },
 ]
 
+async function loadProfileData() {
+    try {
+        const response = await fetch('/api/user'); // 서버 API 엔드포인트
+
+        if (!response.ok) {
+            console.error("프로필 정보 로드 실패 (서버 응답):", response.status);
+            return;
+        }
+
+        const userData = await response.json(); // 서버에서 null을 반환할 수 있음 (로그인 안된 경우)
+
+        const profileDiv = document.querySelector('.myprofile');
+        if (!profileDiv) {
+            console.error('.myprofile 요소를 찾을 수 없습니다.');
+            return;
+        }
+
+        if (!userData) {
+            // 사용자가 로그인하지 않았거나, 세션 만료, 또는 DB에 사용자 정보가 없는 경우
+            console.log("사용자 정보를 불러올 수 없습니다. (로그인되지 않았거나 사용자 없음)");
+            return;
+        }
+
+        // HTML 요소에 DB 데이터 채우기
+        const usernameEl = profileDiv.querySelector('.username_span');
+        const levelEl = profileDiv.querySelector('.level_span');
+        const statsCounts = profileDiv.querySelectorAll('.post_span .Follower_span .point_span');
+        const userdes = profileDiv.querySelector('.profile_des'); // 사용자 설명 (소개글) 요소
+        // const introEl = profileDiv.querySelector('.profile-intro'); // 소개글은 API에서 미제공
+
+        if (usernameEl && userData.username) usernameEl.textContent = userData.username;
+        
+        // API는 level을 숫자로 반환, HTML 표시는 "Lv. X" 형식
+        if (levelEl && userData.level !== undefined) levelEl.textContent = `Lv. ${userData.level}`; 
+        
+        if (statsCounts.length >= 3) {
+            // Post count (API 필드명: post_count)
+            if (userData.post_count !== undefined) statsCounts[0].textContent = userData.post_count;
+            
+            // Friend count - 현재 /api/user 에서 제공하지 않음
+            // statsCounts[1]는 myprofile.html의 정적 값을 유지하거나, 필요시 기본값 설정.
+            // 예: if (userData.friend_count !== undefined) statsCounts[1].textContent = userData.friend_count;
+            
+            // Point count (API 필드명: point)
+            if (userData.point !== undefined) statsCounts[2].textContent = userData.point;
+        }
+
+        if (userdes) { // 'userdes'는 프로필 설명을 표시할 HTML 요소를 참조하는 변수입니다.
+            // userData 객체가 존재하고, profile_intro 필드가 존재하며, 공백을 제거한 문자열이 비어있지 않은지 확인합니다.
+            if (userData && userData.profile_intro && userData.profile_intro.trim() !== "") {
+                userdes.textContent = userData.profile_intro;
+            } else {
+                // 위의 조건에 해당하지 않으면 (즉, profile_intro가 null, undefined, 빈 문자열 "", 또는 공백 문자열 "   "인 경우, 또는 userData가 없는 경우)
+                // 기본 메시지를 표시합니다.
+                // 만약 이 코드가 사용자 정보(userData)를 성공적으로 불러온 후에 실행된다면, 
+                // 이 'else' 블록은 주로 사용자의 프로필 설명이 비어있는 경우를 처리하게 됩니다.
+                userdes.textContent = "프로필 설명이 없습니다. 여기에 자신을 소개해보세요!";
+            }
+        }
+        
+        // Intro (소개글) - 현재 /api/user 에서 제공하지 않음
+        // if (introEl && userData.intro) introEl.textContent = userData.intro;
+        // 소개글은 myprofile.html의 정적 값을 유지합니다.
+
+    } catch (error) {
+        console.error("프로필 정보를 불러오는 중 예외 발생:", error);
+        // 필요시 사용자에게 오류 메시지 UI로 표시
+        const profileDiv = document.querySelector('.myprofile');
+        if (profileDiv) {
+            profileDiv.querySelector('.username').textContent = "정보 로드 실패";
+        }
+    }
+}
+
 function updateTabContentAndContainerHeight(tabContentSelector) {
     if (isMobile()) return;
     
@@ -280,6 +354,7 @@ document.querySelectorAll('.card').forEach(card => {
 
   // 초기 렌더링 및 이벤트 등록
 document.addEventListener("DOMContentLoaded", () => {
+    loadProfileData();
     
     renderCardsTo('.tab-content#my-posts', mypostData);
     renderCardsTo('.tab-content#favorites', bookmarkData);
@@ -343,24 +418,76 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabContents = document.querySelectorAll(".tab-content");
 
     tabs.forEach((tab) => {
-            tab.addEventListener("click", () => {
-                tabs.forEach((t) => t.classList.remove("active"));
-                tab.classList.add("active");
-                
-                // 모든 탭 콘텐츠 숨기기
-                tabContents.forEach((content) => {
-                    content.classList.add("hidden");
-                    content.style.gridAutoRows = 'min-content'; // 초기 행 높이 리셋
-                });
-                
-                // 선택된 탭 표시
-                const target = document.getElementById(tab.dataset.tab);
-                target.classList.remove("hidden");
-                
-                // 레이아웃 리플로우 후 높이 계산
-                requestAnimationFrame(() => {
-                    updateTabContentAndContainerHeight(`#${target.id}`);
-                });
+        tab.addEventListener("click", () => {
+            tabs.forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+            
+            // 모든 탭 콘텐츠 숨기기
+            tabContents.forEach((content) => {
+                content.classList.add("hidden");
+                content.style.gridAutoRows = 'min-content'; // 초기 행 높이 리셋
             });
-      });
+            
+            // 선택된 탭 표시
+            const target = document.getElementById(tab.dataset.tab);
+            target.classList.remove("hidden");
+            
+            // 레이아웃 리플로우 후 높이 계산
+            requestAnimationFrame(() => {
+                updateTabContentAndContainerHeight(`#${target.id}`);
+            });
+        });
+    });
+
+    const editBtn = document.querySelector('.profileEditBtn');
+    const closeBtn = document.querySelector('.close-btn');
+    const modal = document.querySelector('.modal-overlay');
+    const profileImageWrapper = document.querySelector('.profile-image-wrapper');
+    const profileImagePreview = document.querySelector('.profile-image-preview');
+    const profileImageUploadInput = document.getElementById('profileImageUpload');
+
+    if (profileImageWrapper && profileImagePreview && profileImageUploadInput) {
+        // 프로필 이미지 영역(래퍼) 클릭 시 파일 입력창 트리거
+        profileImageWrapper.addEventListener('click', () => {
+            profileImageUploadInput.click();
+        });
+
+        // 파일 선택 시 이미지 미리보기 업데이트
+        profileImageUploadInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) { // 이미지 파일인지 확인
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    profileImagePreview.src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            } else if (file) {
+                // 이미지 파일이 아닌 경우 사용자에게 알림 (선택 사항)
+                alert('이미지 파일만 업로드할 수 있습니다.');
+                // 파일 입력 초기화
+                this.value = null;
+            }
+        });
+    }
+
+    if (editBtn && modal) {
+        editBtn.addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
+    }
+
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+    }
+
+    // 모달 외부 클릭 시 닫기
+    if (modal) {
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
 });
