@@ -56,7 +56,7 @@ async function loadProfileData() {
 
         // HTML 요소에 DB 데이터 채우기
         const usernameEl = profileDiv.querySelector('.username_span');
-        const levelEl = profileDiv.querySelector('.level_span');
+        const levelEl = profileDiv.querySelector('.level_value');
         const statsCounts = profileDiv.querySelectorAll('.post_span .Follower_span .point_span');
         const userdes = profileDiv.querySelector('.profile_des'); // 사용자 설명 (소개글) 요소
         // const introEl = profileDiv.querySelector('.profile-intro'); // 소개글은 API에서 미제공
@@ -64,7 +64,7 @@ async function loadProfileData() {
         if (usernameEl && userData.username) usernameEl.textContent = userData.username;
         
         // API는 level을 숫자로 반환, HTML 표시는 "Lv. X" 형식
-        if (levelEl && userData.level !== undefined) levelEl.textContent = `Lv. ${userData.level}`; 
+        if (levelEl && userData.level !== undefined) levelEl.textContent = `${userData.level}`; 
         
         if (statsCounts.length >= 3) {
             // Post count (API 필드명: post_count)
@@ -370,48 +370,6 @@ document.addEventListener("DOMContentLoaded", () => {
         let currentSlide = 0;
         let isAnimating = false;
         let touchStartY = 0;
-    
-        // 카드 높이 계산
-        const getCardHeight = () => cards[0]?.offsetHeight || window.innerHeight;
-    
-        // 터치 시작 이벤트
-        container.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        });
-    
-        // 터치 종료 이벤트
-        container.addEventListener('touchend', (e) => {
-            if (isAnimating || cards.length === 0) return;
-            const touchEndY = e.changedTouches[0].clientY;
-            const deltaY = touchStartY - touchEndY;
-            const direction = deltaY > 0 ? 1 : -1;
-            const newIndex = Math.min(
-                Math.max(currentSlide + direction, 0),
-                cards.length - 1
-            );
-            if (newIndex !== currentSlide) {
-                currentSlide = newIndex;
-                isAnimating = true;
-                // 기존 scrollTo 대신 scrollIntoView 사용
-                cards[currentSlide].scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center'
-                });
-                setTimeout(() => {
-                    isAnimating = false;
-                }, 500); // 애니메이션 시간에 맞게 조정
-            }
-        });
-    
-        // 물리적 스크롤 방지
-        container.addEventListener('scroll', () => {
-            if (!isAnimating) {
-                container.scrollTo({
-                    top: currentSlide * getCardHeight(),
-                    behavior: 'auto'
-                });
-            }
-        });
     }
     
     const tabs = document.querySelectorAll(".tab");
