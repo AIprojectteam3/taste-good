@@ -3,13 +3,13 @@
     margin-left: 250px;
     max-width: calc(100vw - 250px);
     width: 100%;
+    height : 100%;
 }
 
 .myprofile-header {
     display : flex;
     padding : 5%;
     width : 100%;
-    height : 33%;
     gap : 20px;
 }
 
@@ -43,7 +43,7 @@
     flex-direction : column;
 }
 
-.information .nameTag span:nth-child(1) {
+.username_span {
     font-size : 2.5rem;
     font-weight : bold;
     line-height : 1;
@@ -59,7 +59,6 @@
     align-items : center;
     justify-content : center;
     padding : 0 20px;
-    gap : 15px;
 }
 
 .level span:nth-child(2) {
@@ -67,7 +66,16 @@
     align-items : center;
 }
 
-.information img {
+.level_label {
+    font-size : 1.2rem;
+}
+
+.level_value {
+    margin : 0 8px;
+}
+
+.level-icon2 {
+    margin-left : 10px;
     width : 30px;
     height : 30px;
 }
@@ -108,6 +116,10 @@
 
 .editBtn span:hover {
     background-color : #e05252;
+}
+
+.edit_icon {
+    display : none;
 }
 
 .short-info {
@@ -387,6 +399,10 @@
 }
 /*  */
 @media (max-width: 768px) {
+    .content {
+        margin-top : 60px;
+    }
+
     #mypageContent {
         margin-left : 0;
         padding: 0;
@@ -395,11 +411,19 @@
     }
 
     .myprofile-header {
-        height : 15%;
+        padding : 0 15px;
+        height : 20%;
+        gap : 5px;
     }
 
-    .information .nameTag span:nth-child(1) {
-        font-size : 2rem;
+    .myprofile-image {
+        display : flex;
+        align-items : flex-start;
+        margin-top : 25px;
+    }
+
+    .information {
+        margin-bottom : 10px;
     }
 
     .information .nameTag span:nth-child(2) {
@@ -454,5 +478,33 @@
     body {
         overflow: hidden; /* 전체 페이지 스크롤 비활성화 */
         padding-bottom: 60px; /* 하단 메뉴 공간 확보 */
+    }
+
+    .username_span {
+        font-size: 1.4rem;
+    }
+
+    .information .level {
+        margin-left : auto;
+        padding : 0;
+        gap : 0;
+    }
+
+    .level-icon2 {
+        margin-left : 5px;
+        width : 20px;
+        height : 20px;
+    }
+
+    .profileEditBtn {
+        display : none;
+    }
+
+    .edit_icon {
+        display : flex;
+        width : 30px;
+        height : 30px;
+        filter: invert(68%) sepia(76%) saturate(4890%) hue-rotate(326deg) brightness(118%) contrast(107%);
+        cursor: pointer;
     }
 }
