@@ -292,12 +292,30 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetCreatePostModal() {
         createPostTitleInput.value = '';
         createPostContentInput.value = '';
-        createPostImageUpload.value = ''; // 파일 인풋 초기화
-
+        createPostImageUpload.value = '';
+        
         // Blob URL 해제
-        uploadedFilesForCreatePost.forEach(item => URL.revokeObjectURL(item.blobUrl));
+        uploadedFilesForCreatePost.forEach(item => {
+            if (item.blobUrl && !item.isExisting) {
+                URL.revokeObjectURL(item.blobUrl);
+            }
+        });
+        
         uploadedFilesForCreatePost = [];
-        currentCreatePostSlideIndex = 0; // 초기 슬라이드는 '사진 추가' 슬라이드
+        currentCreatePostSlideIndex = 0;
+        
+        // 수정 모드 초기화
+        const modal = document.getElementById('createPostFormModal');
+        if (modal) {
+            modal.dataset.editMode = 'false';
+            modal.dataset.editPostId = '';
+        }
+        
+        // 버튼 텍스트 초기화
+        if (submitCreatePostBtn) {
+            submitCreatePostBtn.textContent = '게시';
+        }
+        
         updateCreatePostSliderView();
     }
 
@@ -369,64 +387,84 @@ document.addEventListener('DOMContentLoaded', function() {
     // 게시 버튼 클릭 이벤트
     if (submitCreatePostBtn) {
         submitCreatePostBtn.addEventListener('click', function() {
-            const title = createPostTitleInput.value.trim(); // 양쪽 공백 제거
-            const content = createPostContentInput.value.trim(); // 양쪽 공백 제거
-            const imageFiles = uploadedFilesForCreatePost.map(item => item.file);
-
-            // 클라이언트 측 유효성 검사 (선택 사항이지만 권장)
+            const title = createPostTitleInput.value.trim();
+            const content = createPostContentInput.value.trim();
+            const modal = document.getElementById('createPostFormModal');
+            const isEditMode = modal.dataset.editMode === 'true';
+            const editPostId = modal.dataset.editPostId;
+            
+            // 클라이언트 측 유효성 검사
             if (!title) {
                 alert('제목을 입력해주세요.');
                 createPostTitleInput.focus();
                 return;
             }
+            
             if (!content) {
                 alert('내용을 입력해주세요.');
                 createPostContentInput.focus();
                 return;
             }
-
+            
             // FormData 객체 생성
             const formData = new FormData();
             formData.append('title', title);
             formData.append('content', content);
-
-            // 이미지 파일들을 FormData에 추가
-            // 서버의 upload.array('images', 10)에서 'images'와 필드명이 일치해야 합니다.
-            imageFiles.forEach((file, index) => {
-                formData.append('postImages', file, file.name); // file.name을 세 번째 인자로 전달하는 것이 좋습니다.
+            
+            // 기존 이미지와 새 이미지 구분
+            const existingImages = [];
+            const newImageFiles = [];
+            
+            uploadedFilesForCreatePost.forEach(item => {
+                if (item.isExisting) {
+                    existingImages.push(item.blobUrl);
+                } else {
+                    newImageFiles.push(item.file);
+                }
             });
-
+            
+            // 수정 모드인 경우 기존 이미지 정보 추가
+            if (isEditMode) {
+                existingImages.forEach(imagePath => {
+                    formData.append('existingImages', imagePath);
+                });
+            }
+            
+            // 새 이미지 파일들을 FormData에 추가
+            newImageFiles.forEach(file => {
+                formData.append('postImages', file, file.name);
+            });
+            
+            // API 엔드포인트 및 메소드 결정
+            const apiUrl = isEditMode ? `/api/post/${editPostId}` : '/api/createPost';
+            const method = isEditMode ? 'PUT' : 'POST';
+            
             // 서버로 데이터 전송
-            fetch('/api/createPost', { // server.js에 정의된 API 엔드포인트
-                method: 'POST',
-                // FormData를 사용할 때는 'Content-Type' 헤더를 명시적으로 설정하지 않아도
-                // 브라우저가 자동으로 'multipart/form-data'로 설정하고 boundary를 추가해줍니다.
+            fetch(apiUrl, {
+                method: method,
                 body: formData
             })
             .then(response => {
                 if (!response.ok) {
-                    // 서버에서 에러 응답 (4xx, 5xx)을 보낸 경우
                     return response.json().then(errData => {
                         throw new Error(errData.message || `서버 오류: ${response.status}`);
                     });
                 }
-                return response.json(); // 성공적인 응답 (보통 200, 201)
+                return response.json();
             })
             .then(data => {
                 if (data.success) {
-                    alert(data.message || '게시물이 성공적으로 등록되었습니다.');
-                    closeCreatePostModal(); // 성공 시 모달 닫기
+                    const successMessage = isEditMode ? '게시물이 성공적으로 수정되었습니다.' : '게시물이 성공적으로 등록되었습니다.';
+                    alert(data.message || successMessage);
+                    closeCreatePostModal();
                     location.reload();
-                    // 필요하다면 게시물 목록 새로고침 등의 추가 작업 수행
-                    // 예: window.location.reload(); 또는 특정 함수 호출
                 } else {
-                    // 서버에서 success: false를 반환했지만 HTTP 상태 코드는 2xx인 경우 (잘못된 설계일 수 있음)
-                    alert(data.message || '게시물 등록에 실패했습니다.');
+                    alert(data.message || '처리에 실패했습니다.');
                 }
             })
             .catch(error => {
-                console.error('게시물 생성 요청 중 오류 발생:', error);
-                alert(error.message || '게시물 등록 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+                console.error('요청 중 오류 발생:', error);
+                alert(error.message || '처리 중 오류가 발생했습니다.');
             });
         });
     }
@@ -436,4 +474,63 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadedFilesForCreatePost.splice(index, 1); // 이미지 배열에서 삭제
         updateCreatePostSliderView(); // 슬라이더 뷰 업데이트
     }
+
+    // 게시물 수정 모달을 여는 함수
+    function openEditModal(postDetail) {
+        // 기존 게시물 작성 모달을 수정 모드로 활용
+        const createPostModal = document.getElementById('createPostFormModal');
+        const createPostTitleInput = document.getElementById('createPostTitle');
+        const createPostContentInput = document.getElementById('createPostContent');
+        const submitCreatePostBtn = document.getElementById('submitCreatePostBtn');
+        
+        if (!createPostModal || !createPostTitleInput || !createPostContentInput || !submitCreatePostBtn) {
+            alert('수정 모달을 찾을 수 없습니다.');
+            return;
+        }
+        
+        // 기존 데이터로 폼 채우기
+        createPostTitleInput.value = postDetail.title;
+        createPostContentInput.value = postDetail.content;
+        
+        // 기존 이미지 표시
+        if (postDetail.images && postDetail.images.length > 0) {
+            // 기존 이미지를 uploadedFilesForCreatePost에 추가
+            uploadedFilesForCreatePost = postDetail.images.map(imagePath => ({
+                file: null, // 기존 이미지는 파일 객체가 없음
+                blobUrl: imagePath,
+                isExisting: true // 기존 이미지임을 표시
+            }));
+            
+            // 슬라이더 뷰 업데이트
+            updateCreatePostSliderView();
+        } else {
+            // 이미지가 없는 경우 배열 초기화
+            uploadedFilesForCreatePost = [];
+            updateCreatePostSliderView();
+        }
+        
+        // 버튼 텍스트 변경
+        submitCreatePostBtn.textContent = '수정완료';
+        
+        // 수정 모드 플래그 설정
+        createPostModal.dataset.editMode = 'true';
+        createPostModal.dataset.editPostId = postDetail.id;
+        
+        // 모달 표시
+        createPostModal.style.display = 'flex';
+        
+        // 게시물 상세 모달 닫기
+        const indexModal = document.getElementById('index-modal');
+        if (indexModal) {
+            indexModal.style.display = 'none';
+        }
+        
+        // 게시물 작성 버튼 활성화 상태로 설정 (필요한 경우)
+        const openCreatePostModalBtn = document.getElementById('openPostModalBtn');
+        if (openCreatePostModalBtn) {
+            openCreatePostModalBtn.classList.add('active');
+        }
+    }
+
+    window.openEditModal = openEditModal;
 });
