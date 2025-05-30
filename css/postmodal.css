@@ -270,7 +270,7 @@
     width : 65%;
 }
 
-.comment-date-div {
+.comment-right {
     display : flex;
     width : 35%;
 }
@@ -357,7 +357,7 @@
 .commentInputPC {
     display : flex;
     align-items : center;
-    justify-content : center;
+    justify-content : space-between;
     width : 95%;
     height : 100%;
     gap : 10px;
@@ -372,7 +372,7 @@
 }
 
 .comment-submit {
-    width : 10%;
+    width : 15%;
     height : 80%;
     border : 1px solid #666;
     border-radius : 5px;

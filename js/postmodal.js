@@ -255,7 +255,7 @@ async function displayPostModal(postId) {
                                 <p class="comment-content">${commentTextHtml}</p> <!-- CSS 클래스명 일치 확인 -->
                             </div>
                         </div>
-                        <div class = "comment-date-div">
+                        <div class = "comment-right">
                             <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
                         </div>
                     `;

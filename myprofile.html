@@ -286,6 +286,9 @@
         <div class = "site-title">맛잘알연구소</div>
     </nav>
 
+    <!-- ===================================================================================== -->
+    <!-- 프로필 편집 모달 -->
+    <!-- ===================================================================================== -->
     <div class = "modal-overlay" id = "profileEditModal">
         <div class = "modal-content">
             <div class = "modal-header-profile">
@@ -317,13 +320,13 @@
                                 <label for = "password">비밀번호 확인</label>
                                 <input type = "password" class = "password_confirm_input" name = "password" placeholder = "비밀번호 확인">
                             </div>
-                            <label for = "shortInfo">프로필 설명</label>
-                            <textarea class = "shortInfo" name = "shortInfo" rows="4"></textarea>
                         </div>
                     </div>
                     <div class = "modal-body-bottom">
-                        <!-- 주소 변경이나 알레르기, 음식 선호도 관련 -->
-                        알레르기도 넣고~ 음식 선호도 관련된 것도 넣고~
+                        <div>
+                            <label for = "shortInfo">프로필 설명</label>
+                            <textarea class = "shortInfo" name = "shortInfo" rows="4"></textarea>
+                        </div>
                     </div>
                     <button class = "submitBtn" type = "submit">수정</button>
                 </form>
