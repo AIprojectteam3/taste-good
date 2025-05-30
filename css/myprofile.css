@@ -164,6 +164,19 @@
     overflow-y: auto;
 }
 
+.tab-content.empty-state-container {
+    display: grid !important;
+    place-items: center !important;
+    grid-template-columns: 1fr !important;
+    min-height: 200px;
+}
+
+.empty-state {
+    color: #666;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
 .tab-content.hidden {
     display: none;
 }
@@ -221,7 +234,7 @@
     /* 레이어 위 */
 }
 
-.modal-overlay {
+#profileEditModal {
     display: none;
     position: fixed;
     z-index: 2000;
@@ -241,7 +254,7 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.modal-header {
+.modal-header-profile {
     padding : 20px;
     width : 100%;
     background-color : #FF6B6B;
@@ -249,7 +262,7 @@
     border-top-right-radius : 15px;
 }
 
-.modal-header h2 {
+.modal-header-profile h2 {
     display : flex;
     justify-content : center;
     color : white;

@@ -1,35 +1,36 @@
-// 데이터 배열
-const mypostData = [
-    { title: '더미 게시글', image_path: '0001.jpg' },
-    { title: '더미 게시글', image_path: '0002.jpg' },
-    { title: '더미 게시글', image_path: '0003.jpg' },
-    { title: '더미 게시글', image_path: '0004.jpg' },
-    { title: '더미 게시글', image_path: '0005.png' },
-    { title: '더미 게시글', image_path: '0006.jpg' },
-    { title: '더미 게시글', image_path: '0007.jpg' },
-    { title: '더미 게시글', image_path: '0008.png' },
-    { title: '더미 게시글', image_path: '0009.webp' },
-    { title: '더미 게시글', image_path: '0010.jpg' },
-    { title: '더미 게시글', image_path: '0011.jpg' },
-    { title: '더미 게시글', image_path: '0012.png' },
-    { title: '더미 게시글', image_path: '0013.jpg' },
-    // ... 추가 데이터
-];
+// 사용자 게시물 로드 함수
+async function fetchUserPosts() {
+    try {
+        const response = await fetch('/api/user/posts');
+        if (!response.ok) {
+            console.error("사용자 게시물 로드 실패:", response.status);
+            return [];
+        }
+        
+        const posts = await response.json();
+        return posts || [];
+    } catch (error) {
+        console.error("사용자 게시물을 불러오는 중 오류:", error);
+        return [];
+    }
+}
 
-const bookmarkData = [
-    { title: '더미 게시글', image_path: '0014.jpg' },
-    { title: '더미 게시글', image_path: '0015.jpg' },
-    { title: '더미 게시글', image_path: '0016.png' },
-    { title: '더미 게시글', image_path: '0017.jpg' },
-    { title: '더미 게시글', image_path: '0018.jpg' },
-    { title: '더미 게시글', image_path: '0019.jpg' },
-    { title: '더미 게시글', image_path: '0020.jpg' },
-    { title: '더미 게시글', image_path: '0021.jpg' },
-    { title: '더미 게시글', image_path: '0022.jpg' },
-    { title: '더미 게시글', image_path: '0023.png' },
-    { title: '더미 게시글', image_path: '0024.jpg' },
-    { title: '더미 게시글', image_path: '0025.jpg' },
-]
+// 사용자 북마크 게시물 로드 함수 (추후에 구현 및 사용)
+async function fetchUserBookmarks() {
+    try {
+        const response = await fetch('/api/user/bookmarks');
+        if (!response.ok) {
+            console.error("사용자 북마크 로드 실패:", response.status);
+            return [];
+        }
+        
+        const bookmarks = await response.json();
+        return bookmarks || [];
+    } catch (error) {
+        console.error("사용자 북마크를 불러오는 중 오류:", error);
+        return [];
+    }
+}
 
 async function loadProfileData() {
     try {
@@ -191,16 +192,29 @@ function updateTabContentAndContainerHeight(tabContentSelector) {
     }, 200); // 지연 시간 증가
 }
 
+// 빈 상태를 표시하는 함수
+function renderEmptyState(containerSelector, message) {
+    const container = document.querySelector(containerSelector);
+    container.innerHTML = '';
+    container.classList.add('empty-state-container');
+    
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'empty-state';
+    emptyDiv.textContent = message;
+    
+    container.appendChild(emptyDiv);
+}
+
 const mypost = document.getElementById('my-posts');
 const bookmark = document.getElementById('favorites');
 
 // 카드 생성 함수
-function createCard(item, isPlaceholder = false) {
+function createCard(post, isPlaceholder = false) {
     const card = document.createElement('div');
     card.className = 'card';
-
+    
     if (isPlaceholder) {
-        // 이미지 대신 "Post" 텍스트 스타일링
+        // 기존 플레이스홀더 로직 유지
         const imgDiv = document.createElement('div');
         imgDiv.style.width = '100%';
         imgDiv.style.height = '100%';
@@ -213,7 +227,6 @@ function createCard(item, isPlaceholder = false) {
         imgDiv.textContent = 'Post';
         card.appendChild(imgDiv);
 
-        // 타이틀
         const title = document.createElement('div');
         title.className = 'card-title';
         title.textContent = '임시';
@@ -239,19 +252,35 @@ function createCard(item, isPlaceholder = false) {
             title.style.opacity = '0';
             title.style.bottom = '-30px';
         });
-
         return card;
     }
 
-    // 이미지
+    // 실제 게시물 데이터 처리
+    // data-post-id 속성 추가
+    card.setAttribute('data-post-id', post.id);
+    
     const img = document.createElement('img');
-    img.src = "post_Tempdata/image/" + item.image_path;
-    img.alt = item.title;
+    
+    // 게시물에 이미지가 있는 경우 첫 번째 이미지 사용, 없으면 기본 이미지
+    if (post.images && post.images.length > 0) {
+        img.src = post.images[0]; // 첫 번째 이미지 사용
+    } else if (post.thumbnail_path) {
+        img.src = post.thumbnail_path; // 썸네일 경로 사용
+    } else {
+        // 이미지가 없는 경우 기본 이미지 또는 텍스트 표시
+        img.src = 'image/default-post.png'; // 기본 게시물 이미지
+        img.alt = '이미지 없음';
+    }
+    
+    img.alt = post.title;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
 
     // 타이틀
     const title = document.createElement('div');
     title.className = 'card-title';
-    title.textContent = item.title;
+    title.textContent = post.title;
     title.style.cssText = `
         position: absolute;
         bottom: -30px;
@@ -263,6 +292,18 @@ function createCard(item, isPlaceholder = false) {
         opacity: 0;
         transition: all 0.3s ease;
     `;
+
+    // 게시물 클릭 시 모달 호출로 변경
+    card.addEventListener('click', (event) => {
+        event.preventDefault(); // 기본 동작 방지
+        
+        // 함수가 정의되어 있는지 확인
+        if (typeof displayPostModal === 'function') {
+            displayPostModal(post.id);
+        } else {
+            console.error('displayPostModal 함수가 정의되지 않았습니다.');
+        }
+    });
 
     // 마우스 이벤트
     card.addEventListener('mouseenter', () => {
@@ -428,40 +469,58 @@ async function handleProfileUpdate(event) {
 }
 
 // 초기 렌더링 및 이벤트 등록
-document.addEventListener("DOMContentLoaded", () => {
-    loadProfileData();
-    
-    renderCardsTo('.tab-content#my-posts', mypostData);
-    renderCardsTo('.tab-content#favorites', bookmarkData);
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadProfileData();
+
+    // 사용자 게시물 로드 (첫 번째 탭이므로 바로 로드)
+    const userPosts = await fetchUserPosts();
+    if (userPosts.length === 0) {
+        renderEmptyState('.tab-content#my-posts', '작성한 게시물이 없습니다.');
+    } else {
+        renderCardsTo('.tab-content#my-posts', userPosts);
+    }
+
     adjustGridRows();
 
     window.addEventListener('resize', () => {
         adjustGridRows();
     });
-
-    if (window.matchMedia("(max-width: 768px)").matches) {
-        const container = document.querySelector('.content');
-    }
     
     const tabs = document.querySelectorAll(".tab");
     const tabContents = document.querySelectorAll(".tab-content");
 
     tabs.forEach((tab) => {
-        tab.addEventListener("click", () => {
+        tab.addEventListener("click", async () => {
             tabs.forEach((t) => t.classList.remove("active"));
             tab.classList.add("active");
-            
-            // 모든 탭 콘텐츠 숨기기
+
             tabContents.forEach((content) => {
                 content.classList.add("hidden");
-                content.style.gridAutoRows = 'min-content'; // 초기 행 높이 리셋
+                // 빈 상태 관련 클래스와 스타일 제거
+                content.classList.remove('empty-state-container');
+                content.innerHTML = ''; // 기존 내용 초기화
             });
-            
-            // 선택된 탭 표시
+
             const target = document.getElementById(tab.dataset.tab);
             target.classList.remove("hidden");
-            
-            // 레이아웃 리플로우 후 높이 계산
+
+            // 탭 변경 시 해당 데이터 로드
+            if (tab.dataset.tab === 'my-posts') {
+                const userPosts = await fetchUserPosts();
+                if (userPosts.length === 0) {
+                    renderEmptyState('.tab-content#my-posts', '작성한 게시물이 없습니다.');
+                } else {
+                    renderCardsTo('.tab-content#my-posts', userPosts);
+                }
+            } else if (tab.dataset.tab === 'favorites') {
+                const userBookmarks = await fetchUserBookmarks();
+                if (userBookmarks.length === 0) {
+                    renderEmptyState('.tab-content#favorites', '북마크한 게시물이 없습니다.');
+                } else {
+                    renderCardsTo('.tab-content#favorites', userBookmarks);
+                }
+            }
+
             requestAnimationFrame(() => {
                 updateTabContentAndContainerHeight(`#${target.id}`);
             });
@@ -470,7 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const editBtn = document.querySelector('.profileEditBtn');
     const closeBtn = document.querySelector('.close-btn');
-    const modal = document.querySelector('.modal-overlay');
+    const modal = document.getElementById('profileEditModal');
     const profileImageWrapper = document.querySelector('.profile-image-wrapper');
     const profileImagePreview = document.querySelector('.profile-image-preview');
     const profileImageUploadInput = document.getElementById('profileImageUpload');
@@ -524,4 +583,30 @@ document.addEventListener("DOMContentLoaded", () => {
     if (profileForm) {
         profileForm.addEventListener('submit', handleProfileUpdate);
     }
+    
+    // 게시물 모달 관련
+    const postmodal = document.getElementById('index-modal');
+    const closeModalBtn = document.querySelector('.close-modal');
+
+    if (closeModalBtn && postmodal) {
+        closeModalBtn.addEventListener('click', () => {
+            postmodal.style.display = 'none';
+        });
+    }
+
+    // 모달 외부 클릭 시 닫기
+    if (postmodal) {
+        postmodal.addEventListener('click', (event) => {
+            if (event.target === postmodal) {
+                postmodal.style.display = 'none';
+            }
+        });
+    }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && postmodal.style.display === 'flex') {
+            postmodal.style.display = 'none';
+        }
+    });
 });
