@@ -324,27 +324,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('form2').addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const email = e.target.querySelector('input[placeholder="이메일"]').value;
         const password = e.target.querySelector('input[placeholder="비밀번호"]').value;
 
         console.log('전송 데이터:', { email, password }); // 디버깅용 로그
 
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
 
-        const result = await response.json();
-        console.log('서버 응답:', result); // 디버깅용 로그
+            const data = await response.json();
+            console.log('서버 응답:', data); // 디버깅용 로그
 
-        if (result.success) {
-            alert(result.message); // "로그인 성공!" 알림
-            // !!!! 여기가 중요: 서버에서 받은 redirectUrl로 페이지 이동 !!!!
-            window.location.href = '/index.html'; // 기본값으로 설정 (선택 사항)
-        } else {
-            alert(result.message); // "로그인 실패..." 알림
+            if (data.success) {
+                // 로그인 성공 후 사용자 정보를 가져와서 sessionStorage에 저장
+                try {
+                    const userResponse = await fetch('/api/user');
+                    if (userResponse.ok) {
+                        const userData = await userResponse.json();
+                        if (userData && userData.id) {
+                            sessionStorage.setItem('loggedInUserId', userData.id.toString());
+                            console.log("사용자 ID가 sessionStorage에 저장됨:", userData.id);
+                        }
+                    }
+                } catch (userError) {
+                    console.error('사용자 정보 가져오기 실패:', userError);
+                }
+                
+                // 성공 메시지 표시 후 리다이렉트
+                alert(data.message || '로그인 성공!');
+                window.location.href = data.redirectUrl || '/index.html';
+            } else {
+                alert(data.message || '로그인에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('로그인 처리 중 오류:', error);
+            alert('로그인 처리 중 오류가 발생했습니다.');
         }
     });
 

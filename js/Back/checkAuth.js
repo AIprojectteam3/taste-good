@@ -25,4 +25,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!isAuthenticated) {
         return; // 리다이렉트되므로 더 이상 실행하지 않음
     }
+
+    try {
+        const userResponse = await fetch('/api/user');
+        if (userResponse.ok) {
+            const userData = await userResponse.json();
+            if (userData && userData.id) {
+                sessionStorage.setItem('loggedInUserId', userData.id.toString());
+            }
+        }
+    } catch (error) {
+        console.error('초기 사용자 정보 로드 실패:', error);
+    }
 });

@@ -21,11 +21,11 @@ app.use(express.urlencoded({ extended: true })); // 폼 데이터 처리를 위�
 
 // MySQL 연결 설정
 const db = mysql.createConnection({
-  host: 'localhost',            // MySQL 서버 주소
-  port: 3306,                   // MySQL 포트 번호
-  user: 'root',                 // MySQL 사용자 이름
-  password: '',                 // MySQL 비밀번호
-  database: 'taste_good',       // 사용할 데이터베이스 이름
+    host: 'localhost',            // MySQL 서버 주소
+    port: 3306,                   // MySQL 포트 번호
+    user: 'root',                 // MySQL 사용자 이름
+    password: '',                 // MySQL 비밀번호
+    database: 'taste_good',       // 사용할 데이터베이스 이름
 });
 
 // MySQL 연결
@@ -456,30 +456,23 @@ app.get('/api/user', (req, res) => {
     const userId = req.session.userId;
     const query = `
         SELECT
+            u.id,
             u.username,
             u.profile_intro,
             u.profile_image_path,
             ul.level,
             up.point,
             IFNULL(p.post_count, 0) AS post_count
-        FROM
-            users u
-        LEFT JOIN
-            user_levels ul ON u.id = ul.user_id
-        LEFT JOIN
-            user_points up ON u.id = up.user_id
+        FROM users u
+        LEFT JOIN user_levels ul ON u.id = ul.user_id
+        LEFT JOIN user_points up ON u.id = up.user_id
         LEFT JOIN (
-            SELECT
-                user_id,
-                COUNT(*) AS post_count
-            FROM
-                posts
+            SELECT user_id, COUNT(*) AS post_count
+            FROM posts
             WHERE user_id = ?
-            GROUP BY
-                user_id
+            GROUP BY user_id
         ) p ON u.id = p.user_id
-        WHERE
-            u.id = ?;
+        WHERE u.id = ?;
     `;
 
     db.query(query, [userId, userId], (err, results) => {
@@ -490,15 +483,13 @@ app.get('/api/user', (req, res) => {
 
         if (results.length > 0) {
             const userData = results[0];
-            // level 또는 points가 null일 경우 기본값 설정
             userData.level = userData.level || 1;
-            userData.points = userData.points || 0;
+            userData.point = userData.point || 0; // points -> point로 수정
             
-            // 프로필 이미지 경로 처리 - 경로가 있으면 슬래시로 변경, 없으면 null 유지
             if (userData.profile_image_path) {
                 userData.profile_image_path = userData.profile_image_path.replace(/\\/g, '/');
             }
-            
+
             console.log('[INFO] /api/user - User data fetched for userId:', userId, userData);
             return res.json(userData);
         } else {
