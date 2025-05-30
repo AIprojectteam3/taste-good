@@ -203,7 +203,7 @@ async function displayPostModal(postId) {
                 userProfileImg.parentElement.appendChild(menuDiv);
             }
         } else {
-            console.log("작성자가 아니거나 로그인하지 않은 사용자입니다.");
+            // console.log("작성자가 아니거나 로그인하지 않은 사용자입니다.");
         }
 
         // 7. 게시물 제목 및 내용 설정
@@ -214,7 +214,7 @@ async function displayPostModal(postId) {
         setTimeout(() => {
             if (postContentDiv && readMoreBtn) {
                 if (postContentDiv.scrollHeight > postContentDiv.clientHeight) {
-                    console.log("readMoreBtn: 표시 조건 충족 (내용 김)");
+                    // console.log("readMoreBtn: 표시 조건 충족 (내용 김)");
                     readMoreBtn.style.display = 'block';
                     readMoreBtn.onclick = () => {
                         postContentDiv.classList.toggle('expanded');
@@ -255,7 +255,9 @@ async function displayPostModal(postId) {
                                 <p class="comment-content">${commentTextHtml}</p> <!-- CSS 클래스명 일치 확인 -->
                             </div>
                         </div>
-                        <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
+                        <div class = "comment-date-div">
+                            <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
+                        </div>
                     `;
                     commentContainerDiv.appendChild(commentUserDiv);
                 });
@@ -323,6 +325,13 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
         console.warn("모달 닫기 버튼 ('.close-area')을 찾을 수 없습니다.");
     }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && modalOverlay.style.display === 'flex') {
+            modalOverlay.style.display = 'none';
+        }
+    });
 
     modalOverlay.addEventListener('click', (event) => {
         if (event.target === modalOverlay) {

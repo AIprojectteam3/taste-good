@@ -593,43 +593,63 @@ app.get('/api/posts', (req, res) => {
     const query = `
         SELECT
             p.id,
-            p.user_id,
             p.title,
             p.content,
             p.created_at,
-            p.views,
-            p.likes,
-            (
-                SELECT file_path FROM files WHERE post_id = p.id LIMIT 1
-            ) AS thumbnail_path,
-            COALESCE((
-                SELECT
-                    JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/')) -- 역슬래시를 슬래시로 변경
-                FROM
-                    files
-                WHERE
-                    post_id = p.id
-            ), '[]') AS images -- NULL 대신 빈 배열 반환
-        FROM
-            posts p
+            p.user_id,
+            u.username as author_username,
+            u.profile_image_path as author_profile_path
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        ORDER BY p.created_at DESC
     `;
-
+    
     db.query(query, (err, results) => {
         if (err) {
-            console.error('게시물 데이터를 가져오는 중 오류 발생:', err);
-            return res.status(500).json({ message: '게시물 데이터를 가져오는 데 실패했습니다.' });
+            console.error('게시물 조회 오류:', err);
+            return res.status(500).json({ error: '서버 오류' });
         }
-
-        results.forEach(post => {
-            try {
-                post.images = JSON.parse(post.images); // 항상 JSON 파싱 시도
-            } catch (e) {
-                console.error(`Failed to parse images for post ${post.id}:`, e);
-                post.images = []; // 파싱 실패 시 빈 배열로 설정
-            }
+        
+        // 각 게시물에 대해 이미지 정보 가져오기
+        const postPromises = results.map(post => {
+            return new Promise((resolve, reject) => {
+                const imageQuery = `
+                    SELECT REPLACE(file_path, '\\\\', '/') as file_path 
+                    FROM files 
+                    WHERE post_id = ? 
+                    ORDER BY id ASC
+                `;
+                
+                db.query(imageQuery, [post.id], (imgErr, imageResults) => {
+                    if (imgErr) {
+                        console.error(`게시물 ${post.id} 이미지 조회 오류:`, imgErr);
+                        post.images = [];
+                        post.thumbnail_path = null;
+                    } else {
+                        post.images = imageResults.map(img => img.file_path);
+                        post.thumbnail_path = imageResults.length > 0 ? imageResults[0].file_path : null;
+                    }
+                    
+                    // 프로필 이미지 경로 처리
+                    if (post.author_profile_path) {
+                        post.author_profile_path = post.author_profile_path.replace(/\\/g, '/');
+                    } else {
+                        post.author_profile_path = 'image/profile-icon.png';
+                    }
+                    
+                    resolve(post);
+                });
+            });
         });
-
-        res.json(results);
+        
+        Promise.all(postPromises)
+            .then(postsWithImages => {
+                res.json(postsWithImages);
+            })
+            .catch(promiseErr => {
+                console.error('게시물 이미지 처리 중 오류:', promiseErr);
+                res.status(500).json({ error: '게시물 이미지 처리 중 오류가 발생했습니다.' });
+            });
     });
 });
 

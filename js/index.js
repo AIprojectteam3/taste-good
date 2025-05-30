@@ -15,7 +15,6 @@ function createCard(item, isPlaceholder = false) {
     sliderContainer.className = 'slider-container';
 
     if (!isPlaceholder) {
-        // 데이터에서 이미지 배열 가져오기 (썸네일을 첫 번째로)
         let images = [];
         if (Array.isArray(item.images) && item.images.length > 0) {
             item.images.forEach(img => {
@@ -23,12 +22,14 @@ function createCard(item, isPlaceholder = false) {
             });
         }
 
-        if (!isMobile()) {      // PC 환경
+        if (!isMobile()) {
+            // PC 환경
             const img = document.createElement('img');
             img.src = item.thumbnail_path;
             img.alt = item.title;
             sliderContainer.appendChild(img);
-        } else {                // 모바일 환경
+        } else {
+            // 모바일 환경
             images.forEach((imgPath, index) => {
                 const slide = document.createElement('img');
                 slide.className = `slide ${index === 0 ? 'active' : ''}`;
@@ -41,10 +42,11 @@ function createCard(item, isPlaceholder = false) {
             const prevBtn = document.createElement('button');
             prevBtn.className = 'slide-nav prev';
             prevBtn.innerHTML = '‹';
+
             const nextBtn = document.createElement('button');
             nextBtn.className = 'slide-nav next';
             nextBtn.innerHTML = '›';
-            
+
             sliderContainer.appendChild(prevBtn);
             sliderContainer.appendChild(nextBtn);
 
@@ -53,11 +55,13 @@ function createCard(item, isPlaceholder = false) {
                 // 처음과 끝에서 더 이상 이동하지 않게
                 if (idx < 0 || idx >= images.length) return;
                 currentSlide = idx;
+
                 const slideEls = sliderContainer.querySelectorAll('.slide');
                 slideEls.forEach((el, i) => {
                     el.classList.toggle('active', i === currentSlide);
                     el.style.opacity = i === currentSlide ? '1' : '0';
                 });
+
                 // 버튼 활성/비활성 처리
                 prevBtn.disabled = currentSlide === 0;
                 nextBtn.disabled = currentSlide === images.length - 1;
@@ -73,6 +77,7 @@ function createCard(item, isPlaceholder = false) {
                 e.stopPropagation();
                 showSlide(currentSlide - 1);
             });
+
             nextBtn.addEventListener('click', e => {
                 e.stopPropagation();
                 showSlide(currentSlide + 1);
@@ -81,22 +86,27 @@ function createCard(item, isPlaceholder = false) {
             // 터치 슬라이드 이벤트
             let touchStartX = null;
             let touchEndX = null;
+
             sliderContainer.addEventListener('touchstart', e => {
                 if (e.touches.length === 1) touchStartX = e.touches[0].clientX;
             });
+
             sliderContainer.addEventListener('touchend', e => {
                 if (touchStartX === null) return;
                 touchEndX = e.changedTouches[0].clientX;
+
                 if (touchStartX - touchEndX > 40 && currentSlide < images.length - 1) {
                     showSlide(currentSlide + 1);
                 } else if (touchEndX - touchStartX > 40 && currentSlide > 0) {
                     showSlide(currentSlide - 1);
                 }
+
                 touchStartX = null;
                 touchEndX = null;
             });
         }
     }
+
     card.appendChild(sliderContainer);
 
     // 작성자 정보(프로필+닉네임) 추가 (화면에 보이지 않게)
@@ -105,14 +115,23 @@ function createCard(item, isPlaceholder = false) {
 
     // 프로필 이미지
     const profileImg = document.createElement('img');
-    profileImg.src = postUserData[0].profile_path;
-    profileImg.alt = postUserData[0].user + ' 프로필';
+    if (!isPlaceholder) {
+        profileImg.src = item.author_profile_path || 'image/profile-icon.png';
+        profileImg.alt = (item.author_username || '사용자') + ' 프로필';
+    } else {
+        profileImg.src = 'image/profile-icon.png';
+        profileImg.alt = '사용자 프로필';
+    }
     profileImg.className = 'user-profile-img';
 
     // 닉네임
     const nicknameSpan = document.createElement('span');
     nicknameSpan.className = 'user-nickname';
-    nicknameSpan.textContent = postUserData[0].user;
+    if (!isPlaceholder) {
+        nicknameSpan.textContent = item.author_username;
+    } else {
+        nicknameSpan.textContent = '사용자';
+    }
 
     // ... 메뉴 버튼
     const menuBtn = document.createElement('a');
@@ -142,16 +161,12 @@ function createCard(item, isPlaceholder = false) {
     const cutStringNum = 80;
     const contentDiv = document.createElement('div');
     contentDiv.className = 'card-center-content';
+
     if (!isMobile()) {
-        contentDiv.textContent = isPlaceholder
-        ? '임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠'
-        : item.content.length > cutStringNum
-        ? item.content.substring(0, cutStringNum) + '...'
-        : item.content;
+        contentDiv.textContent = isPlaceholder ? '임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠' : 
+            item.content.length > cutStringNum ? item.content.substring(0, cutStringNum) + '...' : item.content;
     } else {
-        contentDiv.textContent = isPlaceholder
-        ? '임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠'
-        : item.content
+        contentDiv.textContent = isPlaceholder ? '임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠, 임시 콘텐츠' : item.content;
     }
 
     const readmoreBtn = document.createElement('button');
@@ -161,73 +176,41 @@ function createCard(item, isPlaceholder = false) {
 
     centerBox.appendChild(title);
     centerBox.appendChild(contentDiv);
-    if (isMobile()) { // 모바일 환경에서만 "더보기" 버튼을 DOM에 추가
+
+    if (isMobile()) {
+        // 모바일 환경에서만 "더보기" 버튼을 DOM에 추가
         centerBox.appendChild(readmoreBtn);
     }
+
     overlay.appendChild(centerBox);
     card.appendChild(overlay);
 
     const commentInput = document.createElement('div');
     commentInput.className = 'commentInputM';
     overlay.appendChild(commentInput);
+
     commentInput.innerHTML = `
-        <div class = "iconDiv">
-            <img src = "../image/heart-icon.png" alt = "좋아요">
-            <img src = "../image/SpeechBubble-icon.png" alt = "댓글" class = "comment-icon" data-post-id = "${item.id}">
+        <div class="comment-input-container">
+            <input type="text" placeholder="댓글을 입력하세요..." class="comment-input">
+            <button class="comment-submit-btn">등록</button>
         </div>
-        <input class = "comInput" id = "comInput" type = "text" placeholder = "댓글 입력" data-post-id = "${item.id}">
-        <input class = "comSubmit" type = "submit" value = "등록">
-    `
+    `;
 
-    // 하단 아이콘 버튼
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'card-actions';
-
-    // 좋아요
-    const likeBtn = document.createElement('img');
-    likeBtn.src = '../image/heart-icon2.png'; // 예시 경로
-    likeBtn.alt = '좋아요';
-    likeBtn.className = 'action-icon';
-
-    // 댓글
-    const commentBtn = document.createElement('img');
-    commentBtn.src = '../image/SpeechBubble-icon2.png'; // 예시 경로
-    commentBtn.alt = '댓글';
-    commentBtn.className = 'action-icon';
-
-    // 북마크
-    const bookmarkBtn = document.createElement('img');
-    bookmarkBtn.src = '../image/bookmark-icon2.png'; // 예시 경로
-    bookmarkBtn.alt = '북마크';
-    bookmarkBtn.className = 'action-icon';
-
-    actionsDiv.appendChild(likeBtn);
-    actionsDiv.appendChild(commentBtn);
-    actionsDiv.appendChild(bookmarkBtn);
-
-    overlay.appendChild(actionsDiv);
-    card.appendChild(overlay);
-
-    // 좋아요, 댓글, 북마크 버튼 생성 후
-    [likeBtn, commentBtn, bookmarkBtn].forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            if (!isMobile()) e.stopPropagation();
-            // 아이콘별 추가 동작은 여기서 구현
-        });
+    // 카드 클릭 시 모달 열기
+    card.addEventListener('click', (e) => {
+        // 버튼 클릭 시에는 모달을 열지 않음
+        if (e.target.closest('.slide-nav') || e.target.closest('.comment-input-container')) {
+            return;
+        }
+        
+        if (!isPlaceholder && item.id) {
+            displayPostModal(item.id);
+        }
     });
-
-    // PC 환경에서만 마우스오버 효과
-    if (!isMobile()) {
-        card.addEventListener('mouseenter', () => {
-            overlay.classList.add('active');
-        });
-        card.addEventListener('mouseleave', () => {
-            overlay.classList.remove('active');
-        });
-    }
 
     return card;
 }
+
 
 function setupMobileCardSliderAndReadMore() {
     if (!isMobile()) {
