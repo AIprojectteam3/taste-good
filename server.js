@@ -462,6 +462,7 @@ app.get('/api/user', (req, res) => {
             u.profile_image_path,
             ul.level,
             up.point,
+            sns_id,
             IFNULL(p.post_count, 0) AS post_count
         FROM users u
         LEFT JOIN user_levels ul ON u.id = ul.user_id

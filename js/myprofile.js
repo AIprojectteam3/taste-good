@@ -106,6 +106,10 @@ async function loadProfileData() {
         const profileNicknameInput = document.querySelector('.username_input');
         const profileDescriptionInput = document.querySelector('.shortInfo');
         const profileImagePreview = document.querySelector('.profile-image-preview');
+        const passwordInput = document.querySelector('.password_input');
+        const passwordConfirmInput = document.querySelector('.password_confirm_input');
+        const passwordContainer = passwordInput?.closest('div');
+        const passwordConfirmContainer = passwordConfirmInput?.closest('div');
 
         if (profileNicknameInput && userData.username !== undefined) {
             profileNicknameInput.value = userData.username;
@@ -125,6 +129,38 @@ async function loadProfileData() {
                 profileImagePreview.src = userData.profile_image_path;
             } else {
                 profileImagePreview.src = 'image/profile-icon.png'; // 기본 프로필 이미지
+            }
+        }
+
+        if (userData.sns_id && userData.sns_id.trim() !== '') {
+            // 소셜 로그인 사용자인 경우
+            if (passwordInput) {
+                passwordInput.disabled = true;
+                passwordInput.placeholder = "소셜 로그인은 비밀번호를 변경할 수 없습니다";
+                passwordInput.style.backgroundColor = '#f5f5f5';
+                passwordInput.style.color = '#666';
+            }
+            
+            if (passwordConfirmInput) {
+                passwordConfirmInput.disabled = true;
+                passwordConfirmInput.placeholder = "소셜 로그인은 비밀번호를 변경할 수 없습니다";
+                passwordConfirmInput.style.backgroundColor = '#f5f5f5';
+                passwordConfirmInput.style.color = '#666';
+            }
+        } else {
+            // 일반 로그인 사용자인 경우
+            if (passwordInput) {
+                passwordInput.disabled = false;
+                passwordInput.placeholder = "새 비밀번호 (변경시에만 입력)";
+                passwordInput.style.backgroundColor = '';
+                passwordInput.style.color = '';
+            }
+            
+            if (passwordConfirmInput) {
+                passwordConfirmInput.disabled = false;
+                passwordConfirmInput.placeholder = "비밀번호 확인";
+                passwordConfirmInput.style.backgroundColor = '';
+                passwordConfirmInput.style.color = '';
             }
         }
 
@@ -435,6 +471,16 @@ async function handleProfileUpdate(event) {
     const passwordInput = document.querySelector('.password_input');
     const passwordConfirmInput = document.querySelector('.password_confirm_input');
     const profileImageInput = document.getElementById('profileImageUpload');
+
+    // 비밀번호 입력이 비활성화되어 있으면 비밀번호 관련 처리 건너뛰기
+    if (passwordInput && !passwordInput.disabled && passwordInput.value) {
+        if (passwordInput.value !== passwordConfirmInput.value) {
+            alert('비밀번호가 일치하지 않습니다.');
+            return;
+        }
+        formData.append('password', passwordInput.value);
+        formData.append('passwordConfirm', passwordConfirmInput.value);
+    }
 
     // 폼 데이터 수집
     if (usernameInput && usernameInput.value.trim()) {
