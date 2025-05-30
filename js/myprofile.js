@@ -33,15 +33,13 @@ const bookmarkData = [
 
 async function loadProfileData() {
     try {
-        const response = await fetch('/api/user'); // 서버 API 엔드포인트
-
+        const response = await fetch('/api/user');
         if (!response.ok) {
             console.error("프로필 정보 로드 실패 (서버 응답):", response.status);
             return;
         }
 
-        const userData = await response.json(); // 서버에서 null을 반환할 수 있음 (로그인 안된 경우)
-
+        const userData = await response.json();
         const profileDiv = document.querySelector('.myprofile');
         if (!profileDiv) {
             console.error('.myprofile 요소를 찾을 수 없습니다.');
@@ -49,7 +47,6 @@ async function loadProfileData() {
         }
 
         if (!userData) {
-            // 사용자가 로그인하지 않았거나, 세션 만료, 또는 DB에 사용자 정보가 없는 경우
             console.log("사용자 정보를 불러올 수 없습니다. (로그인되지 않았거나 사용자 없음)");
             return;
         }
@@ -60,60 +57,66 @@ async function loadProfileData() {
         const postEl = profileDiv.querySelector('.post_span');
         const followerEl = profileDiv.querySelector('.Follower_span');
         const pointEl = profileDiv.querySelector('.point_span');
-        const userdesEl = profileDiv.querySelector('.profile_des'); // 사용자 설명 (소개글) 요소
-        // const introEl = profileDiv.querySelector('.profile-intro'); // 소개글은 API에서 미제공
+        const userdesEl = profileDiv.querySelector('.profile_des');
+        const profileImageEl = document.querySelector('.myprofile-image > img'); // 프로필 이미지 요소 추가
 
         if (usernameEl && userData.username) usernameEl.textContent = userData.username;
-        
-        // API는 level을 숫자로 반환, HTML 표시는 "Lv. X" 형식
         if (levelEl && userData.level !== undefined) levelEl.textContent = userData.level;
-
-        // 게시글 수, 팔로워 수, 포인트는 숫자로 반환
         if (postEl && userData.post_count !== undefined) postEl.textContent = userData.post_count;
         if (followerEl && userData.follower_count !== undefined) followerEl.textContent = userData.follower_count;
         if (pointEl && userData.point !== undefined) pointEl.textContent = userData.point;
 
-        if (userdesEl) { // 'userdes'는 프로필 설명을 표시할 HTML 요소를 참조하는 변수입니다.
-            // userData 객체가 존재하고, profile_intro 필드가 존재하며, 공백을 제거한 문자열이 비어있지 않은지 확인합니다.
+        // 프로필 이미지 업데이트
+        if (profileImageEl) {
+            if (userData.profile_image_path && userData.profile_image_path.trim() !== '') {
+                profileImageEl.src = userData.profile_image_path;
+            } else {
+                profileImageEl.src = 'image/profile-icon.png'; // 기본 프로필 이미지
+            }
+            profileImageEl.alt = userData.username + '의 프로필 이미지';
+        }
+
+        // 프로필 설명 처리
+        if (userdesEl) {
             if (userData && userData.profile_intro && userData.profile_intro.trim() !== "") {
                 userdesEl.textContent = userData.profile_intro;
             } else {
-                // 위의 조건에 해당하지 않으면 (즉, profile_intro가 null, undefined, 빈 문자열 "", 또는 공백 문자열 "   "인 경우, 또는 userData가 없는 경우)
-                // 기본 메시지를 표시합니다.
-                // 만약 이 코드가 사용자 정보(userData)를 성공적으로 불러온 후에 실행된다면, 
-                // 이 'else' 블록은 주로 사용자의 프로필 설명이 비어있는 경우를 처리하게 됩니다.
                 userdesEl.textContent = "프로필 설명이 없습니다. 여기에 자신을 소개해보세요!";
             }
         }
 
+        // 프로필 수정 모달의 입력 필드들 초기화
         const profileNicknameInput = document.querySelector('.username_input');
         const profileDescriptionInput = document.querySelector('.shortInfo');
+        const profileImagePreview = document.querySelector('.profile-image-preview');
 
-        if (profileNicknameInput && userData.username !== undefined) profileNicknameInput.value = userData.username;
+        if (profileNicknameInput && userData.username !== undefined) {
+            profileNicknameInput.value = userData.username;
+        }
 
-        if (profileDescriptionInput) { // 'userdes'는 프로필 설명을 표시할 HTML 요소를 참조하는 변수입니다.
-            // userData 객체가 존재하고, profile_intro 필드가 존재하며, 공백을 제거한 문자열이 비어있지 않은지 확인합니다.
+        if (profileDescriptionInput) {
             if (userData && userData.profile_intro && userData.profile_intro.trim() !== "") {
                 profileDescriptionInput.value = userData.profile_intro;
             } else {
-                // 위의 조건에 해당하지 않으면 (즉, profile_intro가 null, undefined, 빈 문자열 "", 또는 공백 문자열 "   "인 경우, 또는 userData가 없는 경우)
-                // 기본 메시지를 표시합니다.
-                // 만약 이 코드가 사용자 정보(userData)를 성공적으로 불러온 후에 실행된다면, 
-                // 이 'else' 블록은 주로 사용자의 프로필 설명이 비어있는 경우를 처리하게 됩니다.
                 profileDescriptionInput.value = "프로필 설명이 없습니다. 여기에 자신을 소개해보세요!";
             }
         }
-        
-        // Intro (소개글) - 현재 /api/user 에서 제공하지 않음
-        // if (introEl && userData.intro) introEl.textContent = userData.intro;
-        // 소개글은 myprofile.html의 정적 값을 유지합니다.
+
+        // 프로필 수정 모달의 이미지 미리보기 초기화
+        if (profileImagePreview) {
+            if (userData.profile_image_path && userData.profile_image_path.trim() !== '') {
+                profileImagePreview.src = userData.profile_image_path;
+            } else {
+                profileImagePreview.src = 'image/profile-icon.png'; // 기본 프로필 이미지
+            }
+        }
 
     } catch (error) {
         console.error("프로필 정보를 불러오는 중 예외 발생:", error);
-        // 필요시 사용자에게 오류 메시지 UI로 표시
         const profileDiv = document.querySelector('.myprofile');
         if (profileDiv) {
-            profileDiv.querySelector('.username').textContent = "정보 로드 실패";
+            const usernameEl = profileDiv.querySelector('.username_span');
+            if (usernameEl) usernameEl.textContent = "정보 로드 실패";
         }
     }
 }

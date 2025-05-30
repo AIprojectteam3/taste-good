@@ -429,7 +429,7 @@ function authenticateToken(req, res, next) {
 
 
 // ==================================================================================================================
-// 유저 정보 빼오기
+// 유저 정보 가져오기 API
 // ==================================================================================================================
 app.get('/api/user', (req, res) => {
     if (!req.session.userId) {
@@ -442,6 +442,7 @@ app.get('/api/user', (req, res) => {
         SELECT
             u.username,
             u.profile_intro,
+            u.profile_image_path,
             ul.level,
             up.point,
             IFNULL(p.post_count, 0) AS post_count
@@ -457,15 +458,15 @@ app.get('/api/user', (req, res) => {
                 COUNT(*) AS post_count
             FROM
                 posts
-            WHERE user_id = ? -- 특정 사용자의 게시물만 카운트 (성능 개선)
+            WHERE user_id = ?
             GROUP BY
                 user_id
         ) p ON u.id = p.user_id
         WHERE
             u.id = ?;
     `;
-    // posts 서브쿼리의 WHERE 조건에도 userId를 추가하여 특정 유저의 글만 카운트하도록 최적화
-    db.query(query, [userId, userId], (err, results) => { // 파라미터 두 번 전달
+
+    db.query(query, [userId, userId], (err, results) => {
         if (err) {
             console.error(`[ERROR] /api/user DB query failed for userId ${userId}:`, err);
             return res.status(500).json({ message: '서버 오류로 사용자 정보를 가져오지 못했습니다.' });
@@ -473,19 +474,20 @@ app.get('/api/user', (req, res) => {
 
         if (results.length > 0) {
             const userData = results[0];
-            // level 또는 points가 null일 경우 기본값 설정 (DB에 해당 user_id의 레코드가 없을 수 있음)
+            // level 또는 points가 null일 경우 기본값 설정
             userData.level = userData.level || 1;
             userData.points = userData.points || 0;
-            // post_count는 IFNULL로 이미 처리됨
+            
+            // 프로필 이미지 경로 처리 - 경로가 있으면 슬래시로 변경, 없으면 null 유지
+            if (userData.profile_image_path) {
+                userData.profile_image_path = userData.profile_image_path.replace(/\\/g, '/');
+            }
+            
             console.log('[INFO] /api/user - User data fetched for userId:', userId, userData);
             return res.json(userData);
         } else {
             console.warn('[WARN] /api/user - User not found in DB for session userId:', userId);
-            // 세션은 유효하나 DB에 해당 유저가 없는 이례적인 상황
-            // req.session.destroy((destroyErr) => { // 세션 파기
-            //     if (destroyErr) console.error('[ERROR] /api/user - Session destroy failed:', destroyErr);
-            // });
-            return res.json(null); // 클라이언트에서 비로그인 처리하도록 null 반환
+            return res.json(null);
         }
     });
 });
