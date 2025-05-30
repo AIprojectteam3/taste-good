@@ -19,10 +19,10 @@
                     <div class="image">
                         <img src="image/profile-icon.png" alt="프로필 사진" />
                     </div>
-                    <div class="nickname">방문자</div>
+                    <div class="nickname">---</div>
                     <div class="level">
                         <span class="level-text">LV.</span>
-                        <span class="level-text level-value">0</span>
+                        <span class="level-text level-value"></span>
                         <span class="level-icon"><img class = "level_icon" src = "image/dropper-icon.png" alt = "레벨 아이콘"></span>
                     </div>
                 </div>
@@ -30,7 +30,7 @@
                     <div class="post">
                         <a href = "#">
                             <span>Posts</span>
-                            <span class = "post-count">0</span>
+                            <span class = "post-count"></span>
                         </a>
                     </div>
                     <div class="follower">
@@ -42,7 +42,7 @@
                     <div class="point">
                         <a href = "#">
                             <span>Point</span>
-                            <span class = "point-count">0</span>
+                            <span class = "point-count"></span>
                         </a>
                     </div>
                 </div>
@@ -141,7 +141,7 @@
                     <div class = "stats">
                         <div class = "Post">
                             <a href = "#">Post</a>
-                            <span class = "post_span">0</span>
+                            <span class = "post_span"></span>
                         </div>
                         <div class = "Follower">
                             <a href = "#">Follower</a>
@@ -149,7 +149,7 @@
                         </div>
                         <div class = "point">
                             <a href = "#">Point</a>
-                            <span class = "point_span">0</span>
+                            <span class = "point_span"></span>
                         </div>
                     </div>
                     <div class="short-info">
@@ -190,34 +190,40 @@
                 <h2>프로필 편집</h2>
             </div>
             <div class = "modal-body">
-                <div class = "modal-body-top">
-                    <div class = "profile-image-container">
-                        <div class="profile-image-wrapper">
-                            <img class = "profile-image-preview" src = "image/profile-icon.png" alt = "프로필 사진 미리보기">
-                            <div class="change-photo-overlay">
-                                <span>사진 변경</span>
+                <form class="profile-edit-form" enctype="multipart/form-data">
+                    <div class = "modal-body-top">
+                        <div class = "profile-image-container">
+                            <div class="profile-image-wrapper">
+                                <img class = "profile-image-preview" src = "image/profile-icon.png" alt = "프로필 사진 미리보기">
+                                <div class="change-photo-overlay">
+                                    <span>사진 변경</span>
+                                </div>
+                                <input type="file" id="profileImageUpload" accept="image/*">
                             </div>
-                            <input type="file" id="profileImageUpload" accept="image/*">
+                        </div>
+                        <div class = "user_data_input">
+                            <div>
+                                <label for = "username">닉네임</label>
+                                <input type = "text" class = "username_input" name = "username" required>
+                            </div>
+                            <div>
+                                <label for = "password">비밀번호</label>
+                                <input type = "password" class = "password_input" name = "password" placeholder = "새 비밀번호 (변경시에만 입력)">
+                            </div>
+                            <div>
+                                <label for = "password">비밀번호 확인</label>
+                                <input type = "password" class = "password_confirm_input" name = "password" placeholder = "비밀번호 확인">
+                            </div>
+                            <label for = "shortInfo">프로필 설명</label>
+                            <textarea class = "shortInfo" name = "shortInfo" rows="4"></textarea>
                         </div>
                     </div>
-                    <div class = "user_data_input">
-                        <div>
-                            <label for = "username">닉네임</label>
-                            <input type = "text" class = "username_input" name = "username" placeholder = "변경할 닉네임을 입력하세요" required>
-                        </div>
-                        <div>
-                            <label for = "password">비밀번호</label>
-                            <input type = "password" class = "password_input" name = "password" placeholder = "변경할 비밀번호를 입력하세요" required>
-                        </div>
-                        <label for = "shortInfo">프로필 설명</label>
-                        <textarea class = "shortInfo" name = "shortInfo" rows="4" placeholder = "변경할 프로필 설명을 입력하세요"></textarea>
+                    <div class = "modal-body-bottom">
+                        <!-- 주소 변경이나 알레르기, 음식 선호도 관련 -->
+                        알레르기도 넣고~ 음식 선호도 관련된 것도 넣고~
                     </div>
-                </div>
-                <div class = "modal-body-bottom">
-                    <!-- 주소 변경이나 알레르기, 음식 선호도 관련 -->
-                    알레르기도 넣고~ 음식 선호도 관련된 것도 넣고~
-                </div>
-                <button class = "submitBtn" type = "submit">수정</button>
+                    <button class = "submitBtn" type = "submit">수정</button>
+                </form>
             </div>
         </div>
     </div>

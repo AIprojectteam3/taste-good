@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 이미지 파일들을 FormData에 추가
             // 서버의 upload.array('images', 10)에서 'images'와 필드명이 일치해야 합니다.
             imageFiles.forEach((file, index) => {
-                formData.append('images', file, file.name); // file.name을 세 번째 인자로 전달하는 것이 좋습니다.
+                formData.append('postImages', file, file.name); // file.name을 세 번째 인자로 전달하는 것이 좋습니다.
             });
 
             // 서버로 데이터 전송

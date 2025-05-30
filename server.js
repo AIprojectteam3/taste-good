@@ -65,6 +65,26 @@ app.use(session({
     }
 }));
 
+app.use('/Uploads', express.static(path.join(__dirname, 'Uploads')));
+
+// ===============================================================================================================================================
+// 폴더 존재 확인 후 없을 경우 생성
+// ===============================================================================================================================================
+const fs = require('fs');
+
+// 폴더 생성 함수
+const ensureDirectoryExists = (dirPath) => {
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+        console.log(`폴더 생성됨: ${dirPath}`);
+    }
+};
+
+// 서버 시작 전에 필요한 폴더들 생성
+ensureDirectoryExists('Uploads/Profile_Image/');
+ensureDirectoryExists('Uploads/Post_Image/');
+ensureDirectoryExists('uploads/default/');
+
 // ===============================================================================================================================================
 // 회원가입 처리
 // ===============================================================================================================================================
@@ -150,7 +170,9 @@ app.post('/api/signup', async (req, res) => {
     });
 });
 
+// ===============================================================================================================================================
 // 로그인 처리
+// ===============================================================================================================================================
 app.post('/api/login', (req, res) => {
     console.log('요청 데이터:', req.body); // 디버깅용 로그
 
@@ -183,7 +205,9 @@ app.post('/api/login', (req, res) => {
     });
 });
 
+// ===============================================================================================================================================
 // 카카오 콜백 처리
+// ===============================================================================================================================================
 app.get('/kakao/callback', async (req, res) => {
     const { code } = req.query;
     try {
@@ -471,8 +495,16 @@ app.get('/api/user', (req, res) => {
 // ==================================================================================================================
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadPath = 'post/uploadImage/'; // 원하는 새 경로
-        // fs.mkdirSync(uploadPath, { recursive: true }); // 필요시 동기적으로 폴더 생성 (아래 주의사항 참고)
+        let uploadPath;
+        
+        if (file.fieldname === 'profileImage') {
+            uploadPath = 'Uploads/Profile_Image/'; // 프로필 이미지 경로
+        } else if (file.fieldname === 'postImages') {
+            uploadPath = 'Uploads/Post_Image/'; // 게시물 이미지 경로
+        } else {
+            uploadPath = 'uploads/default/'; // 기본 경로
+        }
+        
         cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
@@ -483,20 +515,24 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-app.post('/api/createPost', upload.array('images', 10), (req, res) => { // 'images'는 클라이언트에서 보낸 파일 필드명, 최대 5개
+// ==================================================================================================================
+// 게시글 작성 API
+// ==================================================================================================================
+app.post('/api/createPost', upload.array('postImages', 10), (req, res) => { // 'postImages'로 변경
     // 1. 로그인 상태 확인
     if (!req.session || !req.session.userId) {
         return res.status(401).json({ success: false, message: '게시물을 작성하려면 로그인이 필요합니다.' });
     }
-    const userId = req.session.userId; // 세션에서 사용자 ID 가져오기
 
-    const { title, content } = req.body; // 폼 데이터에서 제목과 내용 가져오기
-    const files = req.files; // 업로드된 파일 정보 (배열)
+    const userId = req.session.userId;
+    const { title, content } = req.body;
+    const files = req.files; // 업로드된 파일들은 Uploads/Post_Image/ 경로에 저장됨
 
     // 2. 제목 및 내용 유효성 검사
     if (!title || title.trim() === '') {
         return res.status(400).json({ success: false, message: '제목을 입력해주세요.' });
     }
+
     if (!content || content.trim() === '') {
         return res.status(400).json({ success: false, message: '내용을 입력해주세요.' });
     }
@@ -509,22 +545,20 @@ app.post('/api/createPost', upload.array('images', 10), (req, res) => { // 'imag
             return res.status(500).json({ success: false, message: '게시물 저장 중 서버 오류가 발생했습니다.' });
         }
 
-        const postId = postResult.insertId; // 방금 삽입된 게시물의 ID
+        const postId = postResult.insertId;
 
-        // 4. files 테이블에 파일 정보 삽입 (업로드된 파일이 있는 경우)
+        // 4. files 테이블에 파일 정보 삽입
         if (files && files.length > 0) {
             const fileInsertPromises = files.map(file => {
                 return new Promise((resolve, reject) => {
                     const insertFileQuery = 'INSERT INTO files (post_id, file_name, file_path, file_type) VALUES (?, ?, ?, ?)';
-                    // file.filename: multer가 생성한 파일명
-                    // file.path: multer가 저장한 전체 경로 (예: "uploads/images-1612345678901-123456789.jpg")
-                    // file.mimetype: 파일의 MIME 타입 (예: "image/jpeg")
+                    // 파일들은 Uploads/Post_Image/ 경로에 저장됨
                     db.query(insertFileQuery, [postId, file.filename, file.path, file.mimetype], (fileErr, fileResult) => {
                         if (fileErr) {
                             console.error('DB files 테이블 삽입 중 오류:', fileErr);
-                            return reject(fileErr); // 오류 발생 시 Promise reject
+                            return reject(fileErr);
                         }
-                        resolve(fileResult); // 성공 시 Promise resolve
+                        resolve(fileResult);
                     });
                 });
             });
@@ -534,13 +568,10 @@ app.post('/api/createPost', upload.array('images', 10), (req, res) => { // 'imag
                     res.json({ success: true, message: '게시물과 이미지가 성공적으로 등록되었습니다.', postId: postId });
                 })
                 .catch(promiseErr => {
-                    // 게시물은 등록되었으나 파일 정보 저장 중 오류 발생.
-                    // 실제 프로덕션 환경에서는 롤백(트랜잭션 처리)을 고려해야 합니다.
                     console.error('파일 정보 일괄 추가 중 오류 발생:', promiseErr);
                     res.status(500).json({ success: false, message: '게시물은 등록되었으나, 파일 정보 저장 중 오류가 발생했습니다.' });
                 });
         } else {
-            // 업로드된 파일이 없는 경우
             res.json({ success: true, message: '게시물이 성공적으로 등록되었습니다 (이미지 없음).', postId: postId });
         }
     });
@@ -721,7 +752,7 @@ app.get('/api/post/:postId', (req, res) => {
 // ==================================================================================================================
 // 게시물 수정 API
 // ==================================================================================================================
-app.put('/api/post/:postId', upload.array('images', 10), (req, res) => { // 이미지 수정도 고려하여 multer 사용
+app.put('/api/post/:postId', upload.array('postImages', 10), (req, res) => { // 이미지 수정도 고려하여 multer 사용
     const postId = req.params.postId;
     const userId = req.session.userId; // 현재 로그인한 사용자 ID
     const { title, content, existingImages } = req.body; // existingImages: 기존 이미지 경로 배열 (클라이언트에서 관리)
@@ -950,6 +981,65 @@ app.get('/api/post/:postId/comments', (req, res) => {
             return res.status(500).json({ message: '댓글 목록을 가져오는 데 실패했습니다.' });
         }
         res.json(comments);
+    });
+});
+// ==================================================================================================================
+// 프로필 수정 API
+// ==================================================================================================================
+app.put('/api/user/profile', upload.single('profileImage'), (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
+    }
+
+    const { username, profileDescription, password, passwordConfirm } = req.body;
+    const profileImageFile = req.file;
+
+    // 비밀번호 변경 시 확인
+    if (password && password !== passwordConfirm) {
+        return res.status(400).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
+    }
+
+    // 업데이트할 필드들 준비
+    let updateFields = [];
+    let updateValues = [];
+
+    if (username) {
+        updateFields.push('username = ?');
+        updateValues.push(username);
+    }
+
+    if (profileDescription) {
+        updateFields.push('profile_intro = ?');
+        updateValues.push(profileDescription);
+    }
+
+    if (password) {
+        updateFields.push('password = ?');
+        updateValues.push(password); // 실제로는 해시화 필요
+    }
+
+    if (profileImageFile) {
+        // 프로필 이미지는 Uploads/Profile_Image/ 경로에 저장됨
+        updateFields.push('profile_image_path = ?');
+        updateValues.push(profileImageFile.path);
+    }
+
+    if (updateFields.length === 0) {
+        return res.status(400).json({ success: false, message: '수정할 정보가 없습니다.' });
+    }
+
+    updateValues.push(userId);
+    const updateQuery = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+
+    db.query(updateQuery, updateValues, (err, result) => {
+        if (err) {
+            console.error('프로필 수정 중 오류:', err);
+            return res.status(500).json({ success: false, message: '프로필 수정에 실패했습니다.' });
+        }
+
+        res.json({ success: true, message: '프로필이 성공적으로 수정되었습니다.' });
     });
 });
 
