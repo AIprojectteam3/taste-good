@@ -4,6 +4,7 @@ const mysql = require('mysql2');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const session = require('express-session');
 
 const app = express();
 const PORT = 3000;
@@ -17,12 +18,6 @@ const NAVER_CLIENT_SECRET = 'aEIsjYJR1G';
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // 폼 데이터 처리를 위해 추가
-
-// JSON 요청 본문 처리
-app.use(express.json());
-
-// 사용자 데이터를 저장할 메모리 객체
-const users = [];
 
 // MySQL 연결 설정
 const db = mysql.createConnection({
@@ -42,19 +37,6 @@ db.connect((err) => {
     console.log('MySQL에 연결되었습니다.');
 });
 
-// 기본 라우트: intro.html 반환
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'intro.html'));
-});
-
-// 정적 파일 제공
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'intro.html'));
-});
-app.use(express.static(path.join(__dirname))); // 정적 파일 제공
-
-const session = require('express-session');
-
 app.use(session({
     secret: 'aVeryL0ngAndRandomStringThatIsHardToGuess!@#$%^&*()', // 세션 암호화 키 (보안상 중요)
     resave: false,                      // 세션이 변경되지 않아도 다시 저장할지 여부
@@ -64,6 +46,26 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 24     // 쿠키 유효 기간 (예: 1일)
     }
 }));
+
+// 기본 라우트: intro.html 반환
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'intro.html'));
+});
+
+// 보호된 페이지들에 대한 서버 사이드 검증
+app.get(['/index.html', '/myprofile.html'], (req, res, next) => {
+    if (!req.session.userId) {
+        return res.redirect('/intro.html');
+    }
+    
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('X-Frame-Options', 'DENY'); // 추가 보안
+    
+    next();
+});
+app.use(express.static(path.join(__dirname))); // 정적 파일 제공
 
 app.use('/Uploads', express.static(path.join(__dirname, 'Uploads')));
 
@@ -427,6 +429,20 @@ function authenticateToken(req, res, next) {
 //         });
 // });
 
+// ==================================================================================================================
+// 로그아웃 API
+// ==================================================================================================================
+app.post('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('로그아웃 중 오류:', err);
+            return res.status(500).json({ success: false });
+        }
+        
+        res.clearCookie('connect.sid'); // 세션 쿠키 삭제
+        res.json({ success: true });
+    });
+});
 
 // ==================================================================================================================
 // 유저 정보 가져오기 API
@@ -493,7 +509,7 @@ app.get('/api/user', (req, res) => {
 });
 
 // ==================================================================================================================
-// 게시글 DB에 저장
+// 업로드하는 이미지 서버에 저장하는 API
 // ==================================================================================================================
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -906,6 +922,69 @@ app.delete('/api/post/:postId', (req, res) => {
             }
         });
     });
+});
+
+// ==================================================================================================================
+// 로그인된 사용자의 게시물 목록 가져오기 API
+// ==================================================================================================================
+app.get('/api/user/posts', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
+    const query = `
+        SELECT 
+            p.id,
+            p.title,
+            p.content,
+            p.created_at,
+            p.views,
+            p.likes,
+            (SELECT file_path FROM files WHERE post_id = p.id LIMIT 1) AS thumbnail_path,
+            COALESCE((
+                SELECT JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/'))
+                FROM files 
+                WHERE post_id = p.id
+            ), '[]') AS images
+        FROM posts p
+        WHERE p.user_id = ?
+        ORDER BY p.created_at DESC
+    `;
+
+    db.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('사용자 게시물 조회 중 오류:', err);
+            return res.status(500).json({ message: '게시물을 가져오는 데 실패했습니다.' });
+        }
+
+        // 이미지 JSON 파싱
+        results.forEach(post => {
+            try {
+                post.images = JSON.parse(post.images);
+            } catch (e) {
+                console.error(`이미지 파싱 오류 (post ${post.id}):`, e);
+                post.images = [];
+            }
+        });
+
+        res.json(results);
+    });
+});
+
+// ==================================================================================================================
+// 사용자 북마크 API (추후 구현)
+// ==================================================================================================================
+app.get('/api/user/bookmarks', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
+    // 현재는 빈 배열 반환 (북마크 기능 구현 후 수정)
+    res.json([]);
 });
 
 // ==================================================================================================================
