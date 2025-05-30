@@ -48,46 +48,53 @@ async function fetchUserProfile() {
 }
 
 function updateProfileUI(user) {
-    // 🚨 중요: 이 함수는 user 객체가 항상 유효하다고 가정합니다. (null이 아니라고 가정)
-    // 만약 user가 null이 될 수 있다면, user.username 접근 전에 null 체크가 필요합니다.
-    // 이전 요청에서는 이 부분을 제거해달라고 하셨으므로, user가 null이 아니라는 전제로 작성합니다.
-
     const nicknameElement = document.querySelector('.profile .nickname');
     const levelElement = document.querySelector('.profile .level .level-value');
     const postCountElement = document.querySelector('.profile .profile-stats .post .post-count');
-    const followerCountElement = document.querySelector('.profile .profile-stats .follower .follower-count'); // 항상 '0'
+    const followerCountElement = document.querySelector('.profile .profile-stats .follower .follower-count');
     const pointCountElement = document.querySelector('.profile .profile-stats .point .point-count');
+    const profileImageElement = document.querySelector('.profile-header > .image > img'); // 프로필 이미지 요소 추가
 
     // 사용자 정보가 항상 있다고 가정하고 UI 업데이트
     if (nicknameElement) {
-        nicknameElement.textContent = user.username; // user가 null이면 여기서 TypeError 발생
+        nicknameElement.textContent = user.username;
     } else {
         console.warn("프로필 닉네임 요소를 찾을 수 없습니다. (선택자: .profile .nickname)");
     }
 
     if (levelElement) {
-        levelElement.textContent = user.level ? user.level.toString() : '1'; // 기본값 '1'
+        levelElement.textContent = user.level ? user.level.toString() : '1';
     } else {
         console.warn("프로필 레벨 요소를 찾을 수 없습니다. (선택자: .profile .level .level-value)");
     }
 
     if (postCountElement) {
-        postCountElement.textContent = user.post_count !== undefined ? user.post_count.toString() : '0'; // 기본값 '0'
+        postCountElement.textContent = user.post_count !== undefined ? user.post_count.toString() : '0';
     } else {
         console.warn("프로필 게시글 수 요소를 찾을 수 없습니다. (선택자: .profile .profile-stats .post .post-count)");
     }
 
     if (pointCountElement) {
-        pointCountElement.textContent = user.points ? user.points.toString() : '0'; // 기본값 '0'
+        pointCountElement.textContent = user.points ? user.points.toString() : '0';
     } else {
         console.warn("프로필 포인트 요소를 찾을 수 없습니다. (선택자: .profile .profile-stats .point .point-count)");
+    }
+
+    // 프로필 이미지 업데이트
+    if (profileImageElement) {
+        if (user.profile_image_path && user.profile_image_path.trim() !== '') {
+            profileImageElement.src = user.profile_image_path;
+        } else {
+            profileImageElement.src = 'image/profile-icon.png'; // 기본 프로필 이미지
+        }
+        profileImageElement.alt = user.username + '의 프로필 이미지';
+    } else {
+        console.warn("프로필 이미지 요소를 찾을 수 없습니다. (선택자: .profile-header > .image > img)");
     }
 
     // 팔로워 수는 항상 '0'으로 고정
     if (followerCountElement) {
         followerCountElement.textContent = '0';
-    } else {
-        // console.warn("프로필 팔로워 수 요소를 찾을 수 없습니다. (선택자: .profile .profile-stats .follower .follower-count)");
     }
 }
 
