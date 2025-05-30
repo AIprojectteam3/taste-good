@@ -1,4 +1,3 @@
-// postmodal.js
 // 게시물 모달을 표시하는 함수
 async function displayPostModal(postId) {
     try {
