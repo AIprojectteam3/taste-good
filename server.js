@@ -517,8 +517,20 @@ const storage = multer.diskStorage({
         cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+        if (file.fieldname === 'profileImage') {
+            // 프로필 이미지의 경우 userId 기반으로 파일명 생성
+            const userId = req.session.userId;
+            if (userId) {
+                const ext = path.extname(file.originalname);
+                cb(null, `profileImage-${userId}${ext}`);
+            } else {
+                cb(new Error('로그인이 필요합니다.'), null);
+            }
+        } else {
+            // 게시물 이미지는 기존 방식 유지
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+        }
     }
 });
 

@@ -294,7 +294,7 @@
     height : 50%;
 }
 
-.modal-body-top label {
+.modal-body-top label, .modal-body-bottom label {
     font-size : 1.2rem;
     font-weight : bold;
 }
