@@ -57,37 +57,50 @@ async function loadProfileData() {
         // HTML 요소에 DB 데이터 채우기
         const usernameEl = profileDiv.querySelector('.username_span');
         const levelEl = profileDiv.querySelector('.level_value');
-        const statsCounts = profileDiv.querySelectorAll('.post_span .Follower_span .point_span');
-        const userdes = profileDiv.querySelector('.profile_des'); // 사용자 설명 (소개글) 요소
+        const postEl = profileDiv.querySelector('.post_span');
+        const followerEl = profileDiv.querySelector('.Follower_span');
+        const pointEl = profileDiv.querySelector('.point_span');
+        const userdesEl = profileDiv.querySelector('.profile_des'); // 사용자 설명 (소개글) 요소
         // const introEl = profileDiv.querySelector('.profile-intro'); // 소개글은 API에서 미제공
 
         if (usernameEl && userData.username) usernameEl.textContent = userData.username;
         
         // API는 level을 숫자로 반환, HTML 표시는 "Lv. X" 형식
-        if (levelEl && userData.level !== undefined) levelEl.textContent = `${userData.level}`; 
-        
-        if (statsCounts.length >= 3) {
-            // Post count (API 필드명: post_count)
-            if (userData.post_count !== undefined) statsCounts[0].textContent = userData.post_count;
-            
-            // Friend count - 현재 /api/user 에서 제공하지 않음
-            // statsCounts[1]는 myprofile.html의 정적 값을 유지하거나, 필요시 기본값 설정.
-            // 예: if (userData.friend_count !== undefined) statsCounts[1].textContent = userData.friend_count;
-            
-            // Point count (API 필드명: point)
-            if (userData.point !== undefined) statsCounts[2].textContent = userData.point;
-        }
+        if (levelEl && userData.level !== undefined) levelEl.textContent = userData.level;
 
-        if (userdes) { // 'userdes'는 프로필 설명을 표시할 HTML 요소를 참조하는 변수입니다.
+        // 게시글 수, 팔로워 수, 포인트는 숫자로 반환
+        if (postEl && userData.post_count !== undefined) postEl.textContent = userData.post_count;
+        if (followerEl && userData.follower_count !== undefined) followerEl.textContent = userData.follower_count;
+        if (pointEl && userData.point !== undefined) pointEl.textContent = userData.point;
+
+        if (userdesEl) { // 'userdes'는 프로필 설명을 표시할 HTML 요소를 참조하는 변수입니다.
             // userData 객체가 존재하고, profile_intro 필드가 존재하며, 공백을 제거한 문자열이 비어있지 않은지 확인합니다.
             if (userData && userData.profile_intro && userData.profile_intro.trim() !== "") {
-                userdes.textContent = userData.profile_intro;
+                userdesEl.textContent = userData.profile_intro;
             } else {
                 // 위의 조건에 해당하지 않으면 (즉, profile_intro가 null, undefined, 빈 문자열 "", 또는 공백 문자열 "   "인 경우, 또는 userData가 없는 경우)
                 // 기본 메시지를 표시합니다.
                 // 만약 이 코드가 사용자 정보(userData)를 성공적으로 불러온 후에 실행된다면, 
                 // 이 'else' 블록은 주로 사용자의 프로필 설명이 비어있는 경우를 처리하게 됩니다.
-                userdes.textContent = "프로필 설명이 없습니다. 여기에 자신을 소개해보세요!";
+                userdesEl.textContent = "프로필 설명이 없습니다. 여기에 자신을 소개해보세요!";
+            }
+        }
+
+        const profileNicknameInput = document.querySelector('.username_input');
+        const profileDescriptionInput = document.querySelector('.shortInfo');
+
+        if (profileNicknameInput && userData.username !== undefined) profileNicknameInput.value = userData.username;
+
+        if (profileDescriptionInput) { // 'userdes'는 프로필 설명을 표시할 HTML 요소를 참조하는 변수입니다.
+            // userData 객체가 존재하고, profile_intro 필드가 존재하며, 공백을 제거한 문자열이 비어있지 않은지 확인합니다.
+            if (userData && userData.profile_intro && userData.profile_intro.trim() !== "") {
+                profileDescriptionInput.value = userData.profile_intro;
+            } else {
+                // 위의 조건에 해당하지 않으면 (즉, profile_intro가 null, undefined, 빈 문자열 "", 또는 공백 문자열 "   "인 경우, 또는 userData가 없는 경우)
+                // 기본 메시지를 표시합니다.
+                // 만약 이 코드가 사용자 정보(userData)를 성공적으로 불러온 후에 실행된다면, 
+                // 이 'else' 블록은 주로 사용자의 프로필 설명이 비어있는 경우를 처리하게 됩니다.
+                profileDescriptionInput.value = "프로필 설명이 없습니다. 여기에 자신을 소개해보세요!";
             }
         }
         
@@ -352,7 +365,66 @@ document.querySelectorAll('.card').forEach(card => {
     observer.observe(card);
 });
 
-  // 초기 렌더링 및 이벤트 등록
+// 프로필 수정 처리 함수
+async function handleProfileUpdate(event) {
+    event.preventDefault();
+    
+    const formData = new FormData();
+    const usernameInput = document.querySelector('.username_input');
+    const profileDescInput = document.querySelector('.shortInfo');
+    const passwordInput = document.querySelector('.password_input');
+    const passwordConfirmInput = document.querySelector('.password_confirm_input');
+    const profileImageInput = document.getElementById('profileImageUpload');
+
+    // 폼 데이터 수집
+    if (usernameInput && usernameInput.value.trim()) {
+        formData.append('username', usernameInput.value.trim());
+    }
+    
+    if (profileDescInput && profileDescInput.value.trim()) {
+        formData.append('profileDescription', profileDescInput.value.trim());
+    }
+    
+    if (passwordInput && passwordInput.value) {
+        if (passwordInput.value !== passwordConfirmInput.value) {
+            alert('비밀번호가 일치하지 않습니다.');
+            return;
+        }
+        formData.append('password', passwordInput.value);
+        formData.append('passwordConfirm', passwordConfirmInput.value);
+    }
+    
+    if (profileImageInput && profileImageInput.files[0]) {
+        formData.append('profileImage', profileImageInput.files[0]);
+    }
+
+    try {
+        const response = await fetch('/api/user/profile', {
+            method: 'PUT',
+            body: formData
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('프로필이 성공적으로 수정되었습니다.');
+            // 모달 닫기
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            // 페이지 새로고침하여 변경사항 반영
+            window.location.reload();
+        } else {
+            alert(result.message || '프로필 수정에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('프로필 수정 중 오류:', error);
+        alert('프로필 수정 중 오류가 발생했습니다.');
+    }
+}
+
+// 초기 렌더링 및 이벤트 등록
 document.addEventListener("DOMContentLoaded", () => {
     loadProfileData();
     
@@ -366,10 +438,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (window.matchMedia("(max-width: 768px)").matches) {
         const container = document.querySelector('.content');
-        const cards = Array.from(container.querySelectorAll('.card'));
-        let currentSlide = 0;
-        let isAnimating = false;
-        let touchStartY = 0;
     }
     
     const tabs = document.querySelectorAll(".tab");
@@ -447,5 +515,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 modal.style.display = 'none';
             }
         });
+    }
+
+    const profileForm = document.querySelector('.profile-edit-form');
+    if (profileForm) {
+        profileForm.addEventListener('submit', handleProfileUpdate);
     }
 });
