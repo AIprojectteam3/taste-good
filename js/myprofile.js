@@ -2,6 +2,14 @@
 async function fetchUserPosts() {
     try {
         const response = await fetch('/api/user/posts');
+        
+        // 401 오류 시 로그인 페이지로 리다이렉트
+        if (response.status === 401) {
+            alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+            window.location.href = '/intro.html';
+            return [];
+        }
+        
         if (!response.ok) {
             console.error("사용자 게시물 로드 실패:", response.status);
             return [];
@@ -15,10 +23,18 @@ async function fetchUserPosts() {
     }
 }
 
-// 사용자 북마크 게시물 로드 함수 (추후에 구현 및 사용)
+// 사용자 북마크 게시물 로드 함수 (추후에 사용 및 수정 필요)
 async function fetchUserBookmarks() {
     try {
         const response = await fetch('/api/user/bookmarks');
+        
+        // 401 오류 시 로그인 페이지로 리다이렉트
+        if (response.status === 401) {
+            alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+            window.location.href = '/intro.html';
+            return [];
+        }
+        
         if (!response.ok) {
             console.error("사용자 북마크 로드 실패:", response.status);
             return [];

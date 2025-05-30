@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/menu.css">
     <link rel = "stylesheet" href = "css/myprofile.css">
     <link rel = "stylesheet" href = "css/postmodal.css">
+    <link rel = "stylesheet" href = "css/createmodal.css">
 
     <script src = "js/myprofile.js"></script>
     <script src = "js/postmodal.js"></script>
@@ -248,6 +249,34 @@
                 </div>
             </div>
             <span class = "close-area" id = "modal-close">x</span>
+        </div>
+    </div>
+
+    <!-- =================================================================================== -->
+    <!-- 게시물 수정 모달 --> 
+    <!-- =================================================================================== -->
+    <div id="createPostFormModal" class="create-post-form-overlay">
+        <div class="create-post-form-window">
+            <div class="create-post-form-left">
+                <input type="file" id="createPostImageUpload" accept="image/*" multiple style="display: none;">
+                <div class="create-post-slider-area">
+                    <div class="create-post-main-image-container" id="createPostSliderMain">
+                        <!-- 이미지 슬라이드 및 '사진 추가' 슬라이드가 여기에 동적으로 삽입됩니다. -->
+                    </div>
+                    <!-- 슬라이드 네비게이션 버튼 -->
+                    <button class="create-post-slide-nav prev" id="createPostNavPrev" style="display: none;">‹</button>
+                    <button class="create-post-slide-nav next" id="createPostNavNext" style="display: none;">›</button>
+                    
+                    <div class="create-post-thumbnails-container" id="createPostThumbnails">
+                        <!-- 썸네일 및 '사진 추가' 썸네일이 여기에 동적으로 삽입됩니다. -->
+                    </div>
+                </div>
+            </div>
+            <div class="create-post-form-right">
+                <input type="text" id="createPostTitle" placeholder="제목을 입력하세요">
+                <textarea id="createPostContent" placeholder="내용을 입력하세요"></textarea>
+                <button id="submitCreatePostBtn">수정</button>
+            </div>
         </div>
     </div>
 
