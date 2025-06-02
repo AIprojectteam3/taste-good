@@ -179,7 +179,7 @@
     border-bottom : 1px solid #eee;
 }
 
-.post-user {
+#index-modal .post-user {
     display : flex;
     align-items : center;
     padding : 10px;
@@ -237,12 +237,33 @@
     display: flex;
     flex-direction: column;
     flex: 1; /* 남은 공간을 모두 차지 */
+    padding-right: 10px;
     overflow: hidden;
 }
 
 .post-content-div > div.expanded {
-    overflow: auto; /* 확장된 경우 스크롤 가능 */
+    position: relative;
     max-height: none; /* 최대 높이 제한 제거 */
+    overflow: auto; /* 확장된 경우 스크롤 가능 */
+}
+
+/* 기존 ::before, ::after 제거하고 webkit 스크롤바 사용 */
+.post-content-div > div.expanded::-webkit-scrollbar {
+    width: 6px;
+}
+
+.post-content-div > div.expanded::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.post-content-div > div.expanded::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+}
+
+.post-content-div > div.expanded::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.6);
 }
 
 .post-title {
@@ -325,7 +346,7 @@
     flex-shrink: 0;
 }
 
-.comment-user-nickname {
+#index-modal .comment-user-nickname {
     display: flex;
     margin-right: 8px;
     width : 100%;
