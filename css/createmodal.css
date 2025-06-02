@@ -292,3 +292,9 @@
 .create-post-thumbnail-item-container:hover .delete-thumbnail-button {
     display: flex;
 }
+
+@media (max-width: 768px) { 
+    .create-post-button {
+        display : none;
+    }
+}
