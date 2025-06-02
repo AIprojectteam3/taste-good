@@ -190,23 +190,25 @@ function createCard(item, isPlaceholder = false) {
     overlay.appendChild(commentInput);
 
     commentInput.innerHTML = `
-        <div class="comment-input-container">
-            <input type="text" placeholder="댓글을 입력하세요..." class="comment-input">
-            <button class="comment-submit-btn">등록</button>
+        <div class = "iconDiv">
+            <img src = "../image/heart-icon.png" alt = "좋아요">
+            <img src = "../image/SpeechBubble-icon.png" alt = "댓글" class = "comment-icon" data-post-id = "${item.id}">
         </div>
-    `;
+        <input class = "comInput" id = "comInput" type = "text" placeholder = "댓글 입력" data-post-id = "${item.id}">
+        <input class = "comSubmit" type = "submit" value = "등록">
+    `
 
     // 카드 클릭 시 모달 열기
-    card.addEventListener('click', (e) => {
-        // 버튼 클릭 시에는 모달을 열지 않음
-        if (e.target.closest('.slide-nav') || e.target.closest('.comment-input-container')) {
-            return;
-        }
+    // card.addEventListener('click', (e) => {
+    //     // 버튼 클릭 시에는 모달을 열지 않음
+    //     if (e.target.closest('.slide-nav') || e.target.closest('.comment-input-container')) {
+    //         return;
+    //     }
         
-        if (!isPlaceholder && item.id) {
-            displayPostModal(item.id);
-        }
-    });
+    //     if (!isPlaceholder && item.id) {
+    //         displayPostModal(item.id);
+    //     }
+    // });
 
     return card;
 }

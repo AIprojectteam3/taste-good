@@ -41,6 +41,7 @@ async function displayPostModal(postId) {
         const userNicknameSpan = modalOverlay.querySelector('.post-user .user-nickname > span:first-child');
         const postTitleH3 = modalOverlay.querySelector('.post-title');
         const postContentDiv = modalOverlay.querySelector('.post-content');
+        const postContentSpan = modalOverlay.querySelector('.post-content-text');
         const postCommentDiv = modalOverlay.querySelector('.post-comment');
         const readMoreBtn = modalOverlay.querySelector('.read-more-btn');
         const prevButton = modalOverlay.querySelector('.slide-nav.prev');
@@ -208,29 +209,35 @@ async function displayPostModal(postId) {
 
         // 7. 게시물 제목 및 내용 설정
         postTitleH3.textContent = postDetail.title;
-        postContentDiv.textContent = postDetail.content;
+        postContentSpan.textContent = postDetail.content;
 
         // 더보기 버튼 처리
         setTimeout(() => {
             if (postContentDiv && readMoreBtn) {
-                if (postContentDiv.scrollHeight > postContentDiv.clientHeight) {
-                    // console.log("readMoreBtn: 표시 조건 충족 (내용 김)");
+                const postContentDivContainer = modalOverlay.querySelector('.post-content-div > div');
+                
+                // 실제 콘텐츠 높이와 컨테이너 높이 비교
+                const hasOverflow = postContentDiv.scrollHeight > postContentDiv.clientHeight;
+                
+                if (hasOverflow) {
                     readMoreBtn.style.display = 'block';
-                    readMoreBtn.onclick = () => {
-                        postContentDiv.classList.toggle('expanded');
-                        if (postContentDiv.classList.contains('expanded')) {
-                            readMoreBtn.textContent = '닫기';
-                        } else {
-                            readMoreBtn.textContent = '더보기';
-                            postContentDiv.scrollTop = 0;
-                        }
-                    };
                 } else {
                     readMoreBtn.style.display = 'none';
                 }
-            } else {
-                if (!postContentDiv) console.error(".post-content 요소를 찾을 수 없습니다.");
-                if (!readMoreBtn) console.error(".read-more-btn 요소를 찾을 수 없습니다.");
+
+                readMoreBtn.onclick = () => {
+                    postContentDivContainer.classList.toggle('expanded');
+                    postContentDiv.classList.toggle('expanded'); // post-content에도 클래스 추가
+                    
+                    if (postContentDivContainer.classList.contains('expanded')) {
+                        readMoreBtn.textContent = '닫기';
+                        // 스크롤을 맨 위로 이동
+                        postContentDivContainer.scrollTop = 0;
+                    } else {
+                        readMoreBtn.textContent = '더보기';
+                        postContentDivContainer.scrollTop = 0;
+                    }
+                };
             }
         }, 0);
 
@@ -292,6 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // [수정된 부분 시작] 화면 너비 확인하여 PC 환경에서만 모달 띄우기
                 const screenWidth = window.innerWidth;
                 const pcMinWidth = 768; // PC로 간주할 최소 너비 (예: 768px) - index.css의 미디어쿼리 기준과 맞춤
+                // console.log("현재 화면 너비:", screenWidth, "PC 최소 너비:", pcMinWidth);
 
                 if (screenWidth >= pcMinWidth) {
                     // console.log("게시물 카드 클릭됨 (PC 환경 - 모달 표시):", clickedCard);
@@ -302,7 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         console.warn(`클릭된 카드에서 'data-post-id' 속성을 찾을 수 없습니다.`);
                     }
                 } else {
-                    console.log("게시물 카드 클릭됨 (모바일 환경 - 모달 표시 안 함). screenWidth:", screenWidth);
+                    // console.log("게시물 카드 클릭됨 (모바일 환경 - 모달 표시 안 함). screenWidth:", screenWidth);
                     // 모바일 환경에서는 다른 동작을 하도록 설정할 수 있습니다.
                     // (예: alert('모바일에서는 상세 페이지로 이동합니다.'); 또는 특정 함수 호출)
                     // 현재는 아무 작업도 하지 않습니다.
