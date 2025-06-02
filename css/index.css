@@ -446,7 +446,8 @@ body {
         width: 100%;
     }
 
-    .comment-div {
+    .comment-user, .comment-div {
+        display : flex;
         width : 100%;
     }
     
