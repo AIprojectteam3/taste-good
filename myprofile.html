@@ -6,11 +6,13 @@
     <title>마이페이지</title>
     <link rel="stylesheet" href="css/menu.css">
     <link rel = "stylesheet" href = "css/myprofile.css">
+    <link rel = "stylesheet" href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel = "stylesheet" href = "css/postmodal.css">
     <link rel = "stylesheet" href = "css/createmodal.css">
 
-    <script src = "js/myprofile.js"></script>
     <script src = "js/postmodal.js"></script>
+    <script src = "js/createPostModal.js"></script>
+    <script src = "js/myprofile.js"></script>
     <script src = "js/Back/menu.js"></script>
     <script src = "js/Back/checkAuth.js"></script>
 
@@ -217,9 +219,11 @@
                     <div class = "post-content-div">
                         <div>
                             <h3 class = "post-title">여기에 게시물 타이틀 삽입</h3>
-                            <div class = "post-content">여기에 게시물 콘텐츠 삽입</div>
-                            <button class="read-more-btn" style="display:none;">더보기</button>
+                            <div class = "post-content">
+                                <span class = "post-content-text">여기에 게시물 콘텐츠 삽입</span>
+                            </div>
                         </div>
+                        <button class="read-more-btn" style="display:none;">더보기</button>
                     </div>
                     <div class = "post-comment">
                         <!-- 여기에 댓글 밑의 구조대로 삽입 -->
