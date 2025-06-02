@@ -295,29 +295,29 @@
     width : 65%;
 }
 
-.comment-right {
+#index-modal .comment-right {
     display : flex;
     width : 35%;
 }
 
-.comment-date {
+#index-modal .comment-date {
     color : #888;
     font-size : 0.8rem;
 }
 
-.comment-main {
+#index-modal .comment-main {
     padding : 10px;
     width : 87%;
 }
 
-.user-profile-img {
+#index-modal .user-profile-img {
     display : flex;
     justify-content : center;
     padding : 15px;
     width : 13%;
 }
 
-.user-profile-img img {
+#index-modal .user-profile-img img {
     width: 35px;
     height: 35px;
     border : 1px solid #ddd;

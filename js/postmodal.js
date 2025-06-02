@@ -278,6 +278,77 @@ async function displayPostModal(postId) {
             renderComments(postDetail.comments, postCommentDiv, postDetail.id);
         }
 
+        // --- 댓글 작성 기능 ---
+        const commentInputElement = modalOverlay.querySelector('.comment-input');
+        const commentSubmitButton = modalOverlay.querySelector('.comment-submit');
+
+        if (commentInputElement && commentSubmitButton) {
+            const handleCommentSubmit = async () => {
+                const commentText = commentInputElement.value.trim();
+                if (!commentText) {
+                    alert('댓글 내용을 입력해주세요.');
+                    return;
+                }
+
+                if (!postDetail || typeof postDetail.id === 'undefined') {
+                    console.error('댓글 작성 시 postDetail 또는 postDetail.id를 찾을 수 없습니다.');
+                    alert('게시물 정보를 찾을 수 없어 댓글을 등록할 수 없습니다.');
+                    return;
+                }
+                const currentPostId = postDetail.id;
+
+                try {
+                    const response = await fetch(`/api/post/${currentPostId}/comment`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ comment: commentText }),
+                    });
+                    const result = await response.json();
+
+                    if (result.success && result.comment) {
+                        commentInputElement.value = '';
+
+                        if (!postDetail.comments || !Array.isArray(postDetail.comments)) {
+                            console.warn(
+                                "postDetail.comments가 배열이 아니거나 undefined였습니다. 빈 배열로 초기화합니다.",
+                                "현재 postDetail.comments 상태:", postDetail.comments,
+                                "전체 postDetail 객체:", JSON.parse(JSON.stringify(postDetail))
+                            );
+                            postDetail.comments = [];
+                        }
+                        postDetail.comments.push(result.comment);
+                        renderComments(postDetail.comments, postCommentDiv, currentPostId);
+                        postCommentDiv.scrollTop = postCommentDiv.scrollHeight;
+                    } else {
+                        alert(result.message || '댓글 등록에 실패했습니다.');
+                    }
+                } catch (error) {
+                    console.error('댓글 등록 중 오류:', error);
+                    alert('댓글 등록 중 오류가 발생했습니다.');
+                }
+            };
+
+            commentSubmitButton.onclick = handleCommentSubmit;
+
+            const enterKeyListener = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    commentSubmitButton.click();
+                }
+            };
+
+            if (commentInputElement._enterKeyListener) {
+                commentInputElement.removeEventListener('keydown', commentInputElement._enterKeyListener);
+            }
+            commentInputElement.addEventListener('keydown', enterKeyListener);
+            commentInputElement._enterKeyListener = enterKeyListener;
+
+        } else {
+            console.warn("댓글 입력 필드(.comment-input) 또는 등록 버튼(.comment-submit)을 모달에서 찾을 수 없습니다.");
+        }
+
         // 10. 모달 표시
         modalOverlay.style.display = 'flex';
 
