@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 슬라이더 뷰 업데이트 (메인 슬라이드 및 썸네일)
     function updateCreatePostSliderView() {
+        console.log('updateCreatePostSliderView 호출됨');
+        console.log('uploadedFilesForCreatePost:', uploadedFilesForCreatePost);
+        console.log('currentCreatePostSlideIndex:', currentCreatePostSlideIndex);
         createPostSliderMain.innerHTML = ''; // 메인 슬라이드 영역 초기화
         createPostThumbnails.innerHTML = ''; // 썸네일 영역 초기화
 
@@ -491,6 +494,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 기존 데이터로 폼 채우기
         createPostTitleInput.value = postDetail.title;
         createPostContentInput.value = postDetail.content;
+
+        uploadedFilesForCreatePost = [];
+        currentCreatePostSlideIndex = 0;
         
         // 기존 이미지 표시
         if (postDetail.images && postDetail.images.length > 0) {
@@ -500,14 +506,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 blobUrl: imagePath,
                 isExisting: true // 기존 이미지임을 표시
             }));
-            
-            // 슬라이더 뷰 업데이트
-            updateCreatePostSliderView();
+            currentCreatePostSlideIndex = 0;
         } else {
             // 이미지가 없는 경우 배열 초기화
             uploadedFilesForCreatePost = [];
-            updateCreatePostSliderView();
+            currentCreatePostSlideIndex = 0;
         }
+            
+        // 슬라이더 뷰 업데이트
+        updateCreatePostSliderView();
         
         // 버튼 텍스트 변경
         submitCreatePostBtn.textContent = '수정완료';
