@@ -37,8 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const profileImgPath = comment.author_profile_path || 'image/profile-icon.png'; // 기본 프로필 이미지
                     let commentTextHtml = comment.comment.replace(/\n/g, '<br>'); // 줄바꿈 처리
 
-                    // 요청하신 HTML 구조에 따라 내부 요소를 구성합니다.
-                    // 'clsss'를 'class'로 수정하여 적용했습니다.
                     commentWrapperDiv.innerHTML = `
                         <div class = "comment-div">
                             <div class="comment-profile-img">

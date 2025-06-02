@@ -282,7 +282,7 @@
     flex-shrink: 0; /* 버튼 크기 고정 */
 }
 
-.comment-user {
+#index-modal .comment-user {
     display: flex;
     align-items: center;
     justify-content : flex-start;
@@ -290,7 +290,7 @@
     width: 100%;
 }
 
-.comment-div {
+#index-modal .comment-div {
     display : flex;
     width : 65%;
 }
