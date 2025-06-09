@@ -1,0 +1,331 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f8f9fa;
+    height: 100vh;
+    overflow-x: hidden;
+}
+
+.mobile-create-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: white;
+}
+
+/* 메인 콘텐츠 */
+.mobile-create-main {
+    flex: 1;
+    margin-top: 60px; /* 상단 네비게이션 높이만큼 여백 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 이미지 섹션 */
+.image-section {
+    background-color: white;
+    border-bottom: 8px solid #f8f9fa;
+}
+
+.image-slider-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    background-color: #000;
+}
+
+.main-image-area {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.mobile-slide {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.mobile-slide.active {
+    display: flex;
+}
+
+.mobile-slide img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.mobile-add-slide {
+    flex-direction: column;
+    cursor: pointer;
+    color: white;
+    background-color: #1a1a1a;
+}
+
+.mobile-add-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 80%;
+    height: 80%;
+    border: 3px dashed #666;
+    border-radius: 12px;
+}
+
+.mobile-add-icon {
+    width: 60px;
+    height: 60px;
+    background-color: #333;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.mobile-add-icon i {
+    font-size: 24px;
+    color: white;
+}
+
+.mobile-add-text {
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+/* 슬라이드 네비게이션 */
+.slide-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 10;
+    transition: background-color 0.2s;
+}
+
+.slide-nav.prev {
+    left: 12px;
+}
+
+.slide-nav.next {
+    right: 12px;
+}
+
+.slide-nav:active {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.slide-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* 슬라이드 인디케이터 */
+.slide-indicators {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+}
+
+.indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.indicator-dot.active {
+    background-color: white;
+}
+
+/* 썸네일 영역 */
+.thumbnails-area {
+    display: flex;
+    padding: 12px 16px;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.thumbnails-area::-webkit-scrollbar {
+    display: none;
+}
+
+.thumbnail-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.thumbnail-item {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.thumbnail-item.active {
+    border-color: #FF6B6B;
+}
+
+.thumbnail-add-btn {
+    width: 60px;
+    height: 60px;
+    background-color: #f8f9fa;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.thumbnail-add-btn i {
+    font-size: 20px;
+    color: #666;
+}
+
+.delete-thumbnail-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    background-color: #ff4444;
+    border: 2px solid white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    color: white;
+}
+
+/* 텍스트 섹션 */
+.text-section {
+    padding: 20px 16px;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-group input,
+.input-group textarea {
+    width: 100%;
+    padding: 16px;
+    border: 1px solid #e1e5e9;
+    border-radius: 12px;
+    font-size: 1rem;
+    background-color: #f8f9fa;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.input-group input:focus,
+.input-group textarea:focus {
+    border-color: #FF6B6B;
+    background-color: white;
+}
+
+.input-group textarea {
+    min-height: 120px;
+    line-height: 1.5;
+}
+
+.char-count {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-size: 0.8rem;
+    color: #666;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* 드래그 앤 드롭 스타일 */
+.thumbnail-container.dragging {
+    opacity: 0.5;
+}
+
+.thumbnail-container.drag-over {
+    transform: scale(1.1);
+}
+
+/* 반응형 조정 */
+@media (max-height: 600px) {
+    .image-slider-container {
+        height: 200px;
+    }
+}
+
+@media (min-width: 768px) {
+    .mobile-create-container {
+        max-width: 500px;
+        margin: 0 auto;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* 플로팅 액션 버튼 */
+.submit-floating-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background-color: #FF6B6B;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.submit-floating-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.submit-floating-btn:not(:disabled):active {
+    background-color: #e05252;
+    transform: scale(0.95);
+}

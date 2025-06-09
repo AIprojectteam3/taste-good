@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시물 작성 - 맛잘알연구소</title>
+    <link rel = "stylesheet" href = "css/create-post-mobile.css">
+    <link rel = "stylesheet" href = "css/menu.css">
+    <link rel = "stylesheet" href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script src = "js/index_mobile/create-post-mobile.js"></script>
+</head>
+<body>
+    <div class="mobile-create-container">
+        <nav class="bottom-nav">
+            <div class = "hamburger-menu">
+                <img src = "image/menu-icon.png" alt = "메뉴 아이콘">
+            </div>
+            <div class = "site-title">맛잘알연구소</div>
+        </nav>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="mobile-create-main">
+            <!-- 이미지 섹션 -->
+            <section class="image-section">
+                <input type="file" id="mobileImageUpload" accept="image/*" multiple style="display: none;">
+                
+                <div class="image-slider-container">
+                    <div class="main-image-area" id="mobileSliderMain">
+                        <!-- 이미지 슬라이드가 여기에 동적으로 삽입 -->
+                    </div>
+                    
+                    <!-- 슬라이드 네비게이션 -->
+                    <button class="slide-nav prev" id="mobileNavPrev" style="display: none;">‹</button>
+                    <button class="slide-nav next" id="mobileNavNext" style="display: none;">›</button>
+                    
+                    <!-- 슬라이드 인디케이터 -->
+                    <div class="slide-indicators" id="mobileSlideIndicators"></div>
+                </div>
+
+                <!-- 썸네일 영역 -->
+                <div class="thumbnails-area" id="mobileThumbnails">
+                    <!-- 썸네일이 여기에 동적으로 삽입 -->
+                </div>
+            </section>
+
+            <!-- 텍스트 입력 섹션 -->
+            <section class="text-section">
+                <div class="input-group">
+                    <input type="text" id="mobilePostTitle" placeholder="제목을 입력하세요" maxlength="100">
+                    <div class="char-count">
+                        <span id="titleCharCount">0</span>/100
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <textarea id="mobilePostContent" placeholder="내용을 입력하세요" maxlength="2000"></textarea>
+                    <div class="char-count">
+                        <span id="contentCharCount">0</span>/2000
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
