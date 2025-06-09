@@ -204,7 +204,15 @@ body {
         align-items : center;
         justify-content : center;
         margin : 10px;
-        font-size : 2rem;
+    }
+
+    .hamburger-menu > img {
+        display : flex;
+        align-items : center;
+        justify-content : center;
+        width : 30px;
+        height : 30px;
+        cursor: pointer;
     }
 
     .site-title {
