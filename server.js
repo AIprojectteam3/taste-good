@@ -1088,6 +1088,119 @@ app.get('/api/post/:postId/comments', (req, res) => {
         res.json(comments);
     });
 });
+
+// ==================================================================================================================
+// 댓글 수정 API
+// ==================================================================================================================
+app.put('/api/comment/:commentId', (req, res) => {
+    const commentId = req.params.commentId;
+    const userId = req.session.userId;
+    const { comment } = req.body;
+
+    console.log('댓글 수정 요청:', { commentId, userId, comment }); // 디버깅용
+
+    // 로그인 확인
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '댓글을 수정하려면 로그인이 필요합니다.' });
+    }
+
+    // 댓글 내용 확인
+    if (!comment || comment.trim() === '') {
+        return res.status(400).json({ success: false, message: '댓글 내용을 입력해주세요.' });
+    }
+
+    // 댓글 ID 확인
+    if (!commentId || isNaN(parseInt(commentId))) {
+        return res.status(400).json({ success: false, message: '유효한 댓글 ID가 필요합니다.' });
+    }
+
+    // 1. 댓글 작성자 확인
+    const checkOwnerQuery = 'SELECT user_id FROM comments WHERE id = ?';
+    db.query(checkOwnerQuery, [commentId], (ownerErr, ownerResults) => {
+        if (ownerErr) {
+            console.error('댓글 작성자 확인 중 DB 오류:', ownerErr);
+            return res.status(500).json({ success: false, message: '댓글 정보 확인 중 오류가 발생했습니다.' });
+        }
+
+        if (ownerResults.length === 0) {
+            return res.status(404).json({ success: false, message: '수정할 댓글을 찾을 수 없습니다.' });
+        }
+
+        if (ownerResults[0].user_id !== userId) {
+            return res.status(403).json({ success: false, message: '자신이 작성한 댓글만 수정할 수 있습니다.' });
+        }
+
+        // 2. 댓글 수정
+        const updateCommentQuery = 'UPDATE comments SET comment = ?, updated_at = NOW() WHERE id = ?';
+        db.query(updateCommentQuery, [comment, commentId], (updateErr, updateResult) => {
+            if (updateErr) {
+                console.error('댓글 수정 중 DB 오류:', updateErr);
+                return res.status(500).json({ success: false, message: '댓글 수정 중 서버 오류가 발생했습니다.' });
+            }
+
+            if (updateResult.affectedRows > 0) {
+                console.log(`댓글 ${commentId} 수정 성공`);
+                res.json({ success: true, message: '댓글이 성공적으로 수정되었습니다.' });
+            } else {
+                res.status(404).json({ success: false, message: '수정할 댓글을 찾을 수 없거나 이미 삭제되었습니다.' });
+            }
+        });
+    });
+});
+
+// ==================================================================================================================
+// 댓글 삭제 API
+// ==================================================================================================================
+app.delete('/api/comment/:commentId', (req, res) => {
+    const commentId = req.params.commentId;
+    const userId = req.session.userId;
+
+    console.log('댓글 삭제 요청:', { commentId, userId }); // 디버깅용
+
+    // 로그인 확인
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '댓글을 삭제하려면 로그인이 필요합니다.' });
+    }
+
+    // 댓글 ID 확인
+    if (!commentId || isNaN(parseInt(commentId))) {
+        return res.status(400).json({ success: false, message: '유효한 댓글 ID가 필요합니다.' });
+    }
+
+    // 1. 댓글 작성자 확인
+    const checkOwnerQuery = 'SELECT user_id FROM comments WHERE id = ?';
+    db.query(checkOwnerQuery, [commentId], (ownerErr, ownerResults) => {
+        if (ownerErr) {
+            console.error('댓글 작성자 확인 중 DB 오류:', ownerErr);
+            return res.status(500).json({ success: false, message: '댓글 정보 확인 중 오류가 발생했습니다.' });
+        }
+
+        if (ownerResults.length === 0) {
+            return res.status(404).json({ success: false, message: '삭제할 댓글을 찾을 수 없습니다.' });
+        }
+
+        if (ownerResults[0].user_id !== userId) {
+            return res.status(403).json({ success: false, message: '자신이 작성한 댓글만 삭제할 수 있습니다.' });
+        }
+
+        // 2. 댓글 삭제
+        const deleteCommentQuery = 'DELETE FROM comments WHERE id = ?';
+        db.query(deleteCommentQuery, [commentId], (deleteErr, deleteResult) => {
+            if (deleteErr) {
+                console.error('댓글 삭제 중 DB 오류:', deleteErr);
+                return res.status(500).json({ success: false, message: '댓글 삭제 중 서버 오류가 발생했습니다.' });
+            }
+
+            if (deleteResult.affectedRows > 0) {
+                console.log(`댓글 ${commentId} 삭제 성공`);
+                res.json({ success: true, message: '댓글이 성공적으로 삭제되었습니다.' });
+            } else {
+                res.status(404).json({ success: false, message: '삭제할 댓글을 찾을 수 없거나 이미 삭제되었습니다.' });
+            }
+        });
+    });
+});
+
 // ==================================================================================================================
 // 프로필 수정 API
 // ==================================================================================================================
