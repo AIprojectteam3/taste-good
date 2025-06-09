@@ -295,6 +295,7 @@
 
 @media (max-width: 768px) { 
     .create-post-button {
-        display : none;
+        bottom : 10px;
+        right : 10px;
     }
 }
