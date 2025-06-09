@@ -1,3 +1,7 @@
+function isMobile() {
+    return window.matchMedia("(max-width: 768px)").matches;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // --- 게시물 작성 모달 관련 변수 ---
     const openCreatePostModalBtn = document.getElementById('openPostModalBtn');
@@ -322,35 +326,36 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCreatePostSliderView();
     }
 
-    // 모달 열기/닫기 로직
-    if (openCreatePostModalBtn) {
-        openCreatePostModalBtn.addEventListener('click', async function() {
+    if (!isMobile())
+        // 모달 열기/닫기 로직
+        if (openCreatePostModalBtn) {
+            openCreatePostModalBtn.addEventListener('click', async function() {
 
-            // 로그인 상태 확인
-            const isLoggedIn = await checkLoginStatus();
+                // 로그인 상태 확인
+                const isLoggedIn = await checkLoginStatus();
 
-            if (!isLoggedIn) {
-                alert('로그인해야만 글 작성이 가능합니다.');
-                window.location.href = '/';
-                return; // 함수 실행 중단
-            }
-
-            openCreatePostModalBtn.classList.toggle('active');
-            if (openCreatePostModalBtn.classList.contains('active')) {
-                if (createPostModal) {
-                    createPostModal.style.display = 'flex';
-                    resetCreatePostModal(); // 모달 열 때마다 초기화
+                if (!isLoggedIn) {
+                    alert('로그인해야만 글 작성이 가능합니다.');
+                    window.location.href = '/';
+                    return; // 함수 실행 중단
                 }
-            } else {
-                if (createPostModal) {
-                    createPostModal.style.display = 'none';
-                    // 모달이 닫힐 때도 Blob URL 해제가 필요하면 여기에 추가
-                    // 하지만 resetCreatePostModal에서 이미 처리하므로, 여기서는 중복될 수 있음
-                    // 만약 resetCreatePostModal 호출 없이 닫는 경우가 있다면 필요
+
+                openCreatePostModalBtn.classList.toggle('active');
+                if (openCreatePostModalBtn.classList.contains('active')) {
+                    if (createPostModal) {
+                        createPostModal.style.display = 'flex';
+                        resetCreatePostModal(); // 모달 열 때마다 초기화
+                    }
+                } else {
+                    if (createPostModal) {
+                        createPostModal.style.display = 'none';
+                        // 모달이 닫힐 때도 Blob URL 해제가 필요하면 여기에 추가
+                        // 하지만 resetCreatePostModal에서 이미 처리하므로, 여기서는 중복될 수 있음
+                        // 만약 resetCreatePostModal 호출 없이 닫는 경우가 있다면 필요
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
 
     const createPostThumbnailsContainer = document.querySelector('.create-post-thumbnails-container');
     if (createPostThumbnailsContainer) {

@@ -202,7 +202,6 @@ function createCard(item, isPlaceholder = false) {
             <img src = "../image/SpeechBubble-icon.png" alt = "댓글" class = "comment-icon" data-post-id = "${item.id}">
         </div>
         <input class = "comInput" name = "commentM" type = "text" placeholder = "댓글 입력" data-post-id = "${item.id}">
-        <input class = "comSubmit" type = "submit" value = "등록">
     `;
 
     return card;
