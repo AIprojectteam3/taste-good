@@ -22,9 +22,9 @@ app.use(express.urlencoded({ extended: true })); // 폼 데이터 처리를 위�
 // MySQL 연결 설정
 const db = mysql.createConnection({
     host: 'localhost',            // MySQL 서버 주소
-    port: 3306,                   // MySQL 포트 번호
+    port: 8306,                   // MySQL 포트 번호
     user: 'root',                 // MySQL 사용자 이름
-    password: '',                 // MySQL 비밀번호
+    password: '0000',                 // MySQL 비밀번호
     database: 'taste_good',       // 사용할 데이터베이스 이름
 });
 
