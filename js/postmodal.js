@@ -249,28 +249,203 @@ async function displayPostModal(postId) {
                 commentsData.forEach(comment => {
                     const commentUserDiv = document.createElement('div');
                     commentUserDiv.classList.add('comment-user');
+                    commentUserDiv.setAttribute('data-comment-id', comment.id);
                     const profileImgPath = comment.author_profile_path || 'image/profile-icon.png';
                     let commentTextHtml = comment.comment.replace(/\n/g, '<br>');
                     
+                    // 댓글 작성자가 현재 로그인한 사용자인지 확인
+                    const isCommentOwner = currentUserId && parseInt(currentUserId) === comment.user_id;
+                    
                     commentUserDiv.innerHTML = `
-                        <div class = "comment-div">
+                        <div class="comment-div">
                             <div class="user-profile-img">
                                 <img src="${profileImgPath}" alt="${comment.author_username} 프로필">
                             </div>
                             <div class="comment-main">
                                 <span class="comment-user-nickname">${comment.author_username}</span>
-                                <p class="comment-content">${commentTextHtml}</p> <!-- CSS 클래스명 일치 확인 -->
+                                <p class="comment-content">${commentTextHtml}</p>
                             </div>
                         </div>
-                        <div class = "comment-right">
+                        <div class="comment-right">
                             <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
+                            ${isCommentOwner ? `
+                                <div class="comment-actions">
+                                    <button class="edit-comment-btn" data-comment-id="${comment.id}">
+                                        <img class = "edit-comment-btn-img" src = "image/postedit-icon.png" alt="수정">
+                                    </button>
+                                    <button class="delete-comment-btn" data-comment-id="${comment.id}">
+                                        <img class = "delete-comment-btn-img" src = "image/recycle-icon.png" alt="삭제">
+                                    </button>
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                     commentContainerDiv.appendChild(commentUserDiv);
                 });
+
+                // 댓글 수정/삭제 버튼 이벤트 리스너 추가
+                setupCommentActions(commentContainerDiv, currentPostId);
             } else {
                 commentContainerDiv.innerHTML = '<p>댓글이 없습니다.</p>';
             }
+        }
+
+        // 댓글 수정/삭제 기능 설정
+        function setupCommentActions(container, postId) {
+            // 기존 이벤트 리스너 제거
+            const existingHandler = container._commentActionHandler;
+            if (existingHandler) {
+                container.removeEventListener('click', existingHandler);
+            }
+            
+            // 새로운 이벤트 핸들러 함수 생성
+            const commentActionHandler = async (e) => {
+                // 수정 버튼 이벤트
+                if (e.target.classList.contains('edit-comment-btn') || e.target.classList.contains('edit-comment-btn-img')) {
+                    // 댓글 ID 가져오기 - 이미지를 클릭한 경우 부모 버튼에서 가져오기
+                    let commentId;
+                    if (e.target.classList.contains('edit-comment-btn-img')) {
+                        // 이미지를 클릭한 경우, 부모 버튼에서 data-comment-id 가져오기
+                        commentId = e.target.closest('.edit-comment-btn').getAttribute('data-comment-id');
+                    } else {
+                        // 버튼을 직접 클릭한 경우
+                        commentId = e.target.getAttribute('data-comment-id');
+                    }
+                    
+                    console.log('수정할 댓글 ID:', commentId); // 디버깅용
+                    
+                    if (!commentId) {
+                        alert('댓글 ID를 찾을 수 없습니다.');
+                        return;
+                    }
+                    
+                    const commentElement = e.target.closest('.comment-user');
+                    const commentContentElement = commentElement.querySelector('.comment-content');
+                    const currentText = commentContentElement.textContent;
+
+                    // 수정 모드로 전환
+                    const editContainer = document.createElement('div');
+                    editContainer.classList.add('comment-edit-container');
+                    editContainer.innerHTML = `
+                        <textarea class="comment-edit-input" rows="3">${currentText}</textarea>
+                        <div class="comment-edit-actions">
+                            <button class="save-comment-btn" data-comment-id="${commentId}">저장</button>
+                            <button class="cancel-comment-edit-btn">취소</button>
+                        </div>
+                    `;
+
+                    // 기존 댓글 내용을 숨기고 수정 폼 표시
+                    commentContentElement.style.display = 'none';
+                    commentContentElement.parentNode.appendChild(editContainer);
+                    
+                    // 수정/삭제 버튼 숨기기
+                    const editBtn = commentElement.querySelector('.edit-comment-btn');
+                    const deleteBtn = commentElement.querySelector('.delete-comment-btn');
+                    if (editBtn) editBtn.style.display = 'none';
+                    if (deleteBtn) deleteBtn.style.display = 'none';
+
+                    // 저장 버튼 이벤트
+                    editContainer.querySelector('.save-comment-btn').addEventListener('click', async () => {
+                        const newText = editContainer.querySelector('.comment-edit-input').value.trim();
+                        if (!newText) {
+                            alert('댓글 내용을 입력해주세요.');
+                            return;
+                        }
+
+                        try {
+                            console.log('수정 요청 URL:', `/api/comment/${commentId}`); // 디버깅용
+                            const response = await fetch(`/api/comment/${commentId}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ comment: newText }),
+                            });
+                            const result = await response.json();
+
+                            if (result.success) {
+                                // 댓글 내용 업데이트
+                                commentContentElement.innerHTML = newText.replace(/\n/g, '<br>');
+                                commentContentElement.style.display = 'block';
+                                editContainer.remove();
+                                
+                                // 수정/삭제 버튼 다시 표시
+                                if (editBtn) editBtn.style.display = 'inline-block';
+                                if (deleteBtn) deleteBtn.style.display = 'inline-block';
+                            } else {
+                                alert(result.message || '댓글 수정에 실패했습니다.');
+                            }
+                        } catch (error) {
+                            console.error('댓글 수정 중 오류:', error);
+                            alert('댓글 수정 중 오류가 발생했습니다.');
+                        }
+                    });
+
+                    // 취소 버튼 이벤트
+                    editContainer.querySelector('.cancel-comment-edit-btn').addEventListener('click', () => {
+                        commentContentElement.style.display = 'block';
+                        editContainer.remove();
+                        
+                        // 수정/삭제 버튼 다시 표시
+                        if (editBtn) editBtn.style.display = 'inline-block';
+                        if (deleteBtn) deleteBtn.style.display = 'inline-block';
+                    });
+                }
+
+                // 댓글 삭제 버튼 이벤트
+                if (e.target.classList.contains('delete-comment-btn') || e.target.classList.contains('delete-comment-btn-img')) {
+                    // 댓글 ID 가져오기 - 이미지를 클릭한 경우 부모 버튼에서 가져오기
+                    let commentId;
+                    if (e.target.classList.contains('delete-comment-btn-img')) {
+                        // 이미지를 클릭한 경우, 부모 버튼에서 data-comment-id 가져오기
+                        commentId = e.target.closest('.delete-comment-btn').getAttribute('data-comment-id');
+                    } else {
+                        // 버튼을 직접 클릭한 경우
+                        commentId = e.target.getAttribute('data-comment-id');
+                    }
+                    
+                    console.log('삭제할 댓글 ID:', commentId); // 디버깅용
+                    
+                    if (!commentId) {
+                        alert('댓글 ID를 찾을 수 없습니다.');
+                        return;
+                    }
+                    
+                    if (confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
+                        try {
+                            console.log('삭제 요청 URL:', `/api/comment/${commentId}`); // 디버깅용
+                            const response = await fetch(`/api/comment/${commentId}`, {
+                                method: 'DELETE'
+                            });
+                            const result = await response.json();
+
+                            if (result.success) {
+                                // 댓글 요소 제거
+                                const commentElement = e.target.closest('.comment-user');
+                                commentElement.remove();
+                                
+                                // postDetail.comments 배열에서도 제거
+                                if (postDetail.comments) {
+                                    postDetail.comments = postDetail.comments.filter(comment => comment.id !== parseInt(commentId));
+                                }
+
+                                alert(result.message || '댓글을 삭제했습니다.');
+                            } else {
+                                alert(result.message || '댓글 삭제에 실패했습니다.');
+                            }
+                        } catch (error) {
+                            console.error('댓글 삭제 중 오류:', error);
+                            alert('댓글 삭제 중 오류가 발생했습니다.');
+                        }
+                    }
+                }
+            };
+            
+            // 새로운 이벤트 리스너 등록
+            container.addEventListener('click', commentActionHandler);
+            
+            // 나중에 제거할 수 있도록 핸들러 참조 저장
+            container._commentActionHandler = commentActionHandler;
         }
 
         // 9. 댓글 렌더링
@@ -357,7 +532,6 @@ async function displayPostModal(postId) {
         alert('게시물을 불러오는 중 오류가 발생했습니다.');
     }
 }
-
 
 document.addEventListener("DOMContentLoaded", () => {
     // 이벤트 위임(Event Delegation)을 사용하여 게시물 카드 클릭 처리
