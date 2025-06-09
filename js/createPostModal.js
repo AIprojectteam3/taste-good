@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCreatePostSliderView();
     }
 
-    if (!isMobile())
+    if (!isMobile()) {
         // 모달 열기/닫기 로직
         if (openCreatePostModalBtn) {
             openCreatePostModalBtn.addEventListener('click', async function() {
@@ -355,7 +355,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
+        } else {
+            if (openCreatePostModalBtn) {
+                openCreatePostModalBtn.addEventListener('click', async function() {
+                    
+                    // 로그인 상태 확인
+                    const isLoggedIn = await checkLoginStatus();
+
+                    if (!isLoggedIn) {
+                        alert('로그인해야만 글 작성이 가능합니다.');
+                        window.location.href = '/';
+                        return; // 함수 실행 중단
+                    }
+
+                    // 모바일용 페이지로 이동
+                    window.location.href = '/createPost_mobile.html';
+                });
+            }
         }
+    }
 
     const createPostThumbnailsContainer = document.querySelector('.create-post-thumbnails-container');
     if (createPostThumbnailsContainer) {
