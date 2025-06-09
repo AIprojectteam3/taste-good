@@ -355,12 +355,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
-        } else {
+        } 
+    } else {
             if (openCreatePostModalBtn) {
                 openCreatePostModalBtn.addEventListener('click', async function() {
+                    console.log('버튼 클릭됨'); // 클릭 확인
                     
                     // 로그인 상태 확인
                     const isLoggedIn = await checkLoginStatus();
+                    console.log('로그인 상태:', isLoggedIn); // 로그인 상태 확인
 
                     if (!isLoggedIn) {
                         alert('로그인해야만 글 작성이 가능합니다.');
@@ -368,12 +371,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         return; // 함수 실행 중단
                     }
 
+                    console.log('페이지 이동 시도'); // 이동 시도 확인
                     // 모바일용 페이지로 이동
                     window.location.href = '/createPost_mobile.html';
                 });
             }
         }
-    }
 
     const createPostThumbnailsContainer = document.querySelector('.create-post-thumbnails-container');
     if (createPostThumbnailsContainer) {

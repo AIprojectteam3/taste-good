@@ -171,6 +171,10 @@ body {
     height : 20px;
 }
 
+.bottom-nav {
+    display: none;
+}
+
 /* 모바일 화면에서 main-menu 숨기기 */
 @media (max-width: 768px) {
     .main-menu {
