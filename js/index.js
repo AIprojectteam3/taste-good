@@ -127,14 +127,30 @@ function createCard(item, isPlaceholder = false) {
         nicknameSpan.textContent = '사용자';
     }
 
-    const menuBtn = document.createElement('a');
-    menuBtn.className = 'post-menu-btn';
-    menuBtn.type = 'a';
-    menuBtn.innerText = '⋯';
-
     postUserDiv.appendChild(profileImg);
     postUserDiv.appendChild(nicknameSpan);
-    postUserDiv.appendChild(menuBtn);
+
+    // 모바일에서만 수정/삭제 버튼 추가
+    if (isMobile() && !isPlaceholder) {
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'post-action-buttons';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'post-edit-btn';
+        editBtn.textContent = '수정';
+        editBtn.setAttribute('data-post-id', item.id);
+        editBtn.setAttribute('data-author-id', item.user_id);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'post-delete-btn';
+        deleteBtn.textContent = '삭제';
+        deleteBtn.setAttribute('data-post-id', item.id);
+        deleteBtn.setAttribute('data-author-id', item.user_id);
+
+        buttonContainer.appendChild(editBtn);
+        buttonContainer.appendChild(deleteBtn);
+        postUserDiv.appendChild(buttonContainer);
+    }
 
     card.appendChild(postUserDiv);
 
@@ -192,6 +208,114 @@ function createCard(item, isPlaceholder = false) {
     return card;
 }
 
+// =======================================================================================================
+// 게시물 수정 함수
+// =======================================================================================================
+async function editPost(postId) {
+    try {
+        // 게시물 정보 가져오기
+        const response = await fetch(`/api/post/${postId}`);
+        if (!response.ok) {
+            throw new Error('게시물 정보를 가져올 수 없습니다.');
+        }
+        
+        const post = await response.json();
+        
+        // 수정 폼 표시 (간단한 prompt 사용, 추후 모달로 개선 가능)
+        const newTitle = prompt('제목을 수정하세요:', post.title);
+        if (newTitle === null) return; // 취소
+        
+        const newContent = prompt('내용을 수정하세요:', post.content);
+        if (newContent === null) return; // 취소
+        
+        if (!newTitle.trim() || !newContent.trim()) {
+            alert('제목과 내용을 모두 입력해주세요.');
+            return;
+        }
+
+        // 수정 요청
+        const updateResponse = await fetch(`/api/post/${postId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: newTitle.trim(),
+                content: newContent.trim(),
+                existingImages: post.images || []
+            })
+        });
+
+        const result = await updateResponse.json();
+        
+        if (result.success) {
+            alert('게시물이 수정되었습니다.');
+            // 페이지 새로고침하여 변경사항 반영
+            location.reload();
+        } else {
+            alert(result.message || '게시물 수정에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('게시물 수정 중 오류:', error);
+        alert('게시물 수정 중 오류가 발생했습니다.');
+    }
+}
+
+// =======================================================================================================
+// 게시물 삭제 함수
+// =======================================================================================================
+async function deletePost(postId) {
+    try {
+        const deleteConfirm = confirm('정말로 이 게시물을 삭제하시겠습니까?');
+        if (!deleteConfirm) return;
+
+        const response = await fetch(`/api/post/${postId}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('게시물이 삭제되었습니다.');
+            // 페이지 새로고침하여 변경사항 반영
+            location.reload();
+        } else {
+            alert(result.message || '게시물 삭제에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('게시물 삭제 중 오류:', error);
+        alert('게시물 삭제 중 오류가 발생했습니다.');
+    }
+}
+
+// =======================================================================================================
+// 권한 확인 함수
+// =======================================================================================================
+async function checkPostPermission(authorId, action) {
+    try {
+        // 현재 로그인한 사용자 정보 가져오기
+        const userResponse = await fetch('/api/user');
+        const currentUser = await userResponse.json();
+        
+        if (!currentUser) {
+            alert('로그인이 필요합니다.');
+            return false;
+        }
+
+        // 작성자 본인인지 확인
+        if (currentUser.id !== authorId) {
+            alert(`본인이 작성한 게시물만 ${action}할 수 있습니다.`);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('권한 확인 중 오류:', error);
+        alert('권한 확인 중 오류가 발생했습니다.');
+        return false;
+    }
+}
+
 function setupMobileCardSliderAndReadMore() {
     if (!isMobile()) {
         document.querySelectorAll('.card .read-more-btn').forEach(btn => {
@@ -207,8 +331,9 @@ function setupMobileCardSliderAndReadMore() {
     const cardContainer = document.querySelector('.content');
     if (!cardContainer) return;
 
-    // 이벤트 위임으로 더보기 버튼 처리
+    // 이벤트 위임으로 버튼 처리
     cardContainer.addEventListener('click', function(event) {
+        // 더보기 버튼 처리
         if (event.target.classList.contains('read-more-btn')) {
             const btn = event.target;
             const contentDiv = btn.closest('.card-center-box')?.querySelector('.card-center-content');
@@ -221,6 +346,37 @@ function setupMobileCardSliderAndReadMore() {
             }
         }
 
+        // 수정 버튼 처리
+        if (event.target.classList.contains('post-edit-btn')) {
+            event.stopPropagation();
+            const postId = event.target.getAttribute('data-post-id');
+            const authorId = parseInt(event.target.getAttribute('data-author-id'));
+            
+            if (postId && authorId) {
+                checkPostPermission(authorId, '수정').then(hasPermission => {
+                    if (hasPermission) {
+                        editPost(postId);
+                    }
+                });
+            }
+        }
+
+        // 삭제 버튼 처리
+        if (event.target.classList.contains('post-delete-btn')) {
+            event.stopPropagation();
+            const postId = event.target.getAttribute('data-post-id');
+            const authorId = parseInt(event.target.getAttribute('data-author-id'));
+            
+            if (postId && authorId) {
+                checkPostPermission(authorId, '삭제').then(hasPermission => {
+                    if (hasPermission) {
+                        deletePost(postId);
+                    }
+                });
+            }
+        }
+
+        // 슬라이드 네비게이션 처리
         if (event.target.classList.contains('slide-nav')) {
             event.stopPropagation();
             const navBtn = event.target;
