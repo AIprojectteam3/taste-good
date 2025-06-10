@@ -16,6 +16,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const titleCharCount = document.getElementById('titleCharCount');
     const contentCharCount = document.getElementById('contentCharCount');
 
+    // 뒤로가기 버튼
+    const backButton = document.createElement('button');
+    backButton.className = 'back-button';
+    backButton.innerHTML = '<i class="fas fa-arrow-left"></i>';
+    backButton.addEventListener('click', goBack);
+    document.body.appendChild(backButton);
+
     // 플로팅 액션 버튼 생성
     const submitBtn = document.createElement('button');
     submitBtn.className = 'submit-floating-btn';

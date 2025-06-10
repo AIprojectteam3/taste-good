@@ -205,8 +205,9 @@ body {
 
     /* 햄버거 메뉴 버튼 스타일 개선 */
     .hamburger-menu {
-        cursor: pointer;
+        margin-left : 5px;
         padding: 0.5rem;
+        cursor: pointer;
         border-radius: 4px;
         transition: background-color 0.3s ease;
     }
