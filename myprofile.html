@@ -244,7 +244,7 @@
                         </a>
                     </div>
                     <div class = "commentInputPC">
-                        <input type="text" class="comment-input" placeholder="댓글을 입력하세요">
+                        <input type="text" class="comment-input" name = "commentInputPC" placeholder="댓글을 입력하세요">
                         <button class="comment-submit">등록</button>
                     </div>
                 </div>
@@ -323,22 +323,22 @@
                         <div class = "user_data_input">
                             <div>
                                 <label for = "username">닉네임</label>
-                                <input type = "text" class = "username_input" name = "username" required>
+                                <input type = "text" class = "username_input" name = "username" id = "username" autocomplete = "off" required>
                             </div>
                             <div>
                                 <label for = "password">비밀번호</label>
-                                <input type = "password" class = "password_input" name = "password" placeholder = "새 비밀번호 (변경시에만 입력)">
+                                <input type = "password" class = "password_input" name = "password" id = "password" placeholder = "새 비밀번호 (변경시에만 입력)">
                             </div>
                             <div>
-                                <label for = "password">비밀번호 확인</label>
-                                <input type = "password" class = "password_confirm_input" name = "password" placeholder = "비밀번호 확인">
+                                <label for = "passwordcheck">비밀번호 확인</label>
+                                <input type = "password" class = "password_confirm_input" name = "password" id = "passwordcheck" placeholder = "비밀번호 확인">
                             </div>
                         </div>
                     </div>
                     <div class = "modal-body-bottom">
                         <div>
                             <label for = "shortInfo">프로필 설명</label>
-                            <textarea class = "shortInfo" name = "shortInfo" rows="4"></textarea>
+                            <textarea class = "shortInfo" name = "shortInfo" id = "shortInfo" rows="4"></textarea>
                         </div>
                     </div>
                     <div class = "submitBtnContainer">
