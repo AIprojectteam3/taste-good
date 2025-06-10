@@ -541,13 +541,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cardContainer.addEventListener('click', function(event) {
             const clickedCard = event.target.closest('.card');
             if (clickedCard) {
-                // [수정된 부분 시작] 화면 너비 확인하여 PC 환경에서만 모달 띄우기
-                const screenWidth = window.innerWidth;
-                const pcMinWidth = 768; // PC로 간주할 최소 너비 (예: 768px) - index.css의 미디어쿼리 기준과 맞춤
-                // console.log("현재 화면 너비:", screenWidth, "PC 최소 너비:", pcMinWidth);
-
-                if (screenWidth >= pcMinWidth) {
-                    // console.log("게시물 카드 클릭됨 (PC 환경 - 모달 표시):", clickedCard);
+                if (!isMobile()) {
                     const postId = clickedCard.getAttribute('data-post-id');
                     if (postId) {
                         displayPostModal(postId); // PC 환경에서만 displayPostModal 호출

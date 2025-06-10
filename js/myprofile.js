@@ -295,15 +295,6 @@ function createCard(post, isPlaceholder = false) {
         `;
         card.appendChild(title);
 
-        // 마우스 이벤트
-        card.addEventListener('mouseenter', () => {
-            title.style.opacity = '1';
-            title.style.bottom = '0';
-        });
-        card.addEventListener('mouseleave', () => {
-            title.style.opacity = '0';
-            title.style.bottom = '-30px';
-        });
         return card;
     }
 
@@ -349,11 +340,13 @@ function createCard(post, isPlaceholder = false) {
     card.addEventListener('click', (event) => {
         event.preventDefault(); // 기본 동작 방지
         
-        // 함수가 정의되어 있는지 확인
-        if (typeof displayPostModal === 'function') {
-            displayPostModal(post.id);
-        } else {
-            console.error('displayPostModal 함수가 정의되지 않았습니다.');
+        if (!isMobile()) {
+            // 함수가 정의되어 있는지 확인
+            if (typeof displayPostModal === 'function') {
+                displayPostModal(post.id);
+            } else {
+                console.error('displayPostModal 함수가 정의되지 않았습니다.');
+            }
         }
     });
 
@@ -590,6 +583,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     const editBtn = document.querySelector('.profileEditBtn');
+    const editBtnM = document.querySelector('.edit_icon');
     const closeBtn = document.querySelector('.close-btn');
     const modal = document.getElementById('profileEditModal');
     const profileImageWrapper = document.querySelector('.profile-image-wrapper');
@@ -620,13 +614,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    if (editBtn && modal) {
+    if ((editBtn && modal) || (editBtnM && modal) || (closeBtn && modal)) {
         editBtn.addEventListener('click', () => {
             modal.style.display = 'flex';
         });
-    }
-
-    if (closeBtn && modal) {
+        editBtnM.addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
         closeBtn.addEventListener('click', () => {
             modal.style.display = 'none';
         });
