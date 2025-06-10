@@ -478,6 +478,119 @@ function adjustGridRows() {
     });
 }
 
+// =======================================================================================================
+// 전역 함수들 (HTML onclick에서 사용)
+// =======================================================================================================
+function openAdvancedSearchModal() {
+    const modal = document.getElementById('advancedSearchModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // 현재 검색어가 있다면 입력창에 설정
+        const currentQuery = document.getElementById('searchInput')?.value || '';
+        const advancedSearchQuery = document.getElementById('advancedSearchQuery');
+        if (advancedSearchQuery && currentQuery) {
+            advancedSearchQuery.value = currentQuery;
+        }
+    }
+}
+
+function closeAdvancedSearchModal() {
+    const modal = document.getElementById('advancedSearchModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function resetAdvancedSearchForm() {
+    document.getElementById('advancedSearchQuery').value = '';
+    document.getElementById('advancedSearchType').value = 'all';
+    document.getElementById('advancedSortBy').value = 'date';
+    document.getElementById('advancedDateFrom').value = '';
+    document.getElementById('advancedDateTo').value = '';
+    document.getElementById('advancedMinViews').value = '';
+    document.getElementById('advancedMaxViews').value = '';
+}
+
+function executeAdvancedSearch() {
+    const filters = {
+        query: document.getElementById('advancedSearchQuery').value.trim(),
+        searchType: document.getElementById('advancedSearchType').value,
+        sortBy: document.getElementById('advancedSortBy').value,
+        dateFrom: document.getElementById('advancedDateFrom').value,
+        dateTo: document.getElementById('advancedDateTo').value,
+        minViews: document.getElementById('advancedMinViews').value,
+        maxViews: document.getElementById('advancedMaxViews').value,
+        page: 1,
+        limit: 10
+    };
+    
+    if (!filters.query) {
+        alert('검색어를 입력해주세요.');
+        return;
+    }
+    
+    performAdvancedSearch(filters);
+    closeAdvancedSearchModal();
+}
+
+function goToPage(page) {
+    const filters = {
+        ...currentSearchFilters,
+        page: page
+    };
+    performAdvancedSearch(filters);
+}
+
+function searchPopularTerm(term) {
+    const filters = {
+        ...currentSearchFilters,
+        query: term,
+        page: 1
+    };
+    performAdvancedSearch(filters);
+}
+
+async function backToAllPosts() {
+    // 검색 필터 초기화
+    currentSearchFilters = {
+        query: '',
+        searchType: 'all',
+        sortBy: 'date',
+        dateFrom: '',
+        dateTo: '',
+        minViews: '',
+        maxViews: '',
+        page: 1,
+        limit: 10
+    };
+    
+    await renderCards(); // 기존 renderCards 함수 호출하여 전체 게시물 다시 로드
+}
+
+// 헬퍼 함수들
+function getSearchTypeText(searchType) {
+    const types = {
+        'all': '전체',
+        'title': '제목',
+        'content': '내용',
+        'author': '작성자',
+        'titleAndContent': '제목+내용'
+    };
+    return types[searchType] || '전체';
+}
+
+function getSortByText(sortBy) {
+    const sorts = {
+        'date': '최신순',
+        'views': '조회수순',
+        'likes': '좋아요순',
+        'comments': '댓글순',
+        'title': '제목순',
+        'author': '작성자순'
+    };
+    return sorts[sortBy] || '최신순';
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     renderCards();
 
@@ -494,4 +607,336 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener('resize', () => {
         adjustGridRows();
     });
+
+    // 플로팅 검색 기능
+    const floatingSearchBtn = document.getElementById('floatingSearchBtn');
+    const searchInputContainer = document.getElementById('searchInputContainer');
+    const searchInput = document.getElementById('searchInput');
+    const searchSubmitBtn = document.getElementById('searchSubmitBtn');
+    let isSearchExpanded = false;
+
+    // 플로팅 검색 버튼 클릭 이벤트
+    if (floatingSearchBtn) {
+        floatingSearchBtn.addEventListener('click', function() {
+            toggleSearchInput();
+        });
+    }
+
+    // 검색 토글 함수
+    function toggleSearchInput() {
+        isSearchExpanded = !isSearchExpanded;
+        
+        if (isSearchExpanded) {
+            // 검색창 열기
+            searchInputContainer.classList.add('expanded');
+            floatingSearchBtn.classList.add('active');
+            
+            // 검색 입력 필드에 포커스
+            setTimeout(() => {
+                searchInput.focus();
+            }, 200);
+            
+            // 아이콘을 X로 변경
+            floatingSearchBtn.innerHTML = '<i class="fas fa-times"></i>';
+        } else {
+            // 검색창 닫기
+            closeSearchInput();
+        }
+    }
+
+    // 검색창 닫기 함수
+    function closeSearchInput() {
+        searchInputContainer.classList.remove('expanded');
+        floatingSearchBtn.classList.remove('active');
+        floatingSearchBtn.innerHTML = '<i class="fas fa-search"></i>';
+        searchInput.value = '';
+        isSearchExpanded = false;
+    }
+
+    // 검색 제출 버튼 클릭 이벤트
+    if (searchSubmitBtn) {
+        searchSubmitBtn.addEventListener('click', function() {
+            performSearch();
+        });
+    }
+
+    // Enter 키로 검색
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+    }
+
+    // 고급 검색 관련 변수
+    let currentSearchFilters = {
+        query: '',
+        searchType: 'all',
+        sortBy: 'date',
+        dateFrom: '',
+        dateTo: '',
+        minViews: '',
+        maxViews: '',
+        page: 1,
+        limit: 10
+    };
+
+    // 검색 실행 함수 (고급 검색 지원)
+    async function performAdvancedSearch(filters = currentSearchFilters) {
+        try {
+            // 검색 파라미터 구성
+            const searchParams = new URLSearchParams();
+            Object.keys(filters).forEach(key => {
+                if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
+                    searchParams.append(key, filters[key]);
+                }
+            });
+            
+            // 검색 API 호출
+            const response = await fetch(`/api/posts/search?${searchParams.toString()}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                // 검색 결과 표시
+                displaySearchResults(data.posts, data.searchInfo, data.pagination);
+                
+                // 검색어 로깅
+                logSearch(filters.query, filters.searchType, data.posts.length);
+                
+                // 현재 필터 상태 저장
+                currentSearchFilters = { ...filters };
+            } else {
+                alert(data.error || '검색 중 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            console.error('검색 중 오류:', error);
+            alert('검색 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 간단 검색 실행 함수 (플로팅 버튼용)
+    async function performSearch() {
+        const query = searchInput.value.trim();
+        if (query) {
+            const filters = {
+                ...currentSearchFilters,
+                query: query,
+                page: 1
+            };
+            
+            await performAdvancedSearch(filters);
+            closeSearchInput();
+        }
+    }
+
+    // 검색 결과 표시 함수
+    function displaySearchResults(posts, searchInfo, pagination) {
+        const cardContainer = document.querySelector('.content');
+        
+        // 기존 카드들 모두 제거
+        cardContainer.innerHTML = '';
+        
+        // 검색 결과 헤더 생성
+        const searchHeader = createSearchResultsHeader(searchInfo, pagination);
+        cardContainer.appendChild(searchHeader);
+        
+        if (posts && posts.length > 0) {
+            // 검색된 게시물들로 카드 생성
+            posts.forEach(post => {
+                const cardElement = createCard(post);
+                if (cardElement) {
+                    cardContainer.appendChild(cardElement);
+                }
+            });
+            
+            // 페이지네이션 생성
+            if (pagination.totalPages > 1) {
+                const paginationElement = createPagination(pagination);
+                cardContainer.appendChild(paginationElement);
+            }
+        } else {
+            // 검색 결과가 없을 때
+            const noResultsElement = createNoResultsElement(searchInfo);
+            cardContainer.appendChild(noResultsElement);
+        }
+        
+        // 그리드 조정 및 모바일 기능 재설정
+        adjustGridRows();
+        setupMobileCardSliderAndReadMore();
+    }
+
+    // 검색 결과 헤더 생성
+    function createSearchResultsHeader(searchInfo, pagination) {
+        const header = document.createElement('div');
+        header.className = 'search-results-header';
+        
+        const searchTypeText = getSearchTypeText(searchInfo.searchType);
+        const sortByText = getSortByText(searchInfo.sortBy);
+        
+        header.innerHTML = `
+            <div class="search-info">
+                <h3>"${searchInfo.query}" 검색 결과</h3>
+                <div class="search-details">
+                    <span class="search-type">검색 범위: ${searchTypeText}</span>
+                    <span class="sort-type">정렬: ${sortByText}</span>
+                    <span class="result-count">총 ${pagination.totalCount}개 (${pagination.currentPage}/${pagination.totalPages} 페이지)</span>
+                </div>
+                <div class="search-actions">
+                    <button class="advanced-search-btn" onclick="openAdvancedSearchModal()">고급 검색</button>
+                    <button class="back-to-all-btn" onclick="backToAllPosts()">전체 게시물 보기</button>
+                </div>
+            </div>
+        `;
+        
+        return header;
+    }
+
+    // 페이지네이션 생성
+    function createPagination(pagination) {
+        const paginationContainer = document.createElement('div');
+        paginationContainer.className = 'pagination-container';
+        
+        let paginationHTML = '<div class="pagination">';
+        
+        // 이전 페이지 버튼
+        if (pagination.hasPrev) {
+            paginationHTML += `<button class="page-btn" onclick="goToPage(${pagination.currentPage - 1})">‹ 이전</button>`;
+        }
+        
+        // 페이지 번호들
+        const startPage = Math.max(1, pagination.currentPage - 2);
+        const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+        
+        if (startPage > 1) {
+            paginationHTML += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+            if (startPage > 2) {
+                paginationHTML += `<span class="page-dots">...</span>`;
+            }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            const activeClass = i === pagination.currentPage ? 'active' : '';
+            paginationHTML += `<button class="page-btn ${activeClass}" onclick="goToPage(${i})">${i}</button>`;
+        }
+        
+        if (endPage < pagination.totalPages) {
+            if (endPage < pagination.totalPages - 1) {
+                paginationHTML += `<span class="page-dots">...</span>`;
+            }
+            paginationHTML += `<button class="page-btn" onclick="goToPage(${pagination.totalPages})">${pagination.totalPages}</button>`;
+        }
+        
+        // 다음 페이지 버튼
+        if (pagination.hasNext) {
+            paginationHTML += `<button class="page-btn" onclick="goToPage(${pagination.currentPage + 1})">다음 ›</button>`;
+        }
+        
+        paginationHTML += '</div>';
+        paginationContainer.innerHTML = paginationHTML;
+        
+        return paginationContainer;
+    }
+
+    // 검색 결과 없음 요소 생성
+    function createNoResultsElement(searchInfo) {
+        const noResults = document.createElement('div');
+        noResults.className = 'no-search-results';
+        noResults.innerHTML = `
+            <h3>"${searchInfo.query}"에 대한 검색 결과가 없습니다.</h3>
+            <p>다른 검색어로 시도해보세요.</p>
+            <div class="no-results-actions">
+                <button class="advanced-search-btn" onclick="openAdvancedSearchModal()">고급 검색</button>
+                <button class="back-to-all-btn" onclick="backToAllPosts()">전체 게시물 보기</button>
+            </div>
+        `;
+        return noResults;
+    }
+
+    // 검색창 외부 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('floatingSearchContainer');
+        if (isSearchExpanded && container && !container.contains(e.target)) {
+            closeSearchInput();
+        }
+    });
+
+    // ESC 키로 검색창 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && isSearchExpanded) {
+            closeSearchInput();
+        }
+    });
+
+    // 모달 외부 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+        const modal = document.getElementById('advancedSearchModal');
+        const modalContent = document.querySelector('.advanced-search-content');
+        
+        if (modal && modal.style.display === 'flex' && 
+            !modalContent.contains(e.target) && 
+            e.target !== modal) {
+            closeAdvancedSearchModal();
+        }
+    });
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('advancedSearchModal');
+            if (modal && modal.style.display === 'flex') {
+                closeAdvancedSearchModal();
+            }
+        }
+    });
+
+    // 검색어 로깅
+    async function logSearch(searchTerm, searchType, resultCount) {
+        try {
+            await fetch('/api/search/log', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    searchTerm: searchTerm,
+                    searchType: searchType,
+                    resultCount: resultCount
+                })
+            });
+        } catch (error) {
+            console.error('검색 로그 저장 중 오류:', error);
+        }
+    }
+
+    // 인기 검색어 가져오기
+    async function loadPopularSearches() {
+        try {
+            const response = await fetch('/api/search/popular');
+            const data = await response.json();
+            
+            if (data.success) {
+                displayPopularSearches(data.popularSearches);
+            }
+        } catch (error) {
+            console.error('인기 검색어 로드 중 오류:', error);
+        }
+    }
+
+    // 인기 검색어 표시
+    function displayPopularSearches(searches) {
+        const container = document.getElementById('popularSearches');
+        if (container && searches.length > 0) {
+            container.innerHTML = searches.map(search => 
+                `<span class="popular-search-item" onclick="searchPopularTerm('${search.search_term}')">${search.search_term}</span>`
+            ).join('');
+        }
+    }
+
+    // 페이지 로드 시 인기 검색어 로드
+    loadPopularSearches();
+
+    // 전역 스코프에 함수들 노출 (HTML onclick에서 사용하기 위해)
+    window.performAdvancedSearch = performAdvancedSearch;
+    window.currentSearchFilters = currentSearchFilters;
 });
