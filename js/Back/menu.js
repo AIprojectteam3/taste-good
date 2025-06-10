@@ -100,4 +100,49 @@ function updateProfileUI(user) {
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchUserProfile();
+
+    const hamburgerMenu = document.getElementById('hamburgerMenu');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const menuItems = document.querySelectorAll('.mobile-menu-list a');
+
+    // 햄버거 메뉴 클릭 이벤트
+    hamburgerMenu.addEventListener('click', function() {
+        toggleMobileMenu();
+    });
+
+    // 메뉴 토글 함수
+    function toggleMobileMenu() {
+        mobileMenu.classList.toggle('active');
+        
+        // 메뉴가 열릴 때 body 스크롤 방지
+        if (mobileMenu.classList.contains('active')) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    // 메뉴 아이템 클릭 시 메뉴 닫기
+    menuItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            mobileMenu.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        });
+    });
+
+    // 메뉴 배경 클릭 시 메뉴 닫기
+    mobileMenu.addEventListener('click', function(e) {
+        if (e.target === mobileMenu) {
+            mobileMenu.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+    });
+
+    // ESC 키로 메뉴 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+            mobileMenu.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+    });
 });
