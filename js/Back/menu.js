@@ -59,25 +59,25 @@ function updateProfileUI(user) {
     if (nicknameElement) {
         nicknameElement.textContent = user.username;
     } else {
-        console.warn("프로필 닉네임 요소를 찾을 수 없습니다. (선택자: .profile .nickname)");
+        // console.warn("프로필 닉네임 요소를 찾을 수 없습니다. (선택자: .profile .nickname)");
     }
 
     if (levelElement) {
         levelElement.textContent = user.level ? user.level.toString() : '1';
     } else {
-        console.warn("프로필 레벨 요소를 찾을 수 없습니다. (선택자: .profile .level .level-value)");
+        // console.warn("프로필 레벨 요소를 찾을 수 없습니다. (선택자: .profile .level .level-value)");
     }
 
     if (postCountElement) {
         postCountElement.textContent = user.post_count !== undefined ? user.post_count.toString() : '0';
     } else {
-        console.warn("프로필 게시글 수 요소를 찾을 수 없습니다. (선택자: .profile .profile-stats .post .post-count)");
+        // console.warn("프로필 게시글 수 요소를 찾을 수 없습니다. (선택자: .profile .profile-stats .post .post-count)");
     }
 
     if (pointCountElement) {
         pointCountElement.textContent = user.points ? user.points.toString() : '0';
     } else {
-        console.warn("프로필 포인트 요소를 찾을 수 없습니다. (선택자: .profile .profile-stats .point .point-count)");
+        // console.warn("프로필 포인트 요소를 찾을 수 없습니다. (선택자: .profile .profile-stats .point .point-count)");
     }
 
     // 프로필 이미지 업데이트
@@ -89,7 +89,7 @@ function updateProfileUI(user) {
         }
         profileImageElement.alt = user.username + '의 프로필 이미지';
     } else {
-        console.warn("프로필 이미지 요소를 찾을 수 없습니다. (선택자: .profile-header > .image > img)");
+        // console.warn("프로필 이미지 요소를 찾을 수 없습니다. (선택자: .profile-header > .image > img)");
     }
 
     // 팔로워 수는 항상 '0'으로 고정
