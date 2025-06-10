@@ -1061,8 +1061,8 @@ body {
     }
     
     .advanced-search-content {
+        margin-top : 50px;
         width: 95%;
-        margin: 1rem;
     }
     
     .form-row {
