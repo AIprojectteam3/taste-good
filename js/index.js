@@ -763,11 +763,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const paginationElement = createPagination(pagination);
                 cardContainer.appendChild(paginationElement);
             }
-        } else {
-            // 검색 결과가 없을 때
-            const noResultsElement = createNoResultsElement(searchInfo);
-            cardContainer.appendChild(noResultsElement);
-        }
+        } 
         
         // 그리드 조정 및 모바일 기능 재설정
         adjustGridRows();
@@ -890,7 +886,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 인기 검색어 가져오기
     async function loadPopularSearches() {
         try {
-            const response = await fetch('/api/search/popular');
+            const response = await fetch('/api/search/ranking/live');
             const data = await response.json();
             
             if (data.success) {
@@ -913,7 +909,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 페이지 로드 시 인기 검색어 로드
     loadPopularSearches();
-    console.log(typeof openAdvancedSearchModal);
 
     // 전역 스코프에 함수들 노출 (HTML onclick에서 사용하기 위해)
     window.performAdvancedSearch = performAdvancedSearch;

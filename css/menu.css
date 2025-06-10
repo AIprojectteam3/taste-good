@@ -84,7 +84,7 @@ body {
 }
 
 .chart {
-    padding : 20px;
+    padding : 10px;
     background-color: #fff;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -92,27 +92,180 @@ body {
 
 .chart ol {
     list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.chart li {
-    display : flex;
-    align-items : center;
-    justify-content : space-between;
-    margin: 5px 0;
+.chart ol li {
+    display: flex;
+    align-items: center;
+    padding: 0.3rem 0.5rem;
+    margin-bottom: 0.5rem;
+    gap : 2px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
 }
 
-.chart li > span {
-    display : flex;
-    align-items : center;
-    justify-content : center;
+.chart ol li:hover {
+    background: #f8f9fa;
+    transform: translateX(5px);
 }
 
-.chart li > img {
+.chart ol li > img {
     display : flex;
     align-items : center;
     justify-content : center;
     width : 20px;
     height : 20px;
+}
+
+.rank-number {
+    font-weight: bold;
+    color: #333;
+}
+
+.search-term {
+    flex : 1;
+    margin-left : 5px;
+    cursor: pointer;
+    color: #333;
+    font-weight: 500;
+    font-size : 0.9rem;
+}
+
+.search-term:hover {
+    color: #6BA6FF;
+    text-decoration: underline;
+}
+
+.rank-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rank-info img {
+    width: 16px;
+    height: 16px;
+    transition: opacity 0.3s ease;
+}
+
+.search-count {
+    font-size: 0.8rem;
+    color: #666;
+    background: #f0f0f0;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+}
+
+@keyframes newBadgePulse {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    50% { 
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(255, 107, 107, 0.4);
+    }
+}
+
+.new-badge {
+    background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    animation: newBadgePulse 2s ease-in-out infinite;
+}
+
+@keyframes newEntryGlow {
+    0% { 
+        background: linear-gradient(90deg, rgba(255, 107, 107, 0.3), transparent);
+    }
+    100% { 
+        background: linear-gradient(90deg, rgba(255, 107, 107, 0.1), transparent);
+    }
+}
+
+.rank-item.new-entry {
+    background: linear-gradient(90deg, rgba(255, 107, 107, 0.1), transparent);
+    border-left: 3px solid #ff6b6b;
+    animation: newEntryGlow 3s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+@keyframes rankUp {
+    0% { transform: translateY(10px); background-color: rgba(46, 204, 113, 0.2); }
+    100% { transform: translateY(0); background-color: transparent; }
+}
+
+@keyframes rankDown {
+    0% { transform: translateY(-10px); background-color: rgba(231, 76, 60, 0.2); }
+    100% { transform: translateY(0); background-color: transparent; }
+}
+
+@keyframes newEntry {
+    0% { transform: scale(0.8); opacity: 0; background-color: rgba(52, 152, 219, 0.2); }
+    100% { transform: scale(1); opacity: 1; background-color: transparent; }
+}
+
+.rank-up-animation {
+    animation: rankUp 0.5s ease-out;
+}
+
+.rank-down-animation {
+    animation: rankDown 0.5s ease-out;
+}
+
+.rank-new-animation {
+    animation: newEntry 0.8s ease-out;
+}
+
+/* 실시간 업데이트 표시 */
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.live-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #ff4757;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+    margin-left: 0.5rem;
+}
+
+/* 순위별 특별 스타일 */
+.chart ol li:nth-child(1) .rank-number {
+    color: #FFD700; /* 금색 */
+}
+
+.chart ol li:nth-child(2) .rank-number {
+    color: #C0C0C0; /* 은색 */
+}
+
+.chart ol li:nth-child(3) .rank-number {
+    color: #CD7F32; /* 동색 */
 }
 
 .main-menu {
@@ -179,6 +332,10 @@ body {
 @media (max-width: 768px) {
     .main-menu {
         display: none; /* 데스크톱용 메뉴 숨김 */
+    }
+
+    .chart {
+        display: none !important;
     }
 
     .menu {

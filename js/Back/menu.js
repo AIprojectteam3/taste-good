@@ -98,6 +98,163 @@ function updateProfileUI(user) {
     }
 }
 
+// ==============================================================================================
+// 실시간 검색어 순위
+// ==============================================================================================
+// 인기 검색어 순위 관련 변수
+let rankingUpdateInterval;
+let currentRankings = [];
+
+// 인기 검색어 순위 로드
+async function loadSearchRankings() {
+    try {
+        const response = await fetch('/api/search/ranking?period=7');
+        const data = await response.json();
+        
+        if (data.success) {
+            currentRankings = data.rankings;
+            displaySearchRankings(data.rankings);
+        }
+    } catch (error) {
+        console.error('인기 검색어 순위 로드 중 오류:', error);
+    }
+}
+
+// 인기 검색어 순위 표시
+function displaySearchRankings(rankings) {
+    const chartSection = document.querySelector('.chart ol');
+    if (!chartSection) return;
+    
+    chartSection.innerHTML = '';
+    
+    rankings.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.className = `rank-item rank-${item.rank_change}`;
+        
+        // 변동 아이콘 처리
+        let iconHtml = '';
+        const now = new Date();
+        
+        // 변동 만료 시간 확인
+        const isChangeExpired = item.change_expires_at && new Date(item.change_expires_at) <= now;
+        
+        if (isChangeExpired || item.rank_change === 'same') {
+            // 변동 정보가 만료되었거나 변동이 없는 경우
+            iconHtml = '<img src="image/no-change-icon.png" alt="변동없음" title="변동없음">';
+        } else {
+            // 유효한 변동 정보가 있는 경우
+            switch (item.rank_change) {
+                case 'new':
+                    iconHtml = '<span class="new-badge" title="신규 진입">NEW</span>';
+                    li.classList.add('new-entry'); // 신규 진입 강조 클래스 추가
+                    break;
+                case 'up':
+                    iconHtml = '<img src="image/rank-up-icon.png" alt="상승" title="순위 상승">';
+                    break;
+                case 'down':
+                    iconHtml = '<img src="image/rank-down-icon.png" alt="하락" title="순위 하락">';
+                    break;
+                default:
+                    iconHtml = '<img src="image/no-change-icon.png" alt="변동없음" title="변동없음">';
+            }
+        }
+        
+        li.innerHTML = `
+            <span class="rank-number">${item.rank}.</span>
+            <span class="search-term" onclick="searchPopularTerm('${item.search_term}')">${item.search_term}</span>
+            <div class="rank-info">
+                ${iconHtml}
+                <span class="search-count">${item.search_count}회</span>
+            </div>
+        `;
+        
+        // 변동 만료 시간이 있는 경우 자동으로 아이콘 업데이트
+        if (item.change_expires_at && !isChangeExpired) {
+            const timeUntilExpiry = new Date(item.change_expires_at) - now;
+            if (timeUntilExpiry > 0) {
+                setTimeout(() => {
+                    const rankInfo = li.querySelector('.rank-info');
+                    if (rankInfo) {
+                        const searchCount = li.querySelector('.search-count')?.textContent || '0회';
+                        rankInfo.innerHTML = `
+                            <img src="image/no-change-icon.png" alt="변동없음" title="변동없음">
+                            <span class="search-count">${searchCount}</span>
+                        `;
+                        li.className = 'rank-item rank-same';
+                        li.classList.remove('new-entry'); // 신규 진입 클래스 제거
+                    }
+                }, timeUntilExpiry);
+            }
+        }
+        
+        chartSection.appendChild(li);
+    });
+}
+
+// 실시간 업데이트 시작
+function startRankingUpdates() {
+    // console.log('실시간 순위 업데이트 시작 (5초 간격)');
+    loadSearchRankings();
+    
+    rankingUpdateInterval = setInterval(async () => {
+        try {
+            const response = await fetch('/api/search/ranking/live');
+            const data = await response.json();
+            
+            if (data.success && data.live_rankings.length > 0) {
+                const hasChanges = checkRankingChanges(data.live_rankings);
+                
+                if (hasChanges) {
+                    // console.log('순위 변경 감지 - 아이콘 포함 업데이트 실행');
+                    // 실시간 데이터로 직접 업데이트 (변동 정보 포함)
+                    displaySearchRankings(data.live_rankings);
+                    currentRankings = data.live_rankings;
+                } else {
+                    // console.log('순위 변경 없음');
+                }
+            }
+        } catch (error) {
+            console.error('실시간 순위 업데이트 중 오류:', error);
+        }
+    }, 5000);
+}
+
+// 순위 변경사항 확인
+function checkRankingChanges(liveRankings) {
+    if (currentRankings.length === 0) return true;
+    
+    // 검색어 순서나 검색 횟수가 변경되었는지 확인
+    for (let i = 0; i < Math.min(5, liveRankings.length); i++) {
+        const currentTerm = currentRankings[i]?.search_term;
+        const currentCount = currentRankings[i]?.search_count;
+        const liveTerm = liveRankings[i]?.search_term;
+        const liveCount = liveRankings[i]?.search_count;
+        
+        if (currentTerm !== liveTerm || currentCount !== liveCount) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// 실시간 업데이트 중지
+function stopRankingUpdates() {
+    if (rankingUpdateInterval) {
+        clearInterval(rankingUpdateInterval);
+        rankingUpdateInterval = null;
+    }
+}
+
+// 페이지 가시성 변경 시 업데이트 제어
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        stopRankingUpdates();
+    } else {
+        startRankingUpdates();
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchUserProfile();
 
@@ -144,5 +301,13 @@ document.addEventListener('DOMContentLoaded', () => {
             mobileMenu.classList.remove('active');
             document.body.style.overflow = 'auto';
         }
+    });
+
+    // 인기 검색어 순위 시작
+    startRankingUpdates();
+    
+    // 페이지 언로드 시 정리
+    window.addEventListener('beforeunload', function() {
+        stopRankingUpdates();
     });
 });
