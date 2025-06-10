@@ -240,9 +240,11 @@ body {
 /* 실시간 업데이트 표시 */
 .chart-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: 1rem;
+    padding-bottom : 5px;
+    border-bottom : 1px solid #ddd;
 }
 
 .live-indicator {
