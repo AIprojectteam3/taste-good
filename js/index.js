@@ -484,7 +484,15 @@ function adjustGridRows() {
 function openAdvancedSearchModal() {
     const modal = document.getElementById('advancedSearchModal');
     if (modal) {
-        modal.style.display = 'flex';
+        modal.classList.add('show');
+        
+        // 모달 배경 클릭 시 닫기 (한 번만 추가되도록)
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                closeAdvancedSearchModal();
+            }
+        };
+        
         // 현재 검색어가 있다면 입력창에 설정
         const currentQuery = document.getElementById('searchInput')?.value || '';
         const advancedSearchQuery = document.getElementById('advancedSearchQuery');
@@ -497,7 +505,7 @@ function openAdvancedSearchModal() {
 function closeAdvancedSearchModal() {
     const modal = document.getElementById('advancedSearchModal');
     if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('show');
     }
 }
 
@@ -509,9 +517,11 @@ function resetAdvancedSearchForm() {
     document.getElementById('advancedDateTo').value = '';
     document.getElementById('advancedMinViews').value = '';
     document.getElementById('advancedMaxViews').value = '';
+    console.log('폼 초기화');
 }
 
 function executeAdvancedSearch() {
+    console.log('고급 검색 실행');
     const filters = {
         query: document.getElementById('advancedSearchQuery').value.trim(),
         searchType: document.getElementById('advancedSearchType').value,
@@ -616,11 +626,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let isSearchExpanded = false;
 
     // 플로팅 검색 버튼 클릭 이벤트
-    if (floatingSearchBtn) {
-        floatingSearchBtn.addEventListener('click', function() {
-            toggleSearchInput();
-        });
-    }
+    floatingSearchBtn.addEventListener('click', function() {
+        toggleSearchInput();
+    });
 
     // 검색 토글 함수
     function toggleSearchInput() {
@@ -838,36 +846,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return paginationContainer;
     }
 
-    // 검색 결과 없음 요소 생성
-    function createNoResultsElement(searchInfo) {
-        const noResults = document.createElement('div');
-        noResults.className = 'no-search-results';
-        noResults.innerHTML = `
-            <h3>"${searchInfo.query}"에 대한 검색 결과가 없습니다.</h3>
-            <p>다른 검색어로 시도해보세요.</p>
-            <div class="no-results-actions">
-                <button class="advanced-search-btn" onclick="openAdvancedSearchModal()">고급 검색</button>
-                <button class="back-to-all-btn" onclick="backToAllPosts()">전체 게시물 보기</button>
-            </div>
-        `;
-        return noResults;
-    }
-
-    // 검색창 외부 클릭 시 닫기
-    document.addEventListener('click', function(e) {
-        const container = document.getElementById('floatingSearchContainer');
-        if (isSearchExpanded && container && !container.contains(e.target)) {
-            closeSearchInput();
-        }
-    });
-
-    // ESC 키로 검색창 닫기
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && isSearchExpanded) {
-            closeSearchInput();
-        }
-    });
-
     // 모달 외부 클릭 시 닫기
     document.addEventListener('click', function(e) {
         const modal = document.getElementById('advancedSearchModal');
@@ -935,6 +913,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 페이지 로드 시 인기 검색어 로드
     loadPopularSearches();
+    console.log(typeof openAdvancedSearchModal);
 
     // 전역 스코프에 함수들 노출 (HTML onclick에서 사용하기 위해)
     window.performAdvancedSearch = performAdvancedSearch;
