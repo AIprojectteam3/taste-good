@@ -1012,6 +1012,257 @@ app.get('/api/user/bookmarks', (req, res) => {
 });
 
 // ==================================================================================================================
+// 게시물 검색 API (고급 검색 기능 포함)
+// ==================================================================================================================
+app.get('/api/posts/search', (req, res) => {
+    const { 
+        query, 
+        searchType = 'all', 
+        sortBy = 'date', 
+        dateFrom, 
+        dateTo, 
+        minViews, 
+        maxViews,
+        page = 1,
+        limit = 10
+    } = req.query;
+    
+    if (!query || query.trim() === '') {
+        return res.status(400).json({ error: '검색어를 입력해주세요.' });
+    }
+    
+    // 검색 조건 구성
+    let searchCondition = '';
+    let searchParams = [];
+    
+    switch (searchType) {
+        case 'title':
+            searchCondition = 'WHERE p.title LIKE ?';
+            searchParams = [`%${query}%`];
+            break;
+        case 'content':
+            searchCondition = 'WHERE p.content LIKE ?';
+            searchParams = [`%${query}%`];
+            break;
+        case 'author':
+            searchCondition = 'WHERE u.username LIKE ?';
+            searchParams = [`%${query}%`];
+            break;
+        case 'titleAndContent':
+            searchCondition = 'WHERE (p.title LIKE ? AND p.content LIKE ?)';
+            searchParams = [`%${query}%`, `%${query}%`];
+            break;
+        default: // 'all'
+            searchCondition = 'WHERE (p.title LIKE ? OR p.content LIKE ? OR u.username LIKE ?)';
+            searchParams = [`%${query}%`, `%${query}%`, `%${query}%`];
+    }
+    
+    // 날짜 필터 추가
+    if (dateFrom) {
+        searchCondition += ' AND p.created_at >= ?';
+        searchParams.push(dateFrom);
+    }
+    if (dateTo) {
+        searchCondition += ' AND p.created_at <= ?';
+        searchParams.push(dateTo + ' 23:59:59');
+    }
+    
+    // 조회수 필터 추가
+    if (minViews) {
+        searchCondition += ' AND p.views >= ?';
+        searchParams.push(parseInt(minViews));
+    }
+    if (maxViews) {
+        searchCondition += ' AND p.views <= ?';
+        searchParams.push(parseInt(maxViews));
+    }
+    
+    // 정렬 조건
+    let orderBy = '';
+    switch (sortBy) {
+        case 'views':
+            orderBy = 'ORDER BY p.views DESC';
+            break;
+        case 'likes':
+            orderBy = 'ORDER BY p.likes DESC';
+            break;
+        case 'comments':
+            orderBy = 'ORDER BY comment_count DESC';
+            break;
+        case 'title':
+            orderBy = 'ORDER BY p.title ASC';
+            break;
+        case 'author':
+            orderBy = 'ORDER BY u.username ASC';
+            break;
+        default: // 'date'
+            orderBy = 'ORDER BY p.created_at DESC';
+    }
+    
+    // 페이지네이션
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const limitClause = `LIMIT ${parseInt(limit)} OFFSET ${offset}`;
+    
+    // 전체 개수 조회 쿼리
+    const countQuery = `
+        SELECT COUNT(*) as total
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        ${searchCondition}
+    `;
+    
+    // 검색 결과 조회 쿼리
+    const searchQuery = `
+        SELECT
+            p.id,
+            p.title,
+            p.content,
+            p.created_at,
+            p.views,
+            p.likes,
+            p.user_id,
+            u.username as author_username,
+            u.profile_image_path as author_profile_path,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        ${searchCondition}
+        ${orderBy}
+        ${limitClause}
+    `;
+    
+    // 전체 개수 먼저 조회
+    db.query(countQuery, searchParams, (countErr, countResults) => {
+        if (countErr) {
+            console.error('검색 개수 조회 중 오류:', countErr);
+            return res.status(500).json({ error: '검색 중 서버 오류가 발생했습니다.' });
+        }
+        
+        const totalCount = countResults[0].total;
+        const totalPages = Math.ceil(totalCount / parseInt(limit));
+        
+        // 검색 결과 조회
+        db.query(searchQuery, searchParams, (err, results) => {
+            if (err) {
+                console.error('검색 중 오류:', err);
+                return res.status(500).json({ error: '검색 중 서버 오류가 발생했습니다.' });
+            }
+            
+            // 각 게시물에 대해 이미지 정보 가져오기
+            const postPromises = results.map(post => {
+                return new Promise((resolve, reject) => {
+                    const imageQuery = `
+                        SELECT REPLACE(file_path, '\\\\', '/') as file_path 
+                        FROM files 
+                        WHERE post_id = ? 
+                        ORDER BY id ASC
+                    `;
+                    
+                    db.query(imageQuery, [post.id], (imgErr, imageResults) => {
+                        if (imgErr) {
+                            console.error(`게시물 ${post.id} 이미지 조회 오류:`, imgErr);
+                            post.images = [];
+                            post.thumbnail_path = null;
+                        } else {
+                            post.images = imageResults.map(img => img.file_path);
+                            post.thumbnail_path = imageResults.length > 0 ? imageResults[0].file_path : null;
+                        }
+                        
+                        // 프로필 이미지 경로 처리
+                        if (post.author_profile_path) {
+                            post.author_profile_path = post.author_profile_path.replace(/\\/g, '/');
+                        } else {
+                            post.author_profile_path = 'image/profile-icon.png';
+                        }
+                        
+                        resolve(post);
+                    });
+                });
+            });
+            
+            Promise.all(postPromises)
+                .then(postsWithImages => {
+                    res.json({
+                        success: true,
+                        posts: postsWithImages,
+                        pagination: {
+                            currentPage: parseInt(page),
+                            totalPages: totalPages,
+                            totalCount: totalCount,
+                            limit: parseInt(limit),
+                            hasNext: parseInt(page) < totalPages,
+                            hasPrev: parseInt(page) > 1
+                        },
+                        searchInfo: {
+                            query: query,
+                            searchType: searchType,
+                            sortBy: sortBy,
+                            filters: {
+                                dateFrom: dateFrom,
+                                dateTo: dateTo,
+                                minViews: minViews,
+                                maxViews: maxViews
+                            }
+                        }
+                    });
+                })
+                .catch(promiseErr => {
+                    console.error('검색 결과 이미지 처리 중 오류:', promiseErr);
+                    res.status(500).json({ error: '검색 결과 처리 중 오류가 발생했습니다.' });
+                });
+        });
+    });
+});
+
+// ==================================================================================================================
+// 인기 검색어 API
+// ==================================================================================================================
+app.get('/api/search/popular', (req, res) => {
+    const query = `
+        SELECT search_term, COUNT(*) as search_count
+        FROM search_logs
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        GROUP BY search_term
+        ORDER BY search_count DESC
+        LIMIT 10
+    `;
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('인기 검색어 조회 중 오류:', err);
+            return res.status(500).json({ error: '인기 검색어를 가져오는 데 실패했습니다.' });
+        }
+        
+        res.json({
+            success: true,
+            popularSearches: results
+        });
+    });
+});
+
+// ==================================================================================================================
+// 검색어 로깅 API
+// ==================================================================================================================
+app.post('/api/search/log', (req, res) => {
+    const { searchTerm, searchType, resultCount } = req.body;
+    const userId = req.session.userId || null;
+    
+    const insertQuery = `
+        INSERT INTO search_logs (user_id, search_term, search_type, result_count)
+        VALUES (?, ?, ?, ?)
+    `;
+    
+    db.query(insertQuery, [userId, searchTerm, searchType, resultCount], (err, result) => {
+        if (err) {
+            console.error('검색 로그 저장 중 오류:', err);
+            // 로그 저장 실패는 치명적이지 않으므로 에러를 반환하지 않음
+        }
+        
+        res.json({ success: true });
+    });
+});
+
+// ==================================================================================================================
 // 댓글 작성 API
 // ==================================================================================================================
 app.post('/api/post/:postId/comment', (req, res) => {
