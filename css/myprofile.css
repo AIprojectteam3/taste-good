@@ -125,6 +125,11 @@
 .short-info {
     align-self: flex-start;
 }
+
+.myprofile-content {
+    width : 100%;
+    height : 100%;
+}
 /*  */
 /* 탭 메뉴 스타일 */
 .tabs {
@@ -165,9 +170,9 @@
 }
 
 .tab-content.empty-state-container {
-    display: grid !important;
-    place-items: center !important;
-    grid-template-columns: 1fr !important;
+    display: grid;
+    place-items: center;
+    grid-template-columns: 1fr;
     min-height: 200px;
 }
 
@@ -182,16 +187,16 @@
 }
 
 .card {
+    display: flex; /* 내부 요소 정렬용 */
+    flex-direction: column;
     position: relative;
     width: 100%;
+    height : 100%;
     overflow: hidden;
     border-radius: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     background: #fff;
     aspect-ratio: 1/1; /* 정사각형 유지 */
-    /* 추가된 부분 */
-    display: flex; /* 내부 요소 정렬용 */
-    flex-direction: column;
     contain: strict; /* 렌더링 영역 격리 */
 }
 
@@ -460,25 +465,29 @@
     .tab-content {
         display: grid;
         place-items: center; /* 추가: 그리드 아이템 중앙 정렬 */
-        grid-template-columns: 1fr !important; /* 단일 열 */
-        grid-auto-rows: calc(100vh - 60px); /* 하단 메뉴 높이 60px 제외 */
-        gap: 0; /* 카드 간 간격 제거 */
-        padding: 0;
-        margin-left: 0;
-        max-width: 100vw;
+        grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-rows: repeat(auto-fill, minmax(140px, 1fr)); /* 카드 높이 자동 조정 */
+        grid-auto-rows: 100vh; /* 하단 메뉴 높이 60px 제외 */
+        gap: 5px; /* 카드 간 간격 제거 */
+        padding: 5px;
+        margin : none;
+        width: 100vw !important; /* 화면 전체 너비 */
+        max-width: 100vw !important;
+        height: 100%; /* 전체 높이에서 하단 메뉴 제외 */
         scroll-snap-type: y proximity;
         scroll-behavior: unset; /* CSS 애니메이션 비활성화 */
-        overflow-y: auto;
-        height: calc(100vh - 60px); /* 전체 높이에서 하단 메뉴 제외 */
+    }
+
+    .tab-content.empty-state-container {
+        display: flex;
+        width : 100vw;
+        height : 100vh;
     }
 
     .card {
-        width: calc(100vw - 20px) !important;
-        height: calc(100vh - 80px) !important;
-        aspect-ratio: unset !important; /* 정사각형 비율 해제 */
-        scroll-snap-align: center; /* 변경: 중앙 스냅 */
-        scroll-snap-stop: always; /* 무조건 정지 */
-        border-radius: 15px; /* 모서리 둥글기 제거 */
+        margin : none;
+        aspect-ratio: 1;
+        border-radius: 15px;
     }
     
     .card img {
@@ -528,5 +537,38 @@
         height : 30px;
         filter: invert(68%) sepia(76%) saturate(4890%) hue-rotate(326deg) brightness(118%) contrast(107%);
         cursor: pointer;
+    }
+
+    .modal-header-profile > h2 {
+        font-size : 1.3rem;
+    }
+
+    .profile-image-preview {
+        width : 100px;
+        height : 100px;
+    }
+
+    .change-photo-overlay {
+        width: 100px;
+        height: 100px;
+    }
+
+    .modal-body-top label, .modal-body-bottom label {
+        font-size : 1rem;
+    }
+
+    .user_data_input > div > input {
+        height : 30px;
+        font-size : 0.9rem;
+    }
+
+    .shortInfo {
+        font-size : 0.9rem;
+        height : 80px;
+    }
+
+    .submitBtn {
+        height : 35px;
+        font-size : 0.9rem;
     }
 }
