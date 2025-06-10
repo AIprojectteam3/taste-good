@@ -243,8 +243,18 @@
                 </div>
             </div>
             <div class="create-post-form-right">
-                <input type="text" id="createPostTitle" placeholder="제목을 입력하세요">
-                <textarea id="createPostContent" placeholder="내용을 입력하세요"></textarea>
+                <div class="input-group">
+                    <input type="text" id="createPostTitle" placeholder="제목을 입력하세요" maxlength="100">
+                    <div class="char-count" id = "titleCount">
+                            <span id="titleCharCount">0</span>/100
+                    </div>
+                </div>
+                <div class="input-group">
+                    <textarea id="createPostContent" placeholder="내용을 입력하세요" maxlength="2000"></textarea>
+                    <div class="char-count" id = "contentCount">
+                            <span id="contentCharCount">0</span>/2000
+                    </div>
+                </div>
                 <button id="submitCreatePostBtn">게시</button>
             </div>
         </div>
@@ -252,10 +262,20 @@
 
     <!-- 모바일 네비게이션 -->
     <nav class="bottom-nav">
-        <div class = "hamburger-menu">
+        <div class = "hamburger-menu" id = "hamburgerMenu">
             <img src = "image/menu-icon.png" alt = "메뉴 아이콘">
         </div>
         <div class = "site-title">맛잘알연구소</div>
+
+        <div class="mobile-menu" id="mobileMenu">
+            <ul class="mobile-menu-list">
+                <li><a href="index.html">인기메뉴</a></li>
+                <li><a href="#">AI 메뉴 추천</a></li>
+                <li><a href="#">룰렛</a></li>
+                <li><a href="#">다마고치</a></li>
+                <li><a href="myprofile.html">마이페이지</a></li>
+            </ul>
+        </div>
     </nav>
 </body>
 </html>

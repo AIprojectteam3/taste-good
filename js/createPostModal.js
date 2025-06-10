@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const createPostNavNext = document.getElementById('createPostNavNext');
     const createPostTitleInput = document.getElementById('createPostTitle');
     const createPostContentInput = document.getElementById('createPostContent');
+    const titleCharCount = document.getElementById('titleCharCount');
+    const contentCharCount = document.getElementById('contentCharCount');
     const submitCreatePostBtn = document.getElementById('submitCreatePostBtn');
     const MAX_FILES_ALLOWED = 8;
     let uploadedFilesForCreatePost = []; // { file: FileObject, blobUrl: "blob:..." }
@@ -300,6 +302,14 @@ document.addEventListener('DOMContentLoaded', function() {
         createPostTitleInput.value = '';
         createPostContentInput.value = '';
         createPostImageUpload.value = '';
+    
+        // 글자 수 카운터 초기화
+        if (titleCharCount) {
+            titleCharCount.textContent = '0';
+        }
+        if (contentCharCount) {
+            contentCharCount.textContent = '0';
+        }
         
         // Blob URL 해제
         uploadedFilesForCreatePost.forEach(item => {
@@ -322,6 +332,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (submitCreatePostBtn) {
             submitCreatePostBtn.textContent = '게시';
         }
+        
+        // 폼 유효성 검사 초기화
+        checkFormValidity();
         
         updateCreatePostSliderView();
     }
@@ -507,11 +520,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // 게시물 수정 모달을 여는 함수
     function openEditModal(postDetail) {
         // 기존 게시물 작성 모달을 수정 모드로 활용
-        const createPostModal = document.getElementById('createPostFormModal');
-        const createPostTitleInput = document.getElementById('createPostTitle');
-        const createPostContentInput = document.getElementById('createPostContent');
-        const submitCreatePostBtn = document.getElementById('submitCreatePostBtn');
-        
         if (!createPostModal || !createPostTitleInput || !createPostContentInput || !submitCreatePostBtn) {
             alert('수정 모달을 찾을 수 없습니다.');
             return;
@@ -520,6 +528,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // 기존 데이터로 폼 채우기
         createPostTitleInput.value = postDetail.title;
         createPostContentInput.value = postDetail.content;
+
+        // 글자 수 카운터 업데이트
+        if (titleCharCount) {
+            titleCharCount.textContent = postDetail.title.length;
+        }
+        if (contentCharCount) {
+            contentCharCount.textContent = postDetail.content.length;
+        }
 
         uploadedFilesForCreatePost = [];
         currentCreatePostSlideIndex = 0;
@@ -563,6 +579,40 @@ document.addEventListener('DOMContentLoaded', function() {
         if (openCreatePostModalBtn) {
             openCreatePostModalBtn.classList.add('active');
         }
+    }
+
+    createPostTitleInput.addEventListener('input', handleTitleInput);
+    createPostContentInput.addEventListener('input', handleContentInput);
+
+    function handleTitleInput() {
+        const length = createPostTitleInput.value.length;
+        titleCharCount.textContent = length;
+        
+        if (length > 100) {
+            createPostTitleInput.value = createPostTitleInput.value.substring(0, 100);
+            titleCharCount.textContent = 100;
+        }
+        
+        checkFormValidity();
+    }
+
+    function handleContentInput() {
+        const length = createPostContentInput.value.length;
+        contentCharCount.textContent = length;
+        
+        if (length > 2000) {
+            createPostContentInput.value = createPostContentInput.value.substring(0, 2000);
+            contentCharCount.textContent = 2000;
+        }
+        
+        checkFormValidity();
+    }
+
+    function checkFormValidity() {
+        const hasTitle = createPostTitleInput.value.trim().length > 0;
+        const hasContent = createPostContentInput.value.trim().length > 0;
+        
+        submitCreatePostBtn.disabled = !(hasTitle && hasContent);
     }
 
     window.openEditModal = openEditModal;
