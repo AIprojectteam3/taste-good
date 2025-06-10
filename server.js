@@ -1012,257 +1012,6 @@ app.get('/api/user/bookmarks', (req, res) => {
 });
 
 // ==================================================================================================================
-// 게시물 검색 API (고급 검색 기능 포함)
-// ==================================================================================================================
-app.get('/api/posts/search', (req, res) => {
-    const { 
-        query, 
-        searchType = 'all', 
-        sortBy = 'date', 
-        dateFrom, 
-        dateTo, 
-        minViews, 
-        maxViews,
-        page = 1,
-        limit = 10
-    } = req.query;
-    
-    if (!query || query.trim() === '') {
-        return res.status(400).json({ error: '검색어를 입력해주세요.' });
-    }
-    
-    // 검색 조건 구성
-    let searchCondition = '';
-    let searchParams = [];
-    
-    switch (searchType) {
-        case 'title':
-            searchCondition = 'WHERE p.title LIKE ?';
-            searchParams = [`%${query}%`];
-            break;
-        case 'content':
-            searchCondition = 'WHERE p.content LIKE ?';
-            searchParams = [`%${query}%`];
-            break;
-        case 'author':
-            searchCondition = 'WHERE u.username LIKE ?';
-            searchParams = [`%${query}%`];
-            break;
-        case 'titleAndContent':
-            searchCondition = 'WHERE (p.title LIKE ? AND p.content LIKE ?)';
-            searchParams = [`%${query}%`, `%${query}%`];
-            break;
-        default: // 'all'
-            searchCondition = 'WHERE (p.title LIKE ? OR p.content LIKE ? OR u.username LIKE ?)';
-            searchParams = [`%${query}%`, `%${query}%`, `%${query}%`];
-    }
-    
-    // 날짜 필터 추가
-    if (dateFrom) {
-        searchCondition += ' AND p.created_at >= ?';
-        searchParams.push(dateFrom);
-    }
-    if (dateTo) {
-        searchCondition += ' AND p.created_at <= ?';
-        searchParams.push(dateTo + ' 23:59:59');
-    }
-    
-    // 조회수 필터 추가
-    if (minViews) {
-        searchCondition += ' AND p.views >= ?';
-        searchParams.push(parseInt(minViews));
-    }
-    if (maxViews) {
-        searchCondition += ' AND p.views <= ?';
-        searchParams.push(parseInt(maxViews));
-    }
-    
-    // 정렬 조건
-    let orderBy = '';
-    switch (sortBy) {
-        case 'views':
-            orderBy = 'ORDER BY p.views DESC';
-            break;
-        case 'likes':
-            orderBy = 'ORDER BY p.likes DESC';
-            break;
-        case 'comments':
-            orderBy = 'ORDER BY comment_count DESC';
-            break;
-        case 'title':
-            orderBy = 'ORDER BY p.title ASC';
-            break;
-        case 'author':
-            orderBy = 'ORDER BY u.username ASC';
-            break;
-        default: // 'date'
-            orderBy = 'ORDER BY p.created_at DESC';
-    }
-    
-    // 페이지네이션
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    const limitClause = `LIMIT ${parseInt(limit)} OFFSET ${offset}`;
-    
-    // 전체 개수 조회 쿼리
-    const countQuery = `
-        SELECT COUNT(*) as total
-        FROM posts p
-        LEFT JOIN users u ON p.user_id = u.id
-        ${searchCondition}
-    `;
-    
-    // 검색 결과 조회 쿼리
-    const searchQuery = `
-        SELECT
-            p.id,
-            p.title,
-            p.content,
-            p.created_at,
-            p.views,
-            p.likes,
-            p.user_id,
-            u.username as author_username,
-            u.profile_image_path as author_profile_path,
-            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
-        FROM posts p
-        LEFT JOIN users u ON p.user_id = u.id
-        ${searchCondition}
-        ${orderBy}
-        ${limitClause}
-    `;
-    
-    // 전체 개수 먼저 조회
-    db.query(countQuery, searchParams, (countErr, countResults) => {
-        if (countErr) {
-            console.error('검색 개수 조회 중 오류:', countErr);
-            return res.status(500).json({ error: '검색 중 서버 오류가 발생했습니다.' });
-        }
-        
-        const totalCount = countResults[0].total;
-        const totalPages = Math.ceil(totalCount / parseInt(limit));
-        
-        // 검색 결과 조회
-        db.query(searchQuery, searchParams, (err, results) => {
-            if (err) {
-                console.error('검색 중 오류:', err);
-                return res.status(500).json({ error: '검색 중 서버 오류가 발생했습니다.' });
-            }
-            
-            // 각 게시물에 대해 이미지 정보 가져오기
-            const postPromises = results.map(post => {
-                return new Promise((resolve, reject) => {
-                    const imageQuery = `
-                        SELECT REPLACE(file_path, '\\\\', '/') as file_path 
-                        FROM files 
-                        WHERE post_id = ? 
-                        ORDER BY id ASC
-                    `;
-                    
-                    db.query(imageQuery, [post.id], (imgErr, imageResults) => {
-                        if (imgErr) {
-                            console.error(`게시물 ${post.id} 이미지 조회 오류:`, imgErr);
-                            post.images = [];
-                            post.thumbnail_path = null;
-                        } else {
-                            post.images = imageResults.map(img => img.file_path);
-                            post.thumbnail_path = imageResults.length > 0 ? imageResults[0].file_path : null;
-                        }
-                        
-                        // 프로필 이미지 경로 처리
-                        if (post.author_profile_path) {
-                            post.author_profile_path = post.author_profile_path.replace(/\\/g, '/');
-                        } else {
-                            post.author_profile_path = 'image/profile-icon.png';
-                        }
-                        
-                        resolve(post);
-                    });
-                });
-            });
-            
-            Promise.all(postPromises)
-                .then(postsWithImages => {
-                    res.json({
-                        success: true,
-                        posts: postsWithImages,
-                        pagination: {
-                            currentPage: parseInt(page),
-                            totalPages: totalPages,
-                            totalCount: totalCount,
-                            limit: parseInt(limit),
-                            hasNext: parseInt(page) < totalPages,
-                            hasPrev: parseInt(page) > 1
-                        },
-                        searchInfo: {
-                            query: query,
-                            searchType: searchType,
-                            sortBy: sortBy,
-                            filters: {
-                                dateFrom: dateFrom,
-                                dateTo: dateTo,
-                                minViews: minViews,
-                                maxViews: maxViews
-                            }
-                        }
-                    });
-                })
-                .catch(promiseErr => {
-                    console.error('검색 결과 이미지 처리 중 오류:', promiseErr);
-                    res.status(500).json({ error: '검색 결과 처리 중 오류가 발생했습니다.' });
-                });
-        });
-    });
-});
-
-// ==================================================================================================================
-// 인기 검색어 API
-// ==================================================================================================================
-app.get('/api/search/popular', (req, res) => {
-    const query = `
-        SELECT search_term, COUNT(*) as search_count
-        FROM search_logs
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        GROUP BY search_term
-        ORDER BY search_count DESC
-        LIMIT 10
-    `;
-    
-    db.query(query, (err, results) => {
-        if (err) {
-            console.error('인기 검색어 조회 중 오류:', err);
-            return res.status(500).json({ error: '인기 검색어를 가져오는 데 실패했습니다.' });
-        }
-        
-        res.json({
-            success: true,
-            popularSearches: results
-        });
-    });
-});
-
-// ==================================================================================================================
-// 검색어 로깅 API
-// ==================================================================================================================
-app.post('/api/search/log', (req, res) => {
-    const { searchTerm, searchType, resultCount } = req.body;
-    const userId = req.session.userId || null;
-    
-    const insertQuery = `
-        INSERT INTO search_logs (user_id, search_term, search_type, result_count)
-        VALUES (?, ?, ?, ?)
-    `;
-    
-    db.query(insertQuery, [userId, searchTerm, searchType, resultCount], (err, result) => {
-        if (err) {
-            console.error('검색 로그 저장 중 오류:', err);
-            // 로그 저장 실패는 치명적이지 않으므로 에러를 반환하지 않음
-        }
-        
-        res.json({ success: true });
-    });
-});
-
-// ==================================================================================================================
 // 댓글 작성 API
 // ==================================================================================================================
 app.post('/api/post/:postId/comment', (req, res) => {
@@ -1509,6 +1258,575 @@ app.put('/api/user/profile', upload.single('profileImage'), (req, res) => {
         }
 
         res.json({ success: true, message: '프로필이 성공적으로 수정되었습니다.' });
+    });
+});
+
+// ==================================================================================================================
+// 게시물 검색 API (고급 검색 기능 포함)
+// ==================================================================================================================
+app.get('/api/posts/search', (req, res) => {
+    const { 
+        query, 
+        searchType = 'all', 
+        sortBy = 'date', 
+        dateFrom, 
+        dateTo, 
+        minViews, 
+        maxViews,
+        page = 1,
+        limit = 10
+    } = req.query;
+    
+    if (!query || query.trim() === '') {
+        return res.status(400).json({ error: '검색어를 입력해주세요.' });
+    }
+    
+    // 검색 조건 구성
+    let searchCondition = '';
+    let searchParams = [];
+    
+    switch (searchType) {
+        case 'title':
+            searchCondition = 'WHERE p.title LIKE ?';
+            searchParams = [`%${query}%`];
+            break;
+        case 'content':
+            searchCondition = 'WHERE p.content LIKE ?';
+            searchParams = [`%${query}%`];
+            break;
+        case 'author':
+            searchCondition = 'WHERE u.username LIKE ?';
+            searchParams = [`%${query}%`];
+            break;
+        case 'titleAndContent':
+            searchCondition = 'WHERE (p.title LIKE ? AND p.content LIKE ?)';
+            searchParams = [`%${query}%`, `%${query}%`];
+            break;
+        default: // 'all'
+            searchCondition = 'WHERE (p.title LIKE ? OR p.content LIKE ? OR u.username LIKE ?)';
+            searchParams = [`%${query}%`, `%${query}%`, `%${query}%`];
+    }
+    
+    // 날짜 필터 추가
+    if (dateFrom) {
+        searchCondition += ' AND p.created_at >= ?';
+        searchParams.push(dateFrom);
+    }
+    if (dateTo) {
+        searchCondition += ' AND p.created_at <= ?';
+        searchParams.push(dateTo + ' 23:59:59');
+    }
+    
+    // 조회수 필터 추가
+    if (minViews) {
+        searchCondition += ' AND p.views >= ?';
+        searchParams.push(parseInt(minViews));
+    }
+    if (maxViews) {
+        searchCondition += ' AND p.views <= ?';
+        searchParams.push(parseInt(maxViews));
+    }
+    
+    // 정렬 조건
+    let orderBy = '';
+    switch (sortBy) {
+        case 'views':
+            orderBy = 'ORDER BY p.views DESC';
+            break;
+        case 'likes':
+            orderBy = 'ORDER BY p.likes DESC';
+            break;
+        case 'comments':
+            orderBy = 'ORDER BY comment_count DESC';
+            break;
+        case 'title':
+            orderBy = 'ORDER BY p.title ASC';
+            break;
+        case 'author':
+            orderBy = 'ORDER BY u.username ASC';
+            break;
+        default: // 'date'
+            orderBy = 'ORDER BY p.created_at DESC';
+    }
+    
+    // 페이지네이션
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const limitClause = `LIMIT ${parseInt(limit)} OFFSET ${offset}`;
+    
+    // 전체 개수 조회 쿼리
+    const countQuery = `
+        SELECT COUNT(*) as total
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        ${searchCondition}
+    `;
+    
+    // 검색 결과 조회 쿼리
+    const searchQuery = `
+        SELECT
+            p.id,
+            p.title,
+            p.content,
+            p.created_at,
+            p.views,
+            p.likes,
+            p.user_id,
+            u.username as author_username,
+            u.profile_image_path as author_profile_path,
+            (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        ${searchCondition}
+        ${orderBy}
+        ${limitClause}
+    `;
+    
+    // 전체 개수 먼저 조회
+    db.query(countQuery, searchParams, (countErr, countResults) => {
+        if (countErr) {
+            console.error('검색 개수 조회 중 오류:', countErr);
+            return res.status(500).json({ error: '검색 중 서버 오류가 발생했습니다.' });
+        }
+        
+        const totalCount = countResults[0].total;
+        const totalPages = Math.ceil(totalCount / parseInt(limit));
+        
+        // 검색 결과 조회
+        db.query(searchQuery, searchParams, (err, results) => {
+            if (err) {
+                console.error('검색 중 오류:', err);
+                return res.status(500).json({ error: '검색 중 서버 오류가 발생했습니다.' });
+            }
+            
+            // 각 게시물에 대해 이미지 정보 가져오기
+            const postPromises = results.map(post => {
+                return new Promise((resolve, reject) => {
+                    const imageQuery = `
+                        SELECT REPLACE(file_path, '\\\\', '/') as file_path 
+                        FROM files 
+                        WHERE post_id = ? 
+                        ORDER BY id ASC
+                    `;
+                    
+                    db.query(imageQuery, [post.id], (imgErr, imageResults) => {
+                        if (imgErr) {
+                            console.error(`게시물 ${post.id} 이미지 조회 오류:`, imgErr);
+                            post.images = [];
+                            post.thumbnail_path = null;
+                        } else {
+                            post.images = imageResults.map(img => img.file_path);
+                            post.thumbnail_path = imageResults.length > 0 ? imageResults[0].file_path : null;
+                        }
+                        
+                        // 프로필 이미지 경로 처리
+                        if (post.author_profile_path) {
+                            post.author_profile_path = post.author_profile_path.replace(/\\/g, '/');
+                        } else {
+                            post.author_profile_path = 'image/profile-icon.png';
+                        }
+                        
+                        resolve(post);
+                    });
+                });
+            });
+            
+            Promise.all(postPromises)
+                .then(postsWithImages => {
+                    res.json({
+                        success: true,
+                        posts: postsWithImages,
+                        pagination: {
+                            currentPage: parseInt(page),
+                            totalPages: totalPages,
+                            totalCount: totalCount,
+                            limit: parseInt(limit),
+                            hasNext: parseInt(page) < totalPages,
+                            hasPrev: parseInt(page) > 1
+                        },
+                        searchInfo: {
+                            query: query,
+                            searchType: searchType,
+                            sortBy: sortBy,
+                            filters: {
+                                dateFrom: dateFrom,
+                                dateTo: dateTo,
+                                minViews: minViews,
+                                maxViews: maxViews
+                            }
+                        }
+                    });
+                })
+                .catch(promiseErr => {
+                    console.error('검색 결과 이미지 처리 중 오류:', promiseErr);
+                    res.status(500).json({ error: '검색 결과 처리 중 오류가 발생했습니다.' });
+                });
+        });
+    });
+});
+
+// ==================================================================================================================
+// 검색어 로깅 API
+// ==================================================================================================================
+app.post('/api/search/log', (req, res) => {
+    const { searchTerm, searchType, resultCount } = req.body;
+    const userId = req.session.userId || null;
+    
+    const insertQuery = `
+        INSERT INTO search_logs (user_id, search_term, search_type, result_count)
+        VALUES (?, ?, ?, ?)
+    `;
+    
+    db.query(insertQuery, [userId, searchTerm, searchType, resultCount], (err, result) => {
+        if (err) {
+            console.error('검색 로그 저장 중 오류:', err);
+            // 로그 저장 실패는 치명적이지 않으므로 에러를 반환하지 않음
+        }
+        
+        res.json({ success: true });
+    });
+});
+
+// ==================================================================================================================
+// 순위 변동 저장소 추가
+// ==================================================================================================================
+let rankingHistory = [];
+let rankingChangeTracker = new Map();
+let rankingTimers = new Map();
+let lastRankingSnapshot = new Map();
+
+// 순위 변동 정보 저장 함수 수정
+function trackRankingChange(searchTerm, oldRank, newRank, changeType) {
+    // 기존 타이머가 있으면 취소
+    if (rankingTimers.has(searchTerm)) {
+        clearTimeout(rankingTimers.get(searchTerm));
+        rankingTimers.delete(searchTerm);
+        console.log(`기존 변동 타이머 취소: ${searchTerm}`);
+    }
+    
+    const changeInfo = {
+        searchTerm: searchTerm,
+        oldRank: oldRank,
+        newRank: newRank,
+        changeType: changeType,
+        timestamp: new Date(),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10분 후 만료
+    };
+    
+    rankingChangeTracker.set(searchTerm, changeInfo);
+    // console.log(`순위 변동 추적 (새로운 10분 시작): ${searchTerm} - ${changeType} (${oldRank} → ${newRank})`);
+    
+    // 새로운 만료 타이머 설정
+    const timerId = setTimeout(() => {
+        if (rankingChangeTracker.has(searchTerm)) {
+            const currentInfo = rankingChangeTracker.get(searchTerm);
+            // 타임스탬프가 일치하는 경우에만 삭제 (중간에 새로운 변동이 없었던 경우)
+            if (currentInfo.timestamp.getTime() === changeInfo.timestamp.getTime()) {
+                rankingChangeTracker.delete(searchTerm);
+                rankingTimers.delete(searchTerm);
+                // console.log(`순위 변동 정보 만료: ${searchTerm}`);
+            }
+        }
+    }, 10 * 60 * 1000);
+    
+    rankingTimers.set(searchTerm, timerId);
+}
+
+// 순위 스냅샷 업데이트 함수 수정
+function updateRankingSnapshot(rankings) {
+    const newSnapshot = new Map();
+    rankings.forEach((item, index) => {
+        newSnapshot.set(item.search_term, {
+            rank: index + 1,
+            search_count: item.search_count,
+            timestamp: new Date()
+        });
+    });
+    
+    // 이전 스냅샷과 비교하여 변동 추적
+    if (lastRankingSnapshot.size > 0) {
+        // console.log('순위 변동 분석 시작...');
+        
+        // 현재 순위의 각 검색어에 대해 변동 확인
+        rankings.forEach((current, index) => {
+            const currentRank = index + 1;
+            const previousData = lastRankingSnapshot.get(current.search_term);
+            
+            if (!previousData) {
+                // 새로 진입한 검색어
+                trackRankingChange(current.search_term, null, currentRank, 'new');
+                // console.log(`신규 진입: ${current.search_term} (${currentRank}위)`);
+            } else {
+                const previousRank = previousData.rank;
+                if (previousRank > currentRank) {
+                    // 순위 상승 (숫자가 작아짐)
+                    trackRankingChange(current.search_term, previousRank, currentRank, 'up');
+                    // console.log(`순위 상승: ${current.search_term} (${previousRank}위 → ${currentRank}위) - 기존 변동 취소하고 새로 시작`);
+                } else if (previousRank < currentRank) {
+                    // 순위 하락 (숫자가 커짐)
+                    trackRankingChange(current.search_term, previousRank, currentRank, 'down');
+                    // console.log(`순위 하락: ${current.search_term} (${previousRank}위 → ${currentRank}위) - 기존 변동 취소하고 새로 시작`);
+                } else {
+                    // 순위 동일 - 기존 변동 정보 유지 (새로운 변동 추가하지 않음)
+                    // console.log(`순위 유지: ${current.search_term} (${currentRank}위) - 기존 변동 정보 유지`);
+                }
+            }
+        });
+        
+        // 순위에서 사라진 검색어들의 타이머 정리
+        lastRankingSnapshot.forEach((prevData, searchTerm) => {
+            const stillExists = rankings.some(current => current.search_term === searchTerm);
+            if (!stillExists) {
+                // console.log(`순위에서 사라짐: ${searchTerm} (이전 ${prevData.rank}위)`);
+                // 사라진 검색어의 타이머 정리
+                if (rankingTimers.has(searchTerm)) {
+                    clearTimeout(rankingTimers.get(searchTerm));
+                    rankingTimers.delete(searchTerm);
+                }
+                if (rankingChangeTracker.has(searchTerm)) {
+                    rankingChangeTracker.delete(searchTerm);
+                }
+            }
+        });
+    } else {
+        // console.log('첫 번째 순위 스냅샷 생성');
+    }
+    
+    lastRankingSnapshot = newSnapshot;
+}
+
+// 현재 유효한 변동 정보 가져오기
+function getRankingChangeInfo(searchTerm) {
+    const changeInfo = rankingChangeTracker.get(searchTerm);
+    if (changeInfo && changeInfo.expiresAt > new Date()) {
+        return changeInfo;
+    }
+    return null;
+}
+
+// 순위 스냅샷 업데이트
+function updateRankingSnapshot(rankings) {
+    const newSnapshot = new Map();
+    rankings.forEach((item, index) => {
+        newSnapshot.set(item.search_term, {
+            rank: index + 1,
+            search_count: item.search_count,
+            timestamp: new Date()
+        });
+    });
+    
+    // 이전 스냅샷과 비교하여 변동 추적
+    if (lastRankingSnapshot.size > 0) {
+        // console.log('순위 변동 분석 시작...');
+        
+        // 현재 순위의 각 검색어에 대해 변동 확인
+        rankings.forEach((current, index) => {
+            const currentRank = index + 1;
+            const previousData = lastRankingSnapshot.get(current.search_term);
+            
+            if (!previousData) {
+                // 새로 진입한 검색어
+                trackRankingChange(current.search_term, null, currentRank, 'new');
+                // console.log(`신규 진입: ${current.search_term} (${currentRank}위)`);
+            } else {
+                const previousRank = previousData.rank;
+                if (previousRank > currentRank) {
+                    // 순위 상승 (숫자가 작아짐)
+                    trackRankingChange(current.search_term, previousRank, currentRank, 'up');
+                    // console.log(`순위 상승: ${current.search_term} (${previousRank}위 → ${currentRank}위)`);
+                } else if (previousRank < currentRank) {
+                    // 순위 하락 (숫자가 커짐)
+                    trackRankingChange(current.search_term, previousRank, currentRank, 'down');
+                    // console.log(`순위 하락: ${current.search_term} (${previousRank}위 → ${currentRank}위)`);
+                } else {
+                    // 순위 동일 - 변동 정보 추가하지 않음
+                    // console.log(`순위 유지: ${current.search_term} (${currentRank}위)`);
+                }
+            }
+        });
+        
+        // 순위에서 사라진 검색어들 확인
+        lastRankingSnapshot.forEach((prevData, searchTerm) => {
+            const stillExists = rankings.some(current => current.search_term === searchTerm);
+            if (!stillExists) {
+                // console.log(`순위에서 사라짐: ${searchTerm} (이전 ${prevData.rank}위)`);
+                // 필요시 사라진 검색어에 대한 처리 추가
+            }
+        });
+    } else {
+        // console.log('첫 번째 순위 스냅샷 생성');
+    }
+    
+    lastRankingSnapshot = newSnapshot;
+}
+
+// ==================================================================================================================
+// 인기 검색어 순위 API
+// ==================================================================================================================
+app.get('/api/search/ranking', (req, res) => {
+    const { period = 1 } = req.query;
+    
+    // console.log('순위 조회 요청, period:', period);
+    
+    const currentRankingQuery = `
+        SELECT 
+            search_term,
+            COUNT(*) as search_count,
+            MAX(created_at) as last_searched
+        FROM search_logs
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+        GROUP BY search_term
+        ORDER BY search_count DESC, last_searched DESC
+        LIMIT 5
+    `;
+    
+    db.query(currentRankingQuery, [period], (err, currentResults) => {
+        if (err) {
+            console.error('현재 순위 조회 중 오류:', err);
+            return res.status(500).json({ error: '순위 조회 중 오류가 발생했습니다.' });
+        }
+        
+        const rankingWithChange = currentResults.map((item, index) => {
+            const currentRank = index + 1;
+            const changeInfo = getRankingChangeInfo(item.search_term);
+            
+            let rankChange = 'same';
+            let changeIcon = 'no-change-icon.png';
+            let changeText = '-';
+            let changeExpiresAt = null;
+            
+            if (changeInfo) {
+                const now = new Date();
+                const isExpired = changeInfo.expiresAt <= now;
+                
+                if (!isExpired) {
+                    switch (changeInfo.changeType) {
+                        case 'new':
+                            rankChange = 'new';
+                            changeIcon = 'new-badge';
+                            changeText = 'NEW';
+                            changeExpiresAt = changeInfo.expiresAt;
+                            break;
+                        case 'up':
+                            rankChange = 'up';
+                            changeIcon = 'rank-up-icon.png';
+                            changeText = `${changeInfo.oldRank - changeInfo.newRank}↑`;
+                            changeExpiresAt = changeInfo.expiresAt;
+                            break;
+                        case 'down':
+                            rankChange = 'down';
+                            changeIcon = 'rank-down-icon.png';
+                            changeText = `${changeInfo.newRank - changeInfo.oldRank}↓`;
+                            changeExpiresAt = changeInfo.expiresAt;
+                            break;
+                    }
+                }
+            }
+            
+            return {
+                rank: currentRank,
+                search_term: item.search_term,
+                search_count: item.search_count,
+                rank_change: rankChange,
+                change_icon: changeIcon,
+                change_text: changeText,
+                last_searched: item.last_searched,
+                change_expires_at: changeExpiresAt
+            };
+        });
+        
+        res.json({
+            success: true,
+            rankings: rankingWithChange,
+            period: period,
+            updated_at: new Date().toISOString()
+        });
+    });
+});
+
+// ==================================================================================================================
+// 실시간 순위 업데이트를 위한 WebSocket 또는 SSE 대신 폴링 방식
+// ==================================================================================================================
+app.get('/api/search/ranking/live', (req, res) => {
+    // console.log('실시간 순위 조회 요청');
+    
+    const query = `
+        SELECT 
+            search_term,
+            COUNT(*) as search_count,
+            MAX(created_at) as last_searched
+        FROM search_logs
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+        GROUP BY search_term
+        ORDER BY search_count DESC, last_searched DESC
+        LIMIT 5
+    `;
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('실시간 순위 조회 중 오류:', err);
+            return res.status(500).json({ error: '실시간 순위 조회 중 오류가 발생했습니다.' });
+        }
+        
+        // console.log('실시간 순위 결과:', results);
+        
+        // 순위 변동 추적
+        updateRankingSnapshot(results);
+        
+        // 순위 변동 정보 포함하여 응답 생성
+        const rankingWithChange = results.map((item, index) => {
+            const currentRank = index + 1;
+            const changeInfo = getRankingChangeInfo(item.search_term);
+            
+            let rankChange = 'same';
+            let changeIcon = 'no-change-icon.png';
+            let changeText = '-';
+            let changeExpiresAt = null;
+            
+            if (changeInfo) {
+                const now = new Date();
+                const isExpired = changeInfo.expiresAt <= now;
+                
+                if (!isExpired) {
+                    switch (changeInfo.changeType) {
+                        case 'new':
+                            rankChange = 'new';
+                            changeIcon = 'new-badge';
+                            changeText = 'NEW';
+                            changeExpiresAt = changeInfo.expiresAt;
+                            break;
+                        case 'up':
+                            rankChange = 'up';
+                            changeIcon = 'rank-up-icon.png';
+                            changeText = `${changeInfo.oldRank - changeInfo.newRank}↑`;
+                            changeExpiresAt = changeInfo.expiresAt;
+                            break;
+                        case 'down':
+                            rankChange = 'down';
+                            changeIcon = 'rank-down-icon.png';
+                            changeText = `${changeInfo.newRank - changeInfo.oldRank}↓`;
+                            changeExpiresAt = changeInfo.expiresAt;
+                            break;
+                    }
+                }
+            }
+            
+            return {
+                rank: currentRank,
+                search_term: item.search_term,
+                search_count: item.search_count,
+                rank_change: rankChange,
+                change_icon: changeIcon,
+                change_text: changeText,
+                last_searched: item.last_searched,
+                change_expires_at: changeExpiresAt
+            };
+        });
+        
+        res.json({
+            success: true,
+            live_rankings: rankingWithChange,
+            updated_at: new Date().toISOString()
+        });
     });
 });
 
