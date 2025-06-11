@@ -160,6 +160,18 @@ body {
     border-radius: 12px;
 }
 
+.rank-item:nth-child(1) {
+    border-left: 3px solid #FFD700;
+}
+
+.rank-item:nth-child(2) {
+    border-left: 3px solid #C0C0C0;
+}
+
+.rank-item:nth-child(3) {
+    border-left: 3px solid #CD7F32;
+}
+
 @keyframes newBadgePulse {
     0%, 100% { 
         transform: scale(1);
