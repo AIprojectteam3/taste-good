@@ -2,19 +2,18 @@
 async function fetchUserPosts() {
     try {
         const response = await fetch('/api/user/posts');
-        
         // 401 오류 시 로그인 페이지로 리다이렉트
         if (response.status === 401) {
             alert('세션이 만료되었습니다. 다시 로그인해주세요.');
             window.location.href = '/intro.html';
             return [];
         }
-        
+
         if (!response.ok) {
             console.error("사용자 게시물 로드 실패:", response.status);
             return [];
         }
-        
+
         const posts = await response.json();
         return posts || [];
     } catch (error) {
@@ -27,19 +26,18 @@ async function fetchUserPosts() {
 async function fetchUserBookmarks() {
     try {
         const response = await fetch('/api/user/bookmarks');
-        
         // 401 오류 시 로그인 페이지로 리다이렉트
         if (response.status === 401) {
             alert('세션이 만료되었습니다. 다시 로그인해주세요.');
             window.location.href = '/intro.html';
             return [];
         }
-        
+
         if (!response.ok) {
             console.error("사용자 북마크 로드 실패:", response.status);
             return [];
         }
-        
+
         const bookmarks = await response.json();
         return bookmarks || [];
     } catch (error) {
@@ -140,7 +138,7 @@ async function loadProfileData() {
                 passwordInput.style.backgroundColor = '#f5f5f5';
                 passwordInput.style.color = '#666';
             }
-            
+
             if (passwordConfirmInput) {
                 passwordConfirmInput.disabled = true;
                 passwordConfirmInput.placeholder = "소셜 로그인은 비밀번호를 변경할 수 없습니다";
@@ -155,7 +153,7 @@ async function loadProfileData() {
                 passwordInput.style.backgroundColor = '';
                 passwordInput.style.color = '';
             }
-            
+
             if (passwordConfirmInput) {
                 passwordConfirmInput.disabled = false;
                 passwordConfirmInput.placeholder = "비밀번호 확인";
@@ -176,19 +174,45 @@ async function loadProfileData() {
 
 function updateTabContentAndContainerHeight(tabContentSelector) {
     if (isMobile()) return;
-    
+
     const content = document.querySelector(tabContentSelector);
     if (!content) return;
-    
-    // 기존 강제 높이 설정 제거
-    content.style.gridAutoRows = 'auto'; // 자동 높이로 변경
-    content.style.height = 'auto'; // 컨테이너 높이도 자동으로
-    
-    // 컨테이너 높이 강제 설정 제거
-    const container = document.querySelector('.container');
-    if (container) {
-        container.style.height = 'auto';
+
+    // 탭이 숨겨져 있으면 계산 정확도 높이기 위해 임시로 표시
+    const wasHidden = content.classList.contains('hidden');
+    if (wasHidden) {
+        content.classList.remove('hidden');
+        content.style.visibility = 'hidden';
+        content.style.position = 'absolute';
     }
+
+    const cards = content.querySelectorAll('.card');
+    if (cards.length === 0) {
+        if (wasHidden) {
+            content.classList.add('hidden');
+            content.style.visibility = '';
+            content.style.position = '';
+        }
+        return;
+    }
+
+    // 강제 높이 계산 제거하고 자동 높이로 설정
+    setTimeout(() => {
+        content.style.gridAutoRows = 'auto'; // 자동 높이
+        content.style.height = 'auto'; // 컨테이너 높이도 자동
+
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.height = 'auto';
+        }
+
+        // 원래 상태로 복원
+        if (wasHidden) {
+            content.classList.add('hidden');
+            content.style.visibility = '';
+            content.style.position = '';
+        }
+    }, 200);
 }
 
 // 빈 상태를 표시하는 함수
@@ -196,11 +220,10 @@ function renderEmptyState(containerSelector, message) {
     const container = document.querySelector(containerSelector);
     container.innerHTML = '';
     container.classList.add('empty-state-container');
-    
+
     const emptyDiv = document.createElement('div');
     emptyDiv.className = 'empty-state';
     emptyDiv.textContent = message;
-    
     container.appendChild(emptyDiv);
 }
 
@@ -211,7 +234,7 @@ const bookmark = document.getElementById('favorites');
 function createCard(post, isPlaceholder = false) {
     const card = document.createElement('div');
     card.className = 'card';
-    
+
     if (isPlaceholder) {
         // 기존 플레이스홀더 로직 유지
         const imgDiv = document.createElement('div');
@@ -241,16 +264,14 @@ function createCard(post, isPlaceholder = false) {
             transition: all 0.3s ease;
         `;
         card.appendChild(title);
-
         return card;
     }
 
     // 실제 게시물 데이터 처리
     // data-post-id 속성 추가
     card.setAttribute('data-post-id', post.id);
-    
+
     const img = document.createElement('img');
-    
     // 게시물에 이미지가 있는 경우 첫 번째 이미지 사용, 없으면 기본 이미지
     if (post.images && post.images.length > 0) {
         img.src = post.images[0]; // 첫 번째 이미지 사용
@@ -261,7 +282,7 @@ function createCard(post, isPlaceholder = false) {
         img.src = 'image/default-post.png'; // 기본 게시물 이미지
         img.alt = '이미지 없음';
     }
-    
+
     img.alt = post.title;
     img.style.width = '100%';
     img.style.height = '100%';
@@ -283,12 +304,15 @@ function createCard(post, isPlaceholder = false) {
         transition: all 0.3s ease;
     `;
 
-    // 게시물 클릭 시 모달 호출로 변경
+    // 게시물 클릭 시 메인페이지로 이동하도록 수정
     card.addEventListener('click', (event) => {
         event.preventDefault(); // 기본 동작 방지
         
-        if (!isMobile()) {
-            // 함수가 정의되어 있는지 확인
+        if (isMobile()) {
+            // 모바일에서는 메인페이지로 이동하면서 게시물 ID 전달
+            window.location.href = `/index.html?postId=${post.id}`;
+        } else {
+            // PC에서는 기존 모달 로직 유지
             if (typeof displayPostModal === 'function') {
                 displayPostModal(post.id);
             } else {
@@ -302,6 +326,7 @@ function createCard(post, isPlaceholder = false) {
         title.style.opacity = '1';
         title.style.bottom = '0';
     });
+
     card.addEventListener('mouseleave', () => {
         title.style.opacity = '0';
         title.style.bottom = '-30px';
@@ -316,35 +341,42 @@ function createCard(post, isPlaceholder = false) {
 function renderCardsTo(containerSelector, dataArray) {
     const container = document.querySelector(containerSelector);
     container.innerHTML = '';
-    
+
+    // 카드 추가
     dataArray.forEach(item => {
         container.appendChild(createCard(item));
     });
-    
-    // 이미지 로딩 완료 후 간단한 높이 재설정
+
+    // 이미지 로드 감지 후 높이 재계산
     const images = container.querySelectorAll('img');
     let loadedCount = 0;
-    
+
+    // 이미지가 없는 경우 바로 높이 계산
     if (images.length === 0) {
-        // 이미지가 없으면 바로 자동 높이 설정
-        container.style.gridAutoRows = 'auto';
+        updateTabContentAndContainerHeight(containerSelector);
         return;
     }
-    
+
+    // 각 이미지 로드 이벤트
     images.forEach(img => {
-        const checkLoaded = () => {
+        if (img.complete) {
             loadedCount++;
             if (loadedCount === images.length) {
-                // 모든 이미지 로딩 완료 후 자동 높이로 설정
-                container.style.gridAutoRows = 'auto';
+                updateTabContentAndContainerHeight(containerSelector);
             }
-        };
-        
-        if (img.complete) {
-            checkLoaded();
         } else {
-            img.onload = checkLoaded;
-            img.onerror = checkLoaded;
+            img.onload = () => {
+                loadedCount++;
+                if (loadedCount === images.length) {
+                    updateTabContentAndContainerHeight(containerSelector);
+                }
+            };
+            img.onerror = () => {
+                loadedCount++;
+                if (loadedCount === images.length) {
+                    updateTabContentAndContainerHeight(containerSelector);
+                }
+            };
         }
     });
 }
@@ -352,18 +384,18 @@ function renderCardsTo(containerSelector, dataArray) {
 // 그리드 행 높이 조정 함수
 function adjustGridRows() {
     if (isMobile()) return;
-    
+
     requestAnimationFrame(() => {
         const grid = document.querySelector('.content');
         const cards = grid.querySelectorAll('.card:not(.hidden)');
         if (cards.length === 0) return;
+
+        // 자동 높이로 설정
+        grid.style.gridAutoRows = 'auto';
         
-        // 강제 높이 설정 제거
-        grid.style.gridAutoRows = 'auto'; // 카드 너비 기반 높이 설정 제거
-        
-        // 각 카드의 개별 높이 설정도 제거
+        // 개별 카드 높이 강제 설정 제거
         cards.forEach(card => {
-            card.style.height = 'auto'; // 또는 CSS aspect-ratio 사용
+            card.style.height = 'auto';
         });
     });
 }
@@ -373,7 +405,6 @@ function isMobile() {
 }
 
 let prevIsMobile = window.matchMedia("(max-width: 768px)").matches;
-
 window.addEventListener('resize', () => {
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
     // PC→모바일 또는 모바일→PC로 변경될 때만 새로고침
@@ -398,7 +429,7 @@ document.querySelectorAll('.card').forEach(card => {
 // 프로필 수정 처리 함수
 async function handleProfileUpdate(event) {
     event.preventDefault();
-    
+
     const formData = new FormData();
     const usernameInput = document.querySelector('.username_input');
     const profileDescInput = document.querySelector('.shortInfo');
@@ -420,11 +451,11 @@ async function handleProfileUpdate(event) {
     if (usernameInput && usernameInput.value.trim()) {
         formData.append('username', usernameInput.value.trim());
     }
-    
+
     if (profileDescInput && profileDescInput.value.trim()) {
         formData.append('profileDescription', profileDescInput.value.trim());
     }
-    
+
     if (passwordInput && passwordInput.value) {
         if (passwordInput.value !== passwordConfirmInput.value) {
             alert('비밀번호가 일치하지 않습니다.');
@@ -433,7 +464,7 @@ async function handleProfileUpdate(event) {
         formData.append('password', passwordInput.value);
         formData.append('passwordConfirm', passwordConfirmInput.value);
     }
-    
+
     if (profileImageInput && profileImageInput.files[0]) {
         formData.append('profileImage', profileImageInput.files[0]);
     }
@@ -445,7 +476,7 @@ async function handleProfileUpdate(event) {
         });
 
         const result = await response.json();
-        
+
         if (result.success) {
             alert('프로필이 성공적으로 수정되었습니다.');
             // 모달 닫기
@@ -481,7 +512,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.addEventListener('resize', () => {
         adjustGridRows();
     });
-    
+
     const tabs = document.querySelectorAll(".tab");
     const tabContents = document.querySelectorAll(".tab-content");
 
@@ -544,7 +575,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     profileImagePreview.src = e.target.result;
-                }
+                };
                 reader.readAsDataURL(file);
             } else if (file) {
                 // 이미지 파일이 아닌 경우 사용자에게 알림 (선택 사항)
@@ -559,9 +590,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         editBtn.addEventListener('click', () => {
             modal.style.display = 'flex';
         });
+
         editBtnM.addEventListener('click', () => {
             modal.style.display = 'flex';
         });
+
         closeBtn.addEventListener('click', () => {
             modal.style.display = 'none';
         });
@@ -580,7 +613,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (profileForm) {
         profileForm.addEventListener('submit', handleProfileUpdate);
     }
-    
+
     // 게시물 모달 관련
     const postmodal = document.getElementById('index-modal');
     const closeModalBtn = document.querySelector('.close-modal');

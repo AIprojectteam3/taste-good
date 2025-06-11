@@ -601,8 +601,68 @@ function getSortByText(sortBy) {
     return sorts[sortBy] || '최신순';
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    renderCards();
+// URL 파라미터에서 게시물 ID 추출
+function getPostIdFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('postId');
+}
+
+// 특정 게시물을 찾아서 해당 위치로 스크롤
+async function scrollToSpecificPost(postId) {
+    if (!postId) return;
+    
+    // 잠시 대기 후 카드를 찾음 (렌더링 완료 대기)
+    setTimeout(() => {
+        const targetCard = document.querySelector(`[data-post-id="${postId}"]`);
+        if (targetCard) {
+            // 해당 카드로 스크롤
+            targetCard.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // 모바일에서 카드 하이라이트 효과 (선택사항)
+            if (isMobile()) {
+                targetCard.style.border = '3px solid #FF6B6B';
+                setTimeout(() => {
+                    targetCard.style.border = '';
+                }, 3000);
+            }
+        }
+    }, 50);
+}
+
+// 특정 게시물 하이라이트 함수
+function highlightPost(postId) {
+    const targetCard = document.querySelector(`[data-post-id="${postId}"]`);
+    if (targetCard && isMobile()) {
+        // 카드 확장 (더보기 버튼 자동 클릭)
+        const readMoreBtn = targetCard.querySelector('.read-more-btn');
+        if (readMoreBtn && readMoreBtn.style.display !== 'none') {
+            readMoreBtn.click();
+        }
+        
+        // 시각적 강조
+        targetCard.style.boxShadow = '0 0 20px rgba(255, 107, 107, 0.5)';
+        setTimeout(() => {
+            targetCard.style.boxShadow = '';
+        }, 3000);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    await renderCards();
+
+    // URL에 postId 파라미터가 있으면 해당 게시물로 스크롤
+    const postId = getPostIdFromURL();
+    if (postId) {
+        scrollToSpecificPost(postId);
+        
+        // URL에서 파라미터 제거 (선택사항)
+        const url = new URL(window.location);
+        url.searchParams.delete('postId');
+        window.history.replaceState({}, document.title, url.pathname);
+    }
 
     let lastIsMobile = isMobile();
 
