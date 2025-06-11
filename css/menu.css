@@ -226,15 +226,15 @@ body {
 }
 
 .rank-up-animation {
-    animation: rankUp 0.5s ease-out;
+    animation: rankUp 1s ease-out forwards;
 }
 
 .rank-down-animation {
-    animation: rankDown 0.5s ease-out;
+    animation: rankDown 1s ease-out forwards;
 }
 
 .rank-new-animation {
-    animation: newEntry 0.8s ease-out;
+    animation: newEntry 1s ease-out forwards;
 }
 
 /* 실시간 업데이트 표시 */

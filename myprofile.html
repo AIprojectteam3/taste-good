@@ -248,8 +248,18 @@
                 </div>
             </div>
             <div class="create-post-form-right">
-                <input type="text" id="createPostTitle" placeholder="제목을 입력하세요">
-                <textarea id="createPostContent" placeholder="내용을 입력하세요"></textarea>
+                <div class="input-group">
+                    <input type="text" id="createPostTitle" placeholder="제목을 입력하세요" maxlength="100">
+                    <div class="char-count" id = "titleCount">
+                            <span id="titleCharCount">0</span>/100
+                    </div>
+                </div>
+                <div class="input-group">
+                    <textarea id="createPostContent" placeholder="내용을 입력하세요" maxlength="2000"></textarea>
+                    <div class="char-count" id = "contentCount">
+                            <span id="contentCharCount">0</span>/2000
+                    </div>
+                </div>
                 <button id="submitCreatePostBtn">수정</button>
             </div>
         </div>
