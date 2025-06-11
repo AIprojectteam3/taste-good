@@ -180,68 +180,15 @@ function updateTabContentAndContainerHeight(tabContentSelector) {
     const content = document.querySelector(tabContentSelector);
     if (!content) return;
     
-    // 탭이 숨겨져 있으면 계산 정확도 높이기 위해 임시로 표시
-    const wasHidden = content.classList.contains('hidden');
-    if (wasHidden) {
-        content.classList.remove('hidden');
-        content.style.visibility = 'hidden'; // 시각적으로만 숨김
-        content.style.position = 'absolute'; // 레이아웃에 영향 없게
-    }
+    // 기존 강제 높이 설정 제거
+    content.style.gridAutoRows = 'auto'; // 자동 높이로 변경
+    content.style.height = 'auto'; // 컨테이너 높이도 자동으로
     
-    const computedStyle = window.getComputedStyle(content);
+    // 컨테이너 높이 강제 설정 제거
     const container = document.querySelector('.container');
-    const cards = content.querySelectorAll('.card');
-    
-    if (cards.length === 0) {
-        if (wasHidden) {
-            content.classList.add('hidden');
-            content.style.visibility = '';
-            content.style.position = '';
-        }
-        return;
+    if (container) {
+        container.style.height = 'auto';
     }
-
-    // 이미지 로드 확인
-    let loadedImages = 0;
-    const totalImages = content.querySelectorAll('img').length;
-    
-    // 모든 그리드 계산 지연
-    setTimeout(() => {
-        // 1. 실제 열 개수 계산 (첫 행에 있는 카드 개수)
-        let firstRowTop = cards[0].offsetTop;
-        let columns = 0;
-    
-        for (let card of cards) {
-            if (card.offsetTop === firstRowTop) {
-                columns++;
-            } else {
-                break;
-            }
-        }
-
-        // 최소 1열 보장
-        columns = Math.max(1, columns);
-        
-        // 2. 행 개수 계산
-        const numRows = Math.ceil(cards.length / columns);
-        const cardHeight = cards[0].offsetHeight;
-        const contentGap = parseInt(computedStyle.gap);
-        const totalHeight = (numRows * cardHeight) + ((numRows - 1) * contentGap) + 40;
-        
-        content.style.gridAutoRows = `${cardHeight}px`; // 행 높이 명시적 설정
-        content.style.height = `${totalHeight}px`;
-        
-        if (container) {
-            container.style.height = `${totalHeight}px`;
-        }
-
-      // 원래 상태로 복원
-        if (wasHidden) {
-            content.classList.add('hidden');
-            content.style.visibility = '';
-            content.style.position = '';
-        }
-    }, 200); // 지연 시간 증가
 }
 
 // 빈 상태를 표시하는 함수
@@ -370,42 +317,34 @@ function renderCardsTo(containerSelector, dataArray) {
     const container = document.querySelector(containerSelector);
     container.innerHTML = '';
     
-    // 카드 추가
     dataArray.forEach(item => {
         container.appendChild(createCard(item));
     });
     
-    // 이미지 로드 감지 후 높이 재계산
+    // 이미지 로딩 완료 후 간단한 높이 재설정
     const images = container.querySelectorAll('img');
     let loadedCount = 0;
     
-    // 이미지가 없는 경우 바로 높이 계산
     if (images.length === 0) {
-        updateTabContentAndContainerHeight(containerSelector);
+        // 이미지가 없으면 바로 자동 높이 설정
+        container.style.gridAutoRows = 'auto';
         return;
     }
     
-    // 각 이미지 로드 이벤트
     images.forEach(img => {
-        if (img.complete) {
+        const checkLoaded = () => {
             loadedCount++;
             if (loadedCount === images.length) {
-                updateTabContentAndContainerHeight(containerSelector);
+                // 모든 이미지 로딩 완료 후 자동 높이로 설정
+                container.style.gridAutoRows = 'auto';
             }
-        } else {
-            img.onload = () => {
-                loadedCount++;
-                if (loadedCount === images.length) {
-                    updateTabContentAndContainerHeight(containerSelector);
-                }
-            };
+        };
         
-            img.onerror = () => {
-            loadedCount++;
-                if (loadedCount === images.length) {
-                    updateTabContentAndContainerHeight(containerSelector);
-                }
-            };
+        if (img.complete) {
+            checkLoaded();
+        } else {
+            img.onload = checkLoaded;
+            img.onerror = checkLoaded;
         }
     });
 }
@@ -413,16 +352,18 @@ function renderCardsTo(containerSelector, dataArray) {
 // 그리드 행 높이 조정 함수
 function adjustGridRows() {
     if (isMobile()) return;
-
+    
     requestAnimationFrame(() => {
         const grid = document.querySelector('.content');
         const cards = grid.querySelectorAll('.card:not(.hidden)');
         if (cards.length === 0) return;
-
-        const cardWidth = cards[0].offsetWidth;
-        grid.style.gridAutoRows = `${cardWidth}px`;
+        
+        // 강제 높이 설정 제거
+        grid.style.gridAutoRows = 'auto'; // 카드 너비 기반 높이 설정 제거
+        
+        // 각 카드의 개별 높이 설정도 제거
         cards.forEach(card => {
-            card.style.height = `${cardWidth}px`;
+            card.style.height = 'auto'; // 또는 CSS aspect-ratio 사용
         });
     });
 }
