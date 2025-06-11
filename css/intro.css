@@ -691,11 +691,14 @@ body {
 
     .one_content {
         transform : translate(-50%, -50%);
-        font-size : 3rem;
     }
 
     .one_content > span {
-        font-size : 2.5rem;
+        font-size : 2.1rem;
+    }
+
+    .start_button {
+        font-size : 2.1rem;
     }
 
     .main_content {
@@ -721,6 +724,24 @@ body {
     .text_div {
         width : 80%;
         font-size : 1.5rem
+    }
+
+    .logoBot {
+        font-size : 1.1rem;
+    }
+
+    .footer_copyright {
+        font-size : 0.8rem;
+    }
+
+    .sns_img {
+        flex-direction : column;
+        gap : 5px;
+    }
+
+    .sns_img a, .sns_img img {
+        width : 30px;
+        height : 30px;
     }
 }
 
