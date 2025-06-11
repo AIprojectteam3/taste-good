@@ -696,7 +696,7 @@ app.get('/api/post/:postId', (req, res) => {
             }
 
             if (viewResults.length > 0) {
-                console.log(`[INFO] User ${userId} recently viewed post ${postId}. No view count increment.`);
+                // console.log(`[INFO] User ${userId} recently viewed post ${postId}. No view count increment.`);
                 return callback(); // 24시간 내 조회 기록 있으면 콜백
             }
 
@@ -782,7 +782,7 @@ app.get('/api/post/:postId', (req, res) => {
                     console.error(`[ERROR] 게시물(ID: ${postId})의 댓글 가져오기 중 DB 오류:`, commentErr);
                     postDetail.comments = []; // 댓글 조회 실패 시 빈 배열
                 } else {
-                    console.log(`[INFO] 게시물(ID: ${postId}) 댓글 조회 완료 (개수: ${comments.length})`);
+                    // console.log(`[INFO] 게시물(ID: ${postId}) 댓글 조회 완료 (개수: ${comments.length})`);
                     postDetail.comments = comments;
                 }
                 res.json(postDetail); // 게시물 상세 정보와 댓글 함께 반환
@@ -1496,11 +1496,10 @@ let lastRankingSnapshot = new Map();
 
 // 순위 변동 정보 저장 함수 수정
 function trackRankingChange(searchTerm, oldRank, newRank, changeType) {
-    // 기존 타이머가 있으면 취소
     if (rankingTimers.has(searchTerm)) {
         clearTimeout(rankingTimers.get(searchTerm));
         rankingTimers.delete(searchTerm);
-        console.log(`기존 변동 타이머 취소: ${searchTerm}`);
+        // console.log(`기존 변동 타이머 취소: ${searchTerm}`);
     }
     
     const changeInfo = {
@@ -1515,11 +1514,9 @@ function trackRankingChange(searchTerm, oldRank, newRank, changeType) {
     rankingChangeTracker.set(searchTerm, changeInfo);
     // console.log(`순위 변동 추적 (새로운 10분 시작): ${searchTerm} - ${changeType} (${oldRank} → ${newRank})`);
     
-    // 새로운 만료 타이머 설정
     const timerId = setTimeout(() => {
         if (rankingChangeTracker.has(searchTerm)) {
             const currentInfo = rankingChangeTracker.get(searchTerm);
-            // 타임스탬프가 일치하는 경우에만 삭제 (중간에 새로운 변동이 없었던 경우)
             if (currentInfo.timestamp.getTime() === changeInfo.timestamp.getTime()) {
                 rankingChangeTracker.delete(searchTerm);
                 rankingTimers.delete(searchTerm);
