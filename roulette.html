@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>룰렛</title>
+    <link rel="stylesheet" href="css/menu.css">
+
+    <script src = "js/Back/menu.js"></script>
+    <script src = "js/Back/checkAuth.js"></script>
+</head>
+<body>
+    <div class = "container">
+        <!-- 메뉴 영역 -->
+        <aside class="menu">
+            <section class="profile">
+                <div class = "profile-header">
+                    <div class="image">
+                        <img src="image/profile-icon.png" alt="프로필 사진" />
+                    </div>
+                    <div class="nickname">방문자</div>
+                    <div class="level">
+                        <span class="level-text">LV.</span>
+                        <span class="level-text level-value">0</span>
+                        <span class="level-icon"><img class = "level_icon" src = "image/dropper-icon.png" alt = "레벨 아이콘"></span>
+                    </div>
+                </div>
+                <div class = "profile-stats">
+                    <div class="post">
+                        <a href = "#">
+                            <span>Posts</span>
+                            <span class = "post-count">0</span>
+                        </a>
+                    </div>
+                    <div class="follower">
+                        <a href = "#">
+                            <span>Followers</span>
+                            <span class = "follower-count">0</span>
+                        </a>
+                    </div>
+                    <div class="point">
+                        <a href = "#">
+                            <span>Point</span>
+                            <span class = "point-count">0</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 차트 영역 -->
+            <section class="chart">
+                <ol>
+                    <li>
+                        <span>1.</span>
+                        <span>엽기 떡볶이</span>
+                        <img src = "image/no-change-icon.png" alt = "순위 변동 없음">
+                    </li>
+                    <li>
+                        <span>2.</span>
+                        <span>공차</span>
+                        <img src = "image/rank-up-icon.png" alt = "순위 상승">
+                    </li>
+                    <li>
+                        <span>3.</span>
+                        <span>마크 정식</span>
+                        <img src = "image/rank-down-icon.png" alt = "순위 하락">
+                    </li>
+                    <li>
+                        <span>4.</span>
+                        <span>버거킹</span>
+                        <img src = "image/rank-down-icon.png" alt = "순위 하락">
+                    </li>
+                    <li>
+                        <span>5.</span>
+                        <span>서브웨이</span>
+                        <img src = "image/rank-down-icon.png" alt = "순위 하락">
+                    </li>
+                </ol>
+            </section>
+
+            <!-- 메인 메뉴 -->
+            <nav class="main-menu">
+                <ul>
+                    <hr>
+                    <li><a href = "index.html">
+                        <img src = "image/popularity-icon.png" alt = "인기 메뉴">
+                        <span>인기 메뉴</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "#">
+                        <img src = "image/ai-icon.png" alt = "AI 메뉴 추천">
+                        <span>AI 메뉴 추천</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "#">
+                        <img src = "image/search-icon.png" alt = "검색">
+                        <span>검색</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "roulette.html">
+                        <img src = "image/roulette-icon.png" alt = "룰렛">
+                        <span>룰렛</span>
+                    </a></li>
+                    <li><a href = "#">
+                        <img src = "image/tamagotchi-icon.png" alt = "다마고치">
+                        <span>다마고치</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "myprofile.html">
+                        <img src = "image/myprofile-icon.png" alt = "마이페이지">
+                        <span>마이페이지</span>
+                    </a></li>
+                    <hr>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class = "roulette">
+            
+        </main>
+    </div>
+
+    <!-- 모바일 네비게이션 -->
+    <nav class="bottom-nav">
+        <div class = "hamburger-menu" id = "hamburgerMenu">
+            <img src = "image/menu-icon.png" alt = "메뉴 아이콘">
+        </div>
+        <div class = "site-title">맛잘알연구소</div>
+
+        <div class="mobile-menu" id="mobileMenu">
+            <ul class="mobile-menu-list">
+                <li><a href="index.html">인기메뉴</a></li>
+                <li><a href="#">AI 메뉴 추천</a></li>
+                <li><a href="#">룰렛</a></li>
+                <li><a href="#">다마고치</a></li>
+                <li><a href="myprofile.html">마이페이지</a></li>
+            </ul>
+        </div>
+    </nav>
+</body>
+</html>
