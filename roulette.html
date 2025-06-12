@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>룰렛</title>
     <link rel="stylesheet" href="css/menu.css">
+    <link rel="stylesheet" href="css/roulette.css">
 
     <script src = "js/Back/menu.js"></script>
     <script src = "js/Back/checkAuth.js"></script>
@@ -116,7 +117,29 @@
         </aside>
 
         <main class = "roulette">
-            
+            <h1>🍽️ 맛잘알 룰렛</h1>
+            <div class="main-layout">
+                <div class="left-area">
+                    <div class="roulette-area">
+                        <div class="needle"></div>
+                        <div class="wheel" id="wheel">
+                            <canvas id="canvas" width="400" height="400"></canvas>
+                        </div>
+                    </div>
+                    <button class="spin-button" onclick="spin()">돌리기!</button>
+                </div>
+                <div class="controls">
+                    <input type="text" id="newFood" placeholder="음식 추가">
+                    <button onclick="addFood()">추가</button>
+                    <ul id="foodList"></ul>
+                </div>
+            </div>
+            <div class="history">
+                <h3>🍽️ 추천 기록</h3>
+                <ul id="historyList"></ul>
+            </div>
+
+            <script src="js/roulette.js"></script>
         </main>
     </div>
 
