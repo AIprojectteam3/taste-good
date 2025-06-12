@@ -31,6 +31,14 @@
     height : 100%;
 }
 
+.post-actions-menu > button {
+    transition: transform 0.2s ease-in-out;
+}
+
+.post-actions-menu > button:hover {
+    transform: scale(1.1);
+}
+
 .modal-img {
     display : flex;
     align-items : center;
@@ -482,6 +490,11 @@
     background-color : transparent;
     border: none;
     cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+}
+
+.comment-actions > button:hover {
+    transform: scale(1.1);
 }
 
 .comment-actions img {
