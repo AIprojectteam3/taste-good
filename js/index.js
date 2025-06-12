@@ -611,7 +611,7 @@ async function scrollToSpecificPost(postId) {
             // 해당 카드로 스크롤
             targetCard.scrollIntoView({ 
                 behavior: 'smooth', 
-                block: 'center' 
+                block: 'end' 
             });
             
             // 모바일에서 카드 하이라이트 효과 (선택사항)
