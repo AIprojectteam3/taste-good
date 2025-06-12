@@ -976,7 +976,6 @@ body {
         display : flex;
         align-items : center;
         margin-bottom: 1px;
-        width : 50%;
         font-weight: bold;
         /* 필요하다면 white-space: nowrap; 추가 */
     }
@@ -1021,8 +1020,66 @@ body {
         cursor: pointer;
     }
 
+    .comment-action-buttons {
+        margin-left : 10px;
+    }
+
+    .comment-action-buttons > button {
+        background: none;
+        border: none;
+        font-size: 12px;
+        cursor: pointer;
+        margin-right: 5px;
+    }
+
+    .comment-edit-btn {
+        color : #3b82f6;
+    }
+
+    .comment-delete-btn {
+        color : #ef4444;
+    }
+
+    .comment-edit-textarea {
+        width: 100%; 
+        min-height: 60px; 
+        padding: 8px; 
+        border: 1px solid #ddd; 
+        border-radius: 4px; 
+        resize: none;
+    }
+
+    .comment-save-btn {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 5px;
+    }
+
+    .comment-cancel-btn {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .comment-edit-btn-div {
+        display : flex;
+    }
+
     .no-comment {
         padding : 20px;
+    }
+
+    .comment-action-buttons {
+        display : flex;
+        align-items : center;
+        justify-content : space-between;
     }
 
     .create-post-button {
