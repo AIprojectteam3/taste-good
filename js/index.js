@@ -5,7 +5,7 @@ function isMobile() {
 // =======================================================================================================
 // 게시물(카드) 생성 함수
 // =======================================================================================================
-function createCard(item, isPlaceholder = false) {
+function createCard(item, isPlaceholder = false, currentUserId = null) {
     const card = document.createElement('div');
     card.className = 'card';
     card.setAttribute('data-post-id', item.id);
@@ -130,8 +130,8 @@ function createCard(item, isPlaceholder = false) {
     postUserDiv.appendChild(profileImg);
     postUserDiv.appendChild(nicknameSpan);
 
-    // 모바일에서만 수정/삭제 버튼 추가
-    if (isMobile() && !isPlaceholder) {
+    // 모바일에서만 게시물이 로그인된 유저일 경우 수정/삭제 버튼 추가
+    if (isMobile() && !isPlaceholder && currentUserId && currentUserId === item.user_id) {
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'post-action-buttons';
 
@@ -429,31 +429,34 @@ function setupMobileCardSliderAndReadMore() {
 
 async function renderCards() {
     const cardContainer = document.querySelector('.content');
-    cardContainer.innerHTML = '';
-
+    
     try {
         const response = await fetch('/api/posts');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const posts = await response.json();
-
-        if (posts && posts.length > 0) {
-            posts.forEach(post => {
-                const cardElement = createCard(post);
-                if (cardElement) {
-                    cardContainer.appendChild(cardElement);
-                }
-            });
+        const data = await response.json();
+        
+        if (data.posts && Array.isArray(data.posts)) {
+            cardContainer.innerHTML = '';
+            
+            if (data.posts.length > 0) {
+                data.posts.forEach(item => {
+                    // currentUserId 매개변수 추가
+                    const cardElement = createCard(item, false, data.currentUserId);
+                    if (cardElement) {
+                        cardContainer.appendChild(cardElement);
+                    }
+                });
+            } else {
+                cardContainer.innerHTML = '<div class="no-posts">게시물이 없습니다.</div>';
+            }
         } else {
-            cardContainer.innerHTML = '<p>게시물이 없습니다.</p>';
+            cardContainer.innerHTML = '<div class="no-posts">게시물이 없습니다.</div>';
         }
         
         adjustGridRows();
-        setupMobileCardSliderAndReadMore(); // 카드 렌더링 후 호출
+        setupMobileCardSliderAndReadMore();
     } catch (error) {
         console.error('게시물 데이터를 가져오는 중 오류 발생:', error);
-        cardContainer.innerHTML = '<p>게시물을 불러오는 데 실패했습니다.</p>';
+        cardContainer.innerHTML = '<div class="error-message">게시물을 불러오는 데 실패했습니다.</div>';
     }
 }
 
@@ -753,21 +756,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 검색 실행 함수 (고급 검색 지원)
     async function performAdvancedSearch(filters = currentSearchFilters) {
         try {
-            // 검색 파라미터 구성
             const searchParams = new URLSearchParams();
             Object.keys(filters).forEach(key => {
                 if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
                     searchParams.append(key, filters[key]);
                 }
             });
-            
-            // 검색 API 호출
+
             const response = await fetch(`/api/posts/search?${searchParams.toString()}`);
             const data = await response.json();
-            
+
             if (data.success) {
-                // 검색 결과 표시
-                displaySearchResults(data.posts, data.searchInfo, data.pagination);
+                // 검색 결과 표시 - currentUserId 전달
+                displaySearchResults(data.posts, data.searchInfo, data.pagination, data.currentUserId);
                 
                 // 검색어 로깅
                 logSearch(filters.query, filters.searchType, data.posts.length);
@@ -799,7 +800,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // 검색 결과 표시 함수
-    function displaySearchResults(posts, searchInfo, pagination) {
+    function displaySearchResults(posts, searchInfo, pagination, currentUserId = null) {
         const cardContainer = document.querySelector('.content');
         
         // 기존 카드들 모두 제거
@@ -810,9 +811,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         cardContainer.appendChild(searchHeader);
         
         if (posts && posts.length > 0) {
-            // 검색된 게시물들로 카드 생성
+            // 검색된 게시물들로 카드 생성 - currentUserId 매개변수 추가
             posts.forEach(post => {
-                const cardElement = createCard(post);
+                const cardElement = createCard(post, false, currentUserId);
                 if (cardElement) {
                     cardContainer.appendChild(cardElement);
                 }
@@ -823,7 +824,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const paginationElement = createPagination(pagination);
                 cardContainer.appendChild(paginationElement);
             }
-        } 
+        }
         
         // 그리드 조정 및 모바일 기능 재설정
         adjustGridRows();
