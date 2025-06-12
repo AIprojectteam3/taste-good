@@ -265,19 +265,16 @@ async function editPost(postId) {
 // =======================================================================================================
 async function deletePost(postId) {
     try {
-        const deleteConfirm = confirm('정말로 이 게시물을 삭제하시겠습니까?');
-        if (!deleteConfirm) return;
-
         const response = await fetch(`/api/post/${postId}`, {
             method: 'DELETE'
         });
 
         const result = await response.json();
-        
+
         if (result.success) {
-            alert('게시물이 삭제되었습니다.');
-            // 페이지 새로고침하여 변경사항 반영
-            location.reload();
+            alert('게시물이 성공적으로 삭제되었습니다.');
+            // 페이지 새로고침하여 삭제된 게시물 제거
+            window.location.reload();
         } else {
             alert(result.message || '게시물 삭제에 실패했습니다.');
         }
@@ -346,34 +343,27 @@ function setupMobileCardSliderAndReadMore() {
         }
 
         // 수정 버튼 처리
-        if (event.target.classList.contains('post-edit-btn')) {
-            event.stopPropagation();
-            const postId = event.target.getAttribute('data-post-id');
-            const authorId = parseInt(event.target.getAttribute('data-author-id'));
-            
-            if (postId && authorId) {
-                checkPostPermission(authorId, '수정').then(hasPermission => {
-                    if (hasPermission) {
-                        editPost(postId);
-                    }
-                });
-            }
-        }
+        document.querySelectorAll('.post-edit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const postId = btn.getAttribute('data-post-id');
+                const authorId = btn.getAttribute('data-author-id');
+                
+                // 게시물 수정 페이지로 이동 (모바일)
+                window.location.href = `createPost_mobile.html?edit=${postId}`;
+            });
+        });
 
-        // 삭제 버튼 처리
-        if (event.target.classList.contains('post-delete-btn')) {
-            event.stopPropagation();
-            const postId = event.target.getAttribute('data-post-id');
-            const authorId = parseInt(event.target.getAttribute('data-author-id'));
-            
-            if (postId && authorId) {
-                checkPostPermission(authorId, '삭제').then(hasPermission => {
-                    if (hasPermission) {
-                        deletePost(postId);
-                    }
-                });
-            }
-        }
+        document.querySelectorAll('.post-delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const postId = btn.getAttribute('data-post-id');
+                
+                if (confirm('정말로 이 게시물을 삭제하시겠습니까?')) {
+                    deletePost(postId);
+                }
+            });
+        });
 
         // 슬라이드 네비게이션 처리
         if (event.target.classList.contains('slide-nav')) {

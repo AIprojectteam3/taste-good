@@ -74,5 +74,17 @@
             </section>
         </main>
     </div>
+    <script>
+        // 페이지 제목 동적 변경
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isEdit = urlParams.get('edit');
+            
+            const pageTitle = document.getElementById('pageTitle');
+            if (pageTitle && isEdit) {
+                pageTitle.textContent = '게시물 수정 - 맛잘알연구소';
+            }
+        });
+    </script>
 </body>
 </html>
