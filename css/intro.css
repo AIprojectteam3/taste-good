@@ -704,6 +704,10 @@ body {
         will-change: opacity;
     }
 
+    .main_img {
+        object-fit : cover;
+    }
+
     .page.yellow {
         height: calc(100vh - 14vh);
         min-height: calc(100vh - 14vh);

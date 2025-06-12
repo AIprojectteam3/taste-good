@@ -3,6 +3,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let uploadedFiles = [];
     let currentSlideIndex = 0;
     let draggedItem = null;
+    let isEditMode = false;
+    let editPostId = null;
+
+    // URL 파라미터 확인하여 수정 모드인지 판단
+    const urlParams = new URLSearchParams(window.location.search);
+    editPostId = urlParams.get('edit');
+    isEditMode = !!editPostId;
 
     // DOM 요소들
     const imageUpload = document.getElementById('mobileImageUpload');
@@ -19,41 +26,79 @@ document.addEventListener('DOMContentLoaded', function() {
     // 뒤로가기 버튼
     const backButton = document.createElement('button');
     backButton.className = 'back-button';
-    backButton.innerHTML = '<i class="fas fa-arrow-left"></i>';
+    backButton.innerHTML = '←';
     backButton.addEventListener('click', goBack);
     document.body.appendChild(backButton);
 
     // 플로팅 액션 버튼 생성
     const submitBtn = document.createElement('button');
     submitBtn.className = 'submit-floating-btn';
-    submitBtn.innerHTML = '<i class="fas fa-check"></i>';
+    submitBtn.innerHTML = isEditMode ? '✓' : '→';
     submitBtn.disabled = true;
     document.body.appendChild(submitBtn);
 
     // 초기화
     init();
 
-    function init() {
+    async function init() {
+        if (isEditMode) {
+            await loadPostForEdit();
+        }
         updateSliderView();
         setupEventListeners();
         checkFormValidity();
     }
 
+    // 수정할 게시물 데이터 로드
+    async function loadPostForEdit() {
+        try {
+            const response = await fetch(`/api/post/${editPostId}`);
+            const postData = await response.json();
+
+            if (response.ok) {
+                // 제목과 내용 설정
+                titleInput.value = postData.title;
+                contentInput.value = postData.content;
+
+                // 기존 이미지들 로드
+                if (postData.images && postData.images.length > 0) {
+                    uploadedFiles = postData.images.map(imagePath => ({
+                        file: null,
+                        blobUrl: imagePath,
+                        isExisting: true,
+                        originalPath: imagePath
+                    }));
+                    currentSlideIndex = 0;
+                }
+
+                // 문자 수 카운터 업데이트
+                updateCharCount();
+            } else {
+                alert('게시물을 불러오는데 실패했습니다.');
+                goBack();
+            }
+        } catch (error) {
+            console.error('게시물 로드 중 오류:', error);
+            alert('게시물을 불러오는데 실패했습니다.');
+            goBack();
+        }
+    }
+
     function setupEventListeners() {
         // 파일 업로드
         imageUpload.addEventListener('change', handleFileSelect);
-        
+
         // 네비게이션
         navPrev.addEventListener('click', () => showSlide(currentSlideIndex - 1));
         navNext.addEventListener('click', () => showSlide(currentSlideIndex + 1));
-        
+
         // 텍스트 입력
         titleInput.addEventListener('input', handleTitleInput);
         contentInput.addEventListener('input', handleContentInput);
-        
+
         // 게시 버튼
         submitBtn.addEventListener('click', handleSubmit);
-                
+
         // 터치 스와이프 지원
         setupTouchEvents();
     }
@@ -143,9 +188,9 @@ document.addEventListener('DOMContentLoaded', function() {
         addSlide.innerHTML = `
             <div class="mobile-add-content">
                 <div class="mobile-add-icon">
-                    <i class="fas fa-plus"></i>
+                    <i>+</i>
                 </div>
-                <span class="mobile-add-text">사진 추가</span>
+                <div class="mobile-add-text">사진 추가</div>
             </div>
         `;
         addSlide.addEventListener('click', () => imageUpload.click());
@@ -154,242 +199,262 @@ document.addEventListener('DOMContentLoaded', function() {
         // 사진 추가 썸네일
         const addThumb = document.createElement('div');
         addThumb.className = 'thumbnail-add-btn';
-        addThumb.innerHTML = '<i class="fas fa-plus"></i>';
-        addThumb.addEventListener('click', () => {
-            showSlide(uploadedFiles.length);
-            imageUpload.click();
-        });
+        addThumb.innerHTML = '<i>+</i>';
+        addThumb.addEventListener('click', () => imageUpload.click());
         thumbnails.appendChild(addThumb);
 
+        // 현재 슬라이드 표시
         showSlide(currentSlideIndex);
     }
 
     function showSlide(index) {
-        const totalSlides = uploadedFiles.length + 1;
-        
+        const slides = sliderMain.querySelectorAll('.mobile-slide');
+        const dots = indicators.querySelectorAll('.indicator-dot');
+        const thumbs = thumbnails.querySelectorAll('.thumbnail-item');
+
+        // 범위 체크
         if (index < 0) index = 0;
-        if (index >= totalSlides) index = totalSlides - 1;
-        
+        if (index >= slides.length) index = slides.length - 1;
+
         currentSlideIndex = index;
 
         // 슬라이드 표시
-        const slides = sliderMain.querySelectorAll('.mobile-slide');
         slides.forEach((slide, i) => {
-            slide.classList.toggle('active', i === currentSlideIndex);
+            slide.classList.toggle('active', i === index);
+        });
+
+        // 인디케이터 업데이트
+        dots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === index);
         });
 
         // 썸네일 활성화
-        const thumbs = thumbnails.querySelectorAll('.thumbnail-item');
         thumbs.forEach((thumb, i) => {
-            thumb.classList.toggle('active', i === currentSlideIndex);
+            thumb.classList.toggle('active', i === index);
         });
 
-        // 인디케이터 활성화
-        const dots = indicators.querySelectorAll('.indicator-dot');
-        dots.forEach((dot, i) => {
-            dot.classList.toggle('active', i === currentSlideIndex);
-        });
-
-        updateNavigation();
-    }
-
-    function updateNavigation() {
-        const totalSlides = uploadedFiles.length + 1;
-        
-        if (totalSlides <= 1) {
-            navPrev.style.display = 'none';
-            navNext.style.display = 'none';
-        } else {
-            navPrev.style.display = 'block';
-            navNext.style.display = 'block';
-            navPrev.disabled = currentSlideIndex === 0;
-            navNext.disabled = currentSlideIndex === totalSlides - 1;
-        }
-
-        // 인디케이터 표시/숨김
-        indicators.style.display = uploadedFiles.length > 1 ? 'flex' : 'none';
+        // 네비게이션 버튼 상태
+        navPrev.disabled = index === 0;
+        navNext.disabled = index >= uploadedFiles.length;
     }
 
     function deleteImage(index) {
-        URL.revokeObjectURL(uploadedFiles[index].blobUrl);
+        if (uploadedFiles[index] && !uploadedFiles[index].isExisting) {
+            URL.revokeObjectURL(uploadedFiles[index].blobUrl);
+        }
+        
         uploadedFiles.splice(index, 1);
         
-        if (currentSlideIndex >= uploadedFiles.length) {
-            currentSlideIndex = Math.max(0, uploadedFiles.length - 1);
+        if (currentSlideIndex >= uploadedFiles.length && uploadedFiles.length > 0) {
+            currentSlideIndex = uploadedFiles.length - 1;
+        } else if (uploadedFiles.length === 0) {
+            currentSlideIndex = 0;
         }
         
         updateSliderView();
         checkFormValidity();
     }
 
-    function setupDragEvents(container) {
-        container.addEventListener('dragstart', handleDragStart);
-        container.addEventListener('dragover', handleDragOver);
-        container.addEventListener('drop', handleDrop);
-        container.addEventListener('dragend', handleDragEnd);
-    }
-
-    function handleDragStart(e) {
-        draggedItem = this;
-        this.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-    }
-
-    function handleDragOver(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        
-        const target = e.target.closest('.thumbnail-container');
-        if (target && target !== draggedItem) {
-            document.querySelectorAll('.thumbnail-container.drag-over').forEach(el => {
-                el.classList.remove('drag-over');
-            });
-            target.classList.add('drag-over');
-        }
-    }
-
-    function handleDrop(e) {
-        e.preventDefault();
-        const target = e.target.closest('.thumbnail-container');
-        
-        if (target && draggedItem !== target) {
-            const fromIndex = parseInt(draggedItem.dataset.index);
-            const toIndex = parseInt(target.dataset.index);
-            
-            const item = uploadedFiles.splice(fromIndex, 1)[0];
-            uploadedFiles.splice(toIndex, 0, item);
-            
-            if (currentSlideIndex === fromIndex) {
-                currentSlideIndex = toIndex;
-            } else if (fromIndex < currentSlideIndex && toIndex >= currentSlideIndex) {
-                currentSlideIndex--;
-            } else if (fromIndex > currentSlideIndex && toIndex <= currentSlideIndex) {
-                currentSlideIndex++;
-            }
-            
-            updateSliderView();
-        }
-    }
-
-    function handleDragEnd() {
-        this.classList.remove('dragging');
-        document.querySelectorAll('.thumbnail-container.drag-over').forEach(el => {
-            el.classList.remove('drag-over');
+    function setupDragEvents(element) {
+        element.addEventListener('dragstart', (e) => {
+            draggedItem = parseInt(element.dataset.index);
+            element.classList.add('dragging');
         });
-        draggedItem = null;
+
+        element.addEventListener('dragend', () => {
+            element.classList.remove('dragging');
+            draggedItem = null;
+        });
+
+        element.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            element.classList.add('drag-over');
+        });
+
+        element.addEventListener('dragleave', () => {
+            element.classList.remove('drag-over');
+        });
+
+        element.addEventListener('drop', (e) => {
+            e.preventDefault();
+            element.classList.remove('drag-over');
+            
+            const dropIndex = parseInt(element.dataset.index);
+            if (draggedItem !== null && draggedItem !== dropIndex) {
+                const draggedFile = uploadedFiles[draggedItem];
+                uploadedFiles.splice(draggedItem, 1);
+                uploadedFiles.splice(dropIndex, 0, draggedFile);
+                
+                currentSlideIndex = dropIndex;
+                updateSliderView();
+            }
+        });
     }
 
     function setupTouchEvents() {
-        let touchStartX = null;
-        let touchEndX = null;
+        let startX = null;
+        let startY = null;
+        let isScrolling = null;
 
         sliderMain.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            isScrolling = null;
+        });
+
+        sliderMain.addEventListener('touchmove', (e) => {
+            if (!startX || !startY) return;
+
+            const currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+            const diffX = startX - currentX;
+            const diffY = startY - currentY;
+
+            if (isScrolling === null) {
+                isScrolling = Math.abs(diffY) > Math.abs(diffX);
+            }
+
+            if (!isScrolling) {
+                e.preventDefault();
+            }
         });
 
         sliderMain.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].clientX;
-            
-            if (touchStartX && touchEndX) {
-                const diff = touchStartX - touchEndX;
-                
-                if (Math.abs(diff) > 50) {
-                    if (diff > 0) {
-                        showSlide(currentSlideIndex + 1);
-                    } else {
-                        showSlide(currentSlideIndex - 1);
-                    }
+            if (!startX || isScrolling) return;
+
+            const endX = e.changedTouches[0].clientX;
+            const diff = startX - endX;
+
+            if (Math.abs(diff) > 50) {
+                if (diff > 0 && currentSlideIndex < uploadedFiles.length) {
+                    showSlide(currentSlideIndex + 1);
+                } else if (diff < 0 && currentSlideIndex > 0) {
+                    showSlide(currentSlideIndex - 1);
                 }
             }
-            
-            touchStartX = null;
-            touchEndX = null;
+
+            startX = null;
+            startY = null;
+            isScrolling = null;
         });
     }
 
     function handleTitleInput() {
-        const length = titleInput.value.length;
-        titleCharCount.textContent = length;
+        const title = titleInput.value;
+        const charCount = title.length;
+        titleCharCount.textContent = `${charCount}`;
         
-        if (length > 100) {
-            titleInput.value = titleInput.value.substring(0, 100);
-            titleCharCount.textContent = 100;
+        if (charCount > 100) {
+            titleCharCount.style.color = '#ff4444';
+        } else {
+            titleCharCount.style.color = '#666';
         }
         
         checkFormValidity();
     }
 
     function handleContentInput() {
-        const length = contentInput.value.length;
-        contentCharCount.textContent = length;
+        const content = contentInput.value;
+        const charCount = content.length;
+        contentCharCount.textContent = `${charCount}`;
         
-        if (length > 2000) {
-            contentInput.value = contentInput.value.substring(0, 2000);
-            contentCharCount.textContent = 2000;
+        if (charCount > 2000) {
+            contentCharCount.style.color = '#ff4444';
+        } else {
+            contentCharCount.style.color = '#666';
         }
         
         checkFormValidity();
     }
 
-    function checkFormValidity() {
-        const hasTitle = titleInput.value.trim().length > 0;
-        const hasContent = contentInput.value.trim().length > 0;
-        
-        submitBtn.disabled = !(hasTitle && hasContent);
+    function updateCharCount() {
+        handleTitleInput();
+        handleContentInput();
     }
 
     async function handleSubmit() {
-        const title = titleInput.value.trim();
-        const content = contentInput.value.trim();
-        
-        if (!title || !content) {
+        if (!checkFormValidity()) {
             alert('제목과 내용을 모두 입력해주세요.');
             return;
         }
 
+        const title = titleInput.value.trim();
+        const content = contentInput.value.trim();
+
+        if (title.length > 100) {
+            alert('제목은 100자 이내로 입력해주세요.');
+            return;
+        }
+
+        if (content.length > 2000) {
+            alert('내용은 2000자 이내로 입력해주세요.');
+            return;
+        }
+
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        submitBtn.innerHTML = isEditMode ? '수정 중...' : '등록 중...';
 
         try {
             const formData = new FormData();
             formData.append('title', title);
             formData.append('content', content);
-            
-            uploadedFiles.forEach(item => {
-                if (item.file) {
-                    formData.append('postImages', item.file);
-                }
-            });
 
-            const response = await fetch('/api/createPost', {
-                method: 'POST',
+            // 기존 이미지 경로들 추가 (수정 모드에서)
+            if (isEditMode) {
+                const existingImages = uploadedFiles
+                    .filter(file => file.isExisting)
+                    .map(file => file.originalPath);
+                
+                existingImages.forEach(path => {
+                    formData.append('existingImages', path);
+                });
+            }
+
+            // 새로 추가된 파일들만 추가
+            uploadedFiles
+                .filter(file => !file.isExisting && file.file)
+                .forEach(fileObj => {
+                    formData.append('postImages', fileObj.file);
+                });
+
+            const url = isEditMode ? `/api/post/${editPostId}` : '/api/createPost';
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
                 body: formData
             });
 
             const result = await response.json();
-            
+
             if (result.success) {
-                alert('게시물이 성공적으로 등록되었습니다.');
+                alert(isEditMode ? '게시물이 성공적으로 수정되었습니다!' : '게시물이 성공적으로 등록되었습니다!');
                 window.location.href = '/index.html';
             } else {
-                throw new Error(result.message || '게시물 등록에 실패했습니다.');
+                alert(result.message || (isEditMode ? '게시물 수정에 실패했습니다.' : '게시물 등록에 실패했습니다.'));
             }
         } catch (error) {
-            console.error('게시물 등록 오류:', error);
-            alert(error.message || '게시물 등록 중 오류가 발생했습니다.');
+            console.error('게시물 처리 중 오류:', error);
+            alert(isEditMode ? '게시물 수정 중 오류가 발생했습니다.' : '게시물 등록 중 오류가 발생했습니다.');
         } finally {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-check"></i>';
+            submitBtn.innerHTML = isEditMode ? '✓' : '→';
         }
     }
 
+    function checkFormValidity() {
+        const title = titleInput.value.trim();
+        const content = contentInput.value.trim();
+        const isValid = title.length > 0 && content.length > 0 && 
+                        title.length <= 100 && content.length <= 2000;
+        
+        submitBtn.disabled = !isValid;
+        return isValid;
+    }
+
     function goBack() {
-        if (uploadedFiles.length > 0 || titleInput.value.trim() || contentInput.value.trim()) {
-            if (confirm('작성 중인 내용이 있습니다. 정말 나가시겠습니까?')) {
-                window.history.back();
-            }
-        } else {
-            window.history.back();
+        if (confirm('작성 중인 내용이 사라집니다. 정말 나가시겠습니까?')) {
+            window.location.href = '/index.html';
         }
     }
 });
