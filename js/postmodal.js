@@ -159,7 +159,6 @@ async function displayPostModal(postId) {
             
             const menuDiv = document.createElement('div');
             menuDiv.classList.add('post-actions-menu');
-            menuDiv.style.marginLeft = "auto";
 
             const editButton = document.createElement('button');
             editButton.textContent = '수정';
