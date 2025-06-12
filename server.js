@@ -603,6 +603,8 @@ app.post('/api/createPost', upload.array('postImages', 10), (req, res) => { // '
 // 게시글 목록 가져오기
 // ==================================================================================================================
 app.get('/api/posts', (req, res) => {
+    const currentUserId = req.session.userId || null; // 현재 로그인한 사용자 ID
+    
     const query = `
         SELECT
             p.id,
@@ -616,23 +618,23 @@ app.get('/api/posts', (req, res) => {
         LEFT JOIN users u ON p.user_id = u.id
         ORDER BY p.created_at DESC
     `;
-    
+
     db.query(query, (err, results) => {
         if (err) {
             console.error('게시물 조회 오류:', err);
             return res.status(500).json({ error: '서버 오류' });
         }
-        
+
         // 각 게시물에 대해 이미지 정보 가져오기
         const postPromises = results.map(post => {
             return new Promise((resolve, reject) => {
                 const imageQuery = `
-                    SELECT REPLACE(file_path, '\\\\', '/') as file_path 
-                    FROM files 
-                    WHERE post_id = ? 
+                    SELECT REPLACE(file_path, '\\\\', '/') as file_path
+                    FROM files
+                    WHERE post_id = ?
                     ORDER BY id ASC
                 `;
-                
+
                 db.query(imageQuery, [post.id], (imgErr, imageResults) => {
                     if (imgErr) {
                         console.error(`게시물 ${post.id} 이미지 조회 오류:`, imgErr);
@@ -642,22 +644,25 @@ app.get('/api/posts', (req, res) => {
                         post.images = imageResults.map(img => img.file_path);
                         post.thumbnail_path = imageResults.length > 0 ? imageResults[0].file_path : null;
                     }
-                    
+
                     // 프로필 이미지 경로 처리
                     if (post.author_profile_path) {
                         post.author_profile_path = post.author_profile_path.replace(/\\/g, '/');
                     } else {
                         post.author_profile_path = 'image/profile-icon.png';
                     }
-                    
+
                     resolve(post);
                 });
             });
         });
-        
+
         Promise.all(postPromises)
             .then(postsWithImages => {
-                res.json(postsWithImages);
+                res.json({
+                    posts: postsWithImages,
+                    currentUserId: currentUserId // 현재 사용자 ID 추가
+                });
             })
             .catch(promiseErr => {
                 console.error('게시물 이미지 처리 중 오류:', promiseErr);
@@ -1435,6 +1440,7 @@ app.get('/api/posts/search', (req, res) => {
                     res.json({
                         success: true,
                         posts: postsWithImages,
+                        currentUserId: req.session.userId || null, // 현재 사용자 ID 추가
                         pagination: {
                             currentPage: parseInt(page),
                             totalPages: totalPages,
