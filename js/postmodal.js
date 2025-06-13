@@ -225,6 +225,9 @@ async function displayPostModal(postId) {
                 const postContentDivContainer = modalOverlay.querySelector('.post-content-div > div');
                 // 실제 콘텐츠 높이와 컨테이너 높이 비교
                 const hasOverflow = postContentDiv.scrollHeight > postContentDiv.clientHeight;
+                // console.log('scrollHeight:', postContentDiv.scrollHeight);
+                // console.log('clientHeight:', postContentDiv.clientHeight);
+                // console.log('hasOverflow:', hasOverflow);
 
                 if (hasOverflow) {
                     readMoreBtn.style.display = 'block';
@@ -246,7 +249,7 @@ async function displayPostModal(postId) {
                     }
                 };
             }
-        }, 0);
+        }, 10);
 
         // 8. 댓글 렌더링 함수
         function renderComments(commentsData, commentContainerDiv, currentPostId) {
