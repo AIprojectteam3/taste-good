@@ -156,12 +156,13 @@ body {
 }
 
 .card-center-content {
+    margin-bottom: 20px;
+    line-height: 1.5;
     color: #fff;
     font-size: 0.9rem;
     text-align: center;
-    line-height: 1.5;
     text-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    margin-bottom: 20px;
+    white-space: pre-wrap;
 }
 
 .card-user.hidden-user {
