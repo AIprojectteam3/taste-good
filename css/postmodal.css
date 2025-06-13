@@ -239,6 +239,7 @@
     border-top: 1px solid #eee;
     border-bottom: 1px solid #eee;
     overflow: hidden; /* 기본적으로 숨김 */
+    white-space: pre-wrap;
 }
 
 .post-content-div > div {
