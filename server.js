@@ -1198,6 +1198,67 @@ app.get('/api/posts/likes', (req, res) => {
 });
 
 // ==================================================================================================================
+// 사용자가 좋아요한 게시물 목록 가져오기 API
+// ==================================================================================================================
+app.get('/api/user/liked-posts', (req, res) => {
+    const userId = req.session.userId;
+
+    if (!userId) {
+        return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
+    const query = `
+        SELECT
+            p.id,
+            p.title,
+            p.content,
+            p.created_at,
+            p.views,
+            p.likes,
+            p.user_id,
+            u.username as author_username,
+            u.profile_image_path as author_profile_path,
+            (SELECT file_path FROM files WHERE post_id = p.id LIMIT 1) AS thumbnail_path,
+            COALESCE((
+                SELECT JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/'))
+                FROM files
+                WHERE post_id = p.id
+            ), '[]') AS images
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        INNER JOIN post_likes pl ON p.id = pl.post_id
+        WHERE pl.user_id = ?
+        ORDER BY pl.liked_at DESC
+    `;
+
+    db.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('사용자 좋아요 게시물 조회 중 오류:', err);
+            return res.status(500).json({ message: '좋아요한 게시물을 가져오는 데 실패했습니다.' });
+        }
+
+        // 이미지 JSON 파싱
+        results.forEach(post => {
+            try {
+                post.images = JSON.parse(post.images);
+            } catch (e) {
+                console.error(`이미지 파싱 오류 (post ${post.id}):`, e);
+                post.images = [];
+            }
+
+            // 프로필 이미지 경로 처리
+            if (post.author_profile_path) {
+                post.author_profile_path = post.author_profile_path.replace(/\\/g, '/');
+            } else {
+                post.author_profile_path = 'image/profile-icon.png';
+            }
+        });
+
+        res.json(results);
+    });
+});
+
+// ==================================================================================================================
 // 댓글 작성 API
 // ==================================================================================================================
 app.post('/api/post/:postId/comment', (req, res) => {
@@ -1205,13 +1266,20 @@ app.post('/api/post/:postId/comment', (req, res) => {
     const userId = req.session.userId; // 세션에서 현재 로그인한 사용자 ID 가져오기
     const { comment } = req.body;
 
+    console.log('댓글 등록 요청:', { postId, userId, comment }); // 디버깅용 로그 추가
+
     if (!userId) {
+        console.log('로그인되지 않은 사용자의 댓글 작성 시도');
         return res.status(401).json({ success: false, message: '댓글을 작성하려면 로그인이 필요합니다.' });
     }
+
     if (!comment || comment.trim() === '') {
+        console.log('빈 댓글 내용으로 작성 시도');
         return res.status(400).json({ success: false, message: '댓글 내용을 입력해주세요.' });
     }
+
     if (!postId || isNaN(parseInt(postId))) {
+        console.log('유효하지 않은 게시물 ID:', postId);
         return res.status(400).json({ success: false, message: '유효한 게시물 ID가 필요합니다.' });
     }
 
@@ -1222,23 +1290,26 @@ app.post('/api/post/:postId/comment', (req, res) => {
             return res.status(500).json({ success: false, message: '댓글 작성 중 서버 오류가 발생했습니다.' });
         }
 
-        // 방금 작성된 댓글 정보와 함께 사용자 정보도 반환하여 클라이언트에서 바로 표시할 수 있도록 함
+        console.log('댓글 작성 성공:', result.insertId);
+        
+        // 방금 작성된 댓글 정보와 함께 사용자 정보도 반환
         const newCommentId = result.insertId;
         const getNewCommentQuery = `
-            SELECT 
+            SELECT
                 c.id, c.post_id, c.user_id, c.comment, c.created_at,
                 u.username AS author_username,
-                u.profile_image_path AS author_profile_path 
+                u.profile_image_path AS author_profile_path
             FROM comments c
             JOIN users u ON c.user_id = u.id
             WHERE c.id = ?
         `;
+
         db.query(getNewCommentQuery, [newCommentId], (errComment, commentData) => {
             if (errComment || commentData.length === 0) {
                 console.error(`[ERROR] 방금 작성된 댓글 정보 조회 오류 (comment_id: ${newCommentId}):`, errComment);
-                // 댓글 삽입은 성공했으므로 일단 성공으로 응답하되, 데이터 없이 응답할 수 있음
                 return res.status(201).json({ success: true, message: '댓글이 성공적으로 등록되었습니다 (정보 조회 실패).', commentId: newCommentId });
             }
+
             res.status(201).json({ success: true, message: '댓글이 성공적으로 등록되었습니다.', comment: commentData[0] });
         });
     });

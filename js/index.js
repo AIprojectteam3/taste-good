@@ -198,7 +198,7 @@ function createCard(item, isPlaceholder = false, currentUserId = null) {
     commentInput.className = 'commentInputM';
 
     // 좋아요 상태 확인
-    const isLiked = userLikedPosts.includes(item.id);
+    const isLiked = !isPlaceholder && userLikedPosts.includes(item.id);
     const heartIcon = isLiked ? 'image/heart-red.png' : 'image/heart-icon.png';
     const likedClass = isLiked ? 'liked' : '';
 
@@ -662,7 +662,7 @@ async function loadUserLikedPosts() {
         if (response.ok) {
             const data = await response.json();
             userLikedPosts = data.likedPosts || [];
-            console.log('좋아요 상태 로드됨:', userLikedPosts);
+            // console.log('좋아요 상태 로드됨:', userLikedPosts);
         }
     } catch (error) {
         console.error('좋아요 상태 로드 중 오류:', error);
@@ -764,8 +764,8 @@ async function handleLikeClick(postId, heartBtn) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await renderCards();
     await loadUserLikedPosts();
+    await renderCards();
     await loadPosts();
 
     // URL에 postId 파라미터가 있으면 해당 게시물로 스크롤
