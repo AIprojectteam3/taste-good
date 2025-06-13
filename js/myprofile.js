@@ -46,6 +46,11 @@ async function fetchUserBookmarks() {
     }
 }
 
+function validatePassword(password) {
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,20}$/;
+    return passwordRegex.test(password);
+}
+
 async function loadProfileData() {
     try {
         const response = await fetch('/api/user');
@@ -442,11 +447,17 @@ async function handleProfileUpdate(event) {
         const password = passwordInput.value.trim();
         const passwordConfirm = passwordConfirmInput.value.trim();
         
+        // 비밀번호 유효성 검사
+        if (!validatePassword(password)) {
+            alert('비밀번호는 8-20자리여야하며, 영문자와 숫자가 모두 포함되어야 합니다.');
+            return;
+        }
+        
         if (password !== passwordConfirm) {
             alert('비밀번호가 일치하지 않습니다.');
             return;
         }
-        
+
         formData.append('password', password);
         formData.append('passwordConfirm', passwordConfirm);
     }

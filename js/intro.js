@@ -2,6 +2,16 @@ function isMobile() {
     return window.matchMedia("(max-width: 768px)").matches;
 }
 
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function validatePassword(password) {
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,20}$/;
+    return passwordRegex.test(password);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // 스크롤 복원 방지
     if ('scrollRestoration' in history) {
@@ -291,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 회원가입 폼 제출
     document.getElementById('form1').addEventListener('submit', async (e) => {
         e.preventDefault();
+        
         const formData = {
             username: e.target.querySelector('input[name="username"]').value,
             email: e.target.querySelector('input[name="email"]').value,
@@ -299,6 +310,24 @@ document.addEventListener('DOMContentLoaded', () => {
             address: e.target.querySelector('input[name="address"]').value,
             detailAddress: e.target.querySelector('input[name="detailAddress"]').value,
         };
+
+        // 이메일 유효성 검사
+        if (!validateEmail(formData.email)) {
+            alert('올바른 이메일 형식을 입력해주세요.');
+            return;
+        }
+
+        // 비밀번호 유효성 검사
+        if (!validatePassword(formData.password)) {
+            alert('비밀번호는 8-20자리여야하며, 영문자와 숫자가 모두 포함되어야 합니다.');
+            return;
+        }
+
+        // 비밀번호 확인
+        if (formData.password !== formData.passwordConfirm) {
+            alert('비밀번호가 일치하지 않습니다.');
+            return;
+        }
 
         const response = await fetch('/api/signup', {
             method: 'POST',
