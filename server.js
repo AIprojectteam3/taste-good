@@ -5,7 +5,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const session = require('express-session');
-
+const bcrypt = require('bcrypt');
 const app = express();
 const PORT = 3000;
 //89ad63367f00d39537ef72651c1dce55 rest api key
@@ -87,107 +87,135 @@ ensureDirectoryExists('Uploads/Profile_Image/');
 ensureDirectoryExists('Uploads/Post_Image/');
 ensureDirectoryExists('uploads/default/');
 
+// 유효성 검사 함수들
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function validatePassword(password) {
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,20}$/;
+    return passwordRegex.test(password);
+}
+
 // ===============================================================================================================================================
 // 회원가입 처리
 // ===============================================================================================================================================
 app.post('/api/signup', async (req, res) => {
     const { username, email, password, passwordConfirm, address, detailAddress } = req.body;
-
-    console.log('받은 데이터:', { username, email, password, passwordConfirm, address, detailAddress }); // 디버깅용 로그
+    console.log('받은 데이터:', { username, email, password, passwordConfirm, address, detailAddress });
 
     // 1. 개별 필수 입력값 검증
     if (!username) {
         return res.status(400).json({ message: '닉네임을 입력해주세요.' });
     }
+
     if (!email) {
         return res.status(400).json({ message: '이메일을 입력해주세요.' });
     }
+
+    // 이메일 유효성 검사
+    if (!validateEmail(email)) {
+        return res.status(400).json({ message: '올바른 이메일 형식을 입력해주세요.' });
+    }
+
     if (!password) {
         return res.status(400).json({ message: '비밀번호를 입력해주세요.' });
     }
+
+    // 비밀번호 유효성 검사
+    if (!validatePassword(password)) {
+        return res.status(400).json({ message: '비밀번호는 8-20자리이며, 영문자와 숫자가 모두 포함되어야 합니다.' });
+    }
+
     if (!passwordConfirm) {
         return res.status(400).json({ message: '비밀번호 확인을 입력해주세요.' });
-    }
-    if (!address) {
-        return res.status(400).json({ message: '주소를 입력해주세요.' });
-    }
-    if (!detailAddress) {
-        return res.status(400).json({ message: '상세주소를 입력해주세요.' });
     }
 
     if (password !== passwordConfirm) {
         return res.status(400).json({ message: '비밀번호와 비밀번호 확인이 일치하지 않습니다.' });
     }
 
-    const insertQuery = 'INSERT INTO users (username, email, password, address, detail_address) VALUES (?, ?, ?, ?, ?)';
-    db.query(insertQuery, [username, email, password, address, detailAddress], (err, result) => {
-        if (err) {
-            console.error('회원가입 중 오류 발생:', err);
-            if (err.code === 'ER_DUP_ENTRY') { // MySQL의 중복 항목 오류 코드 [5]
-                // 어떤 키가 중복되었는지 err.sqlMessage 등을 파싱하여 더 구체적인 메시지 제공 가능
-                // 예: "Duplicate entry 'test@example.com' for key 'users.email_UNIQUE'"
-                let dupField = '알 수 없는 필드';
-                if (err.sqlMessage && err.sqlMessage.includes('for key')) {
-                    try {
-                        // 'users.email_UNIQUE' 와 같은 부분을 추출 시도
-                        const keyInfo = err.sqlMessage.split('for key ')[1].replace(/'/g, "");
-                        if (keyInfo.includes('.')) {
-                            dupField = keyInfo.split('.')[1].replace('_UNIQUE', '').replace('_PRIMARY', '');
-                        } else {
-                            dupField = keyInfo.replace('_UNIQUE', '').replace('_PRIMARY', '');
-                        }
-                    } catch (parseError) {
-                        console.error("중복 필드 파싱 오류:", parseError);
-                    }
-                }
+    if (!address) {
+        return res.status(400).json({ message: '주소를 입력해주세요.' });
+    }
 
-                // email 필드가 users 테이블의 PRIMARY KEY 또는 UNIQUE KEY로 설정되어 있어야 함
-                // DB 테이블 스키마에 따르면 email은 UNI (UNIQUE)로 설정되어 있음.
-                if (dupField.toLowerCase().includes('email')) {
-                    return res.status(409).json({ message: '이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요.' });
-                }
-                // 만약 username도 UNIQUE 제약조건이 있다면 추가 처리 가능
-                // else if (dupField.toLowerCase().includes('username')) {
-                //     return res.status(409).json({ message: '이미 사용 중인 사용자 이름입니다.' });
-                // }
-                // 그 외 일반적인 중복 오류 (예: auto_increment id를 수동으로 중복 삽입 시도 등)
-                return res.status(409).json({ message: `이미 존재하는 ${dupField} 값입니다.` });
+    if (!detailAddress) {
+        return res.status(400).json({ message: '상세주소를 입력해주세요.' });
+    }
 
-            }
-        // 그 외 데이터베이스 오류
-        return res.status(500).json({ message: '회원가입 실패: 데이터베이스 처리 중 오류가 발생했습니다.' });
-        }
+    try {
+        // 비밀번호 해시화
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // 방금 삽입된 데이터 조회
-        const selectQuery = 'SELECT * FROM users WHERE id = ?';
-        db.query(selectQuery, [result.insertId], (err, rows) => {
+        const insertQuery = 'INSERT INTO users (username, email, password, address, detail_address) VALUES (?, ?, ?, ?, ?)';
+        db.query(insertQuery, [username, email, hashedPassword, address, detailAddress], (err, result) => {
             if (err) {
-                console.error('데이터 조회 중 오류 발생:', err);
-                return res.status(500).json({ message: '회원가입 성공, 그러나 데이터 조회 실패' });
+                console.error('회원가입 중 오류 발생:', err);
+                if (err.code === 'ER_DUP_ENTRY') {
+                    let dupField = '알 수 없는 필드';
+                    if (err.sqlMessage && err.sqlMessage.includes('for key')) {
+                        try {
+                            const keyInfo = err.sqlMessage.split('for key ')[1].replace(/'/g, "");
+                            if (keyInfo.includes('.')) {
+                                dupField = keyInfo.split('.')[1].replace('_UNIQUE', '').replace('_PRIMARY', '');
+                            } else {
+                                dupField = keyInfo.replace('_UNIQUE', '').replace('_PRIMARY', '');
+                            }
+                        } catch (parseError) {
+                            console.error("중복 필드 파싱 오류:", parseError);
+                        }
+                    }
+
+                    if (dupField.toLowerCase().includes('email')) {
+                        return res.status(409).json({ message: '이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요.' });
+                    }
+
+                    return res.status(409).json({ message: `이미 존재하는 ${dupField} 값입니다.` });
+                }
+
+                return res.status(500).json({ message: '회원가입 실패: 데이터베이스 처리 중 오류가 발생했습니다.' });
             }
 
-            console.log('회원가입 성공:', rows[0]); // 삽입된 데이터 출력
-            res.json({ success: true, message: '회원가입 성공!', user: rows[0] });
+            // 방금 삽입된 데이터 조회
+            const selectQuery = 'SELECT * FROM users WHERE id = ?';
+            db.query(selectQuery, [result.insertId], (err, rows) => {
+                if (err) {
+                    console.error('데이터 조회 중 오류 발생:', err);
+                    return res.status(500).json({ message: '회원가입 성공, 그러나 데이터 조회 실패' });
+                }
+
+                console.log('회원가입 성공:', rows[0]);
+                res.json({ success: true, message: '회원가입 성공!', user: rows[0] });
+            });
         });
-    });
+    } catch (hashError) {
+        console.error('비밀번호 해시화 중 오류:', hashError);
+        return res.status(500).json({ message: '회원가입 처리 중 오류가 발생했습니다.' });
+    }
 });
 
 // ===============================================================================================================================================
 // 로그인 처리
 // ===============================================================================================================================================
-app.post('/api/login', (req, res) => {
-    console.log('요청 데이터:', req.body); // 디버깅용 로그
-
+app.post('/api/login', async (req, res) => {
+    console.log('요청 데이터:', req.body);
     const { email, password } = req.body;
 
     if (!email || !password) {
         return res.json({ success: false, message: '모든 필드를 입력해주세요.' });
     }
 
-    const query = 'SELECT * FROM users WHERE email = ? AND password = ?';
-    console.log('실행 쿼리:', query, [email, password]); // 디버깅용 로그
+    // 이메일 유효성 검사
+    if (!validateEmail(email)) {
+        return res.json({ success: false, message: '올바른 이메일 형식을 입력해주세요.' });
+    }
 
-    db.query(query, [email, password], (err, results) => {
+    const query = 'SELECT * FROM users WHERE email = ?';
+    console.log('실행 쿼리:', query, [email]);
+
+    db.query(query, [email], async (err, results) => {
         if (err) {
             console.error('로그인 중 오류 발생:', err);
             return res.json({ success: false, message: '로그인 실패: 데이터베이스 오류' });
@@ -195,12 +223,23 @@ app.post('/api/login', (req, res) => {
 
         if (results.length > 0) {
             const user = results[0];
-            req.session.userId = user.id; // 세션에 사용자 ID 저장
-            req.session.isLoggedIn = true; // 로그인 상태 플래그 저장
-            console.log('로그인 성공:', user);
-
-            // 로그인 성공 시 JSON 응답 반환
-            return res.json({ success: true, message: '로그인 성공!', redirectUrl: '/index.html' });
+            
+            try {
+                // 해시된 비밀번호와 비교
+                const passwordMatch = await bcrypt.compare(password, user.password);
+                
+                if (passwordMatch) {
+                    req.session.userId = user.id;
+                    req.session.isLoggedIn = true;
+                    console.log('로그인 성공:', user);
+                    return res.json({ success: true, message: '로그인 성공!', redirectUrl: '/index.html' });
+                } else {
+                    res.json({ success: false, message: '로그인 실패: 이메일 또는 비밀번호가 잘못되었습니다.' });
+                }
+            } catch (compareError) {
+                console.error('비밀번호 비교 중 오류:', compareError);
+                res.json({ success: false, message: '로그인 처리 중 오류가 발생했습니다.' });
+            }
         } else {
             res.json({ success: false, message: '로그인 실패: 이메일 또는 비밀번호가 잘못되었습니다.' });
         }
@@ -1209,9 +1248,8 @@ app.delete('/api/comment/:commentId', (req, res) => {
 // ==================================================================================================================
 // 프로필 수정 API
 // ==================================================================================================================
-app.put('/api/user/profile', upload.single('profileImage'), (req, res) => {
+app.put('/api/user/profile', upload.single('profileImage'), async (req, res) => {
     const userId = req.session.userId;
-    
     if (!userId) {
         return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
     }
@@ -1219,9 +1257,15 @@ app.put('/api/user/profile', upload.single('profileImage'), (req, res) => {
     const { username, profileDescription, password, passwordConfirm } = req.body;
     const profileImageFile = req.file;
 
-    // 비밀번호 변경 시 확인
-    if (password && password !== passwordConfirm) {
-        return res.status(400).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
+    // 비밀번호 변경 시 유효성 검사
+    if (password) {
+        if (!validatePassword(password)) {
+            return res.status(400).json({ success: false, message: '비밀번호는 8-20자리이며, 영문자와 숫자가 모두 포함되어야 합니다.' });
+        }
+        
+        if (password !== passwordConfirm) {
+            return res.status(400).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
+        }
     }
 
     // 업데이트할 필드들 준비
@@ -1239,12 +1283,19 @@ app.put('/api/user/profile', upload.single('profileImage'), (req, res) => {
     }
 
     if (password) {
-        updateFields.push('password = ?');
-        updateValues.push(password); // 실제로는 해시화 필요
+        try {
+            // 비밀번호 해시화
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+            updateFields.push('password = ?');
+            updateValues.push(hashedPassword);
+        } catch (hashError) {
+            console.error('비밀번호 해시화 중 오류:', hashError);
+            return res.status(500).json({ success: false, message: '비밀번호 처리 중 오류가 발생했습니다.' });
+        }
     }
 
     if (profileImageFile) {
-        // 프로필 이미지는 Uploads/Profile_Image/ 경로에 저장됨
         updateFields.push('profile_image_path = ?');
         updateValues.push(profileImageFile.path);
     }
