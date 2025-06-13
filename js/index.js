@@ -2,6 +2,8 @@ function isMobile() {
     return window.matchMedia("(max-width: 768px)").matches;
 }
 
+let userLikedPosts = [];
+
 // =======================================================================================================
 // 게시물(카드) 생성 함수
 // =======================================================================================================
@@ -194,14 +196,24 @@ function createCard(item, isPlaceholder = false, currentUserId = null) {
 
     const commentInput = document.createElement('div');
     commentInput.className = 'commentInputM';
+
+    // 좋아요 상태 확인
+    const isLiked = userLikedPosts.includes(item.id);
+    const heartIcon = isLiked ? 'image/heart-red.png' : 'image/heart-icon.png';
+    const likedClass = isLiked ? 'liked' : '';
+
     overlay.appendChild(commentInput);
 
     commentInput.innerHTML = `
-        <div class = "iconDiv">
-            <img src = "../image/heart-icon.png" alt = "좋아요">
-            <img src = "../image/SpeechBubble-icon.png" alt = "댓글" class = "comment-icon" data-post-id = "${item.id}">
+        <div class="iconDiv">
+            <button class="heartBtn ${likedClass}" data-post-id="${item.id}">
+                <img src="${heartIcon}" alt="좋아요" />
+            </button>
+            <span class="like-count">${item.likes || 0}</span>
+            <img src="image/SpeechBubble-icon.png" alt="댓글" class="commentBtn" data-post-id="${item.id}" />
+            <img src="image/send-icon.png" alt="공유" />
         </div>
-        <input class = "comInput" name = "commentM" type = "text" placeholder = "댓글 입력" data-post-id = "${item.id}">
+        <input type="text" class="comInput" data-post-id="${item.id}" placeholder="댓글을 입력하세요...">
     `;
 
     return card;
@@ -643,8 +655,118 @@ function highlightPost(postId) {
     }
 }
 
+// 페이지 로드 시 좋아요 상태 가져오기
+async function loadUserLikedPosts() {
+    try {
+        const response = await fetch('/api/posts/likes');
+        if (response.ok) {
+            const data = await response.json();
+            userLikedPosts = data.likedPosts || [];
+            console.log('좋아요 상태 로드됨:', userLikedPosts);
+        }
+    } catch (error) {
+        console.error('좋아요 상태 로드 중 오류:', error);
+        userLikedPosts = [];
+    }
+}
+
+// 게시물 로드 함수
+async function loadPosts() {
+    try {
+        const response = await fetch('/api/posts');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const contentDiv = document.querySelector('.content');
+        
+        if (!contentDiv) {
+            console.error('.content 요소를 찾을 수 없습니다.');
+            return;
+        }
+
+        // 기존 카드들 제거 (센티넬 제외)
+        const existingCards = contentDiv.querySelectorAll('.card');
+        existingCards.forEach(card => card.remove());
+
+        if (data.posts && data.posts.length > 0) {
+            // 각 게시물에 대해 카드 생성
+            data.posts.forEach(post => {
+                const card = createCard(post, false, data.currentUserId);
+                contentDiv.appendChild(card);
+            });
+        } else {
+            // 게시물이 없는 경우
+            const noPostsDiv = document.createElement('div');
+            noPostsDiv.className = 'no-posts';
+            noPostsDiv.innerHTML = '<p>게시물이 없습니다.</p>';
+            contentDiv.appendChild(noPostsDiv);
+        }
+
+    } catch (error) {
+        console.error('게시물 로드 중 오류:', error);
+        const contentDiv = document.querySelector('.content');
+        if (contentDiv) {
+            contentDiv.innerHTML = '<div class="error-message">게시물을 불러오는 중 오류가 발생했습니다.</div>';
+        }
+    }
+}
+
+// 좋아요 버튼 클릭 처리 함수
+async function handleLikeClick(postId, heartBtn) {
+    try {
+        const response = await fetch(`/api/post/${postId}/like`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            const heartImg = heartBtn.querySelector('img');
+            const likeCountElement = heartBtn.parentNode.querySelector('.like-count');
+            
+            // 애니메이션 클래스 추가
+            heartBtn.classList.add('animating');
+            
+            // 애니메이션 완료 후 상태 업데이트
+            setTimeout(() => {
+                if (result.liked) {
+                    heartImg.src = 'image/heart-red.png';
+                    heartBtn.classList.add('liked');
+                    if (!userLikedPosts.includes(postId)) {
+                        userLikedPosts.push(postId);
+                    }
+                } else {
+                    heartImg.src = 'image/heart-icon.png';
+                    heartBtn.classList.remove('liked');
+                    userLikedPosts = userLikedPosts.filter(id => id !== postId);
+                }
+                
+                // 좋아요 수 업데이트
+                if (likeCountElement) {
+                    likeCountElement.textContent = result.likes || 0;
+                }
+                
+                heartBtn.classList.remove('animating');
+            }, 300);
+
+        } else {
+            alert(result.message || '좋아요 처리 중 오류가 발생했습니다.');
+        }
+    } catch (error) {
+        console.error('좋아요 처리 중 오류:', error);
+        alert('좋아요 처리 중 오류가 발생했습니다.');
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     await renderCards();
+    await loadUserLikedPosts();
+    await loadPosts();
 
     // URL에 postId 파라미터가 있으면 해당 게시물로 스크롤
     const postId = getPostIdFromURL();
@@ -960,6 +1082,34 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 페이지 로드 시 인기 검색어 로드
     loadPopularSearches();
+
+    document.addEventListener('click', function(e) {
+        // 모바일환경: heartBtn 클릭
+        if (e.target.matches('.heartBtn') || e.target.closest('.heartBtn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const heartBtn = e.target.matches('.heartBtn') ? e.target : e.target.closest('.heartBtn');
+            const postId = parseInt(heartBtn.getAttribute('data-post-id'));
+            
+            if (postId && !isNaN(postId)) {
+                handleLikeClick(postId, heartBtn);
+            }
+        }
+        
+        // PC환경: heartBtn > img 클릭
+        else if (e.target.matches('.heartBtn img')) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const heartBtn = e.target.closest('.heartBtn');
+            const postId = parseInt(heartBtn.getAttribute('data-post-id'));
+            
+            if (postId && !isNaN(postId)) {
+                handleLikeClick(postId, heartBtn);
+            }
+        }
+    });
 
     // 전역 스코프에 함수들 노출 (HTML onclick에서 사용하기 위해)
     window.performAdvancedSearch = performAdvancedSearch;

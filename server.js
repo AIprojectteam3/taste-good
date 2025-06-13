@@ -674,7 +674,7 @@ app.post('/api/createPost', upload.array('postImages', 10), (req, res) => { // '
 // 게시글 목록 가져오기
 // ==================================================================================================================
 app.get('/api/posts', (req, res) => {
-    const currentUserId = req.session.userId || null; // 현재 로그인한 사용자 ID
+    const currentUserId = req.session.userId || null;
     
     const query = `
         SELECT
@@ -683,6 +683,7 @@ app.get('/api/posts', (req, res) => {
             p.content,
             p.created_at,
             p.user_id,
+            p.likes,                    -- likes 필드 추가
             u.username as author_username,
             u.profile_image_path as author_profile_path
         FROM posts p
@@ -1074,17 +1075,126 @@ app.get('/api/user/posts', (req, res) => {
 });
 
 // ==================================================================================================================
-// 사용자 북마크 API (추후 구현)
+// 좋아요 토글 API
 // ==================================================================================================================
-app.get('/api/user/bookmarks', (req, res) => {
+app.post('/api/post/:postId/like', (req, res) => {
+    const postId = req.params.postId;
     const userId = req.session.userId;
-    
+
     if (!userId) {
-        return res.status(401).json({ message: '로그인이 필요합니다.' });
+        return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
     }
 
-    // 현재는 빈 배열 반환 (북마크 기능 구현 후 수정)
-    res.json([]);
+    if (!postId || isNaN(parseInt(postId))) {
+        return res.status(400).json({ success: false, message: '유효한 게시물 ID가 필요합니다.' });
+    }
+
+    // 현재 좋아요 상태 확인
+    const checkLikeQuery = 'SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?';
+    
+    db.query(checkLikeQuery, [postId, userId], (err, results) => {
+        if (err) {
+            console.error('좋아요 상태 확인 중 오류:', err);
+            return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+        }
+
+        const isLiked = results.length > 0;
+        
+        if (isLiked) {
+            // 좋아요 취소
+            const deleteLikeQuery = 'DELETE FROM post_likes WHERE post_id = ? AND user_id = ?';
+            const decrementLikesQuery = 'UPDATE posts SET likes = GREATEST(likes - 1, 0) WHERE id = ?';
+            
+            db.query(deleteLikeQuery, [postId, userId], (deleteErr) => {
+                if (deleteErr) {
+                    console.error('좋아요 취소 중 오류:', deleteErr);
+                    return res.status(500).json({ success: false, message: '좋아요 취소 중 오류가 발생했습니다.' });
+                }
+
+                db.query(decrementLikesQuery, [postId], (updateErr) => {
+                    if (updateErr) {
+                        console.error('좋아요 수 감소 중 오류:', updateErr);
+                        return res.status(500).json({ success: false, message: '좋아요 수 업데이트 중 오류가 발생했습니다.' });
+                    }
+
+                    // 현재 좋아요 수 조회
+                    const getLikesQuery = 'SELECT likes FROM posts WHERE id = ?';
+                    db.query(getLikesQuery, [postId], (getLikesErr, likesResults) => {
+                        if (getLikesErr) {
+                            console.error('좋아요 수 조회 중 오류:', getLikesErr);
+                            return res.status(500).json({ success: false, message: '좋아요 수 조회 중 오류가 발생했습니다.' });
+                        }
+
+                        const currentLikes = likesResults[0]?.likes || 0;
+                        res.json({ 
+                            success: true, 
+                            liked: false, 
+                            likes: currentLikes,
+                            message: '좋아요를 취소했습니다.' 
+                        });
+                    });
+                });
+            });
+        } else {
+            // 좋아요 추가
+            const insertLikeQuery = 'INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)';
+            const incrementLikesQuery = 'UPDATE posts SET likes = likes + 1 WHERE id = ?';
+            
+            db.query(insertLikeQuery, [postId, userId], (insertErr) => {
+                if (insertErr) {
+                    console.error('좋아요 추가 중 오류:', insertErr);
+                    return res.status(500).json({ success: false, message: '좋아요 추가 중 오류가 발생했습니다.' });
+                }
+
+                db.query(incrementLikesQuery, [postId], (updateErr) => {
+                    if (updateErr) {
+                        console.error('좋아요 수 증가 중 오류:', updateErr);
+                        return res.status(500).json({ success: false, message: '좋아요 수 업데이트 중 오류가 발생했습니다.' });
+                    }
+
+                    // 현재 좋아요 수 조회
+                    const getLikesQuery = 'SELECT likes FROM posts WHERE id = ?';
+                    db.query(getLikesQuery, [postId], (getLikesErr, likesResults) => {
+                        if (getLikesErr) {
+                            console.error('좋아요 수 조회 중 오류:', getLikesErr);
+                            return res.status(500).json({ success: false, message: '좋아요 수 조회 중 오류가 발생했습니다.' });
+                        }
+
+                        const currentLikes = likesResults[0]?.likes || 0;
+                        res.json({ 
+                            success: true, 
+                            liked: true, 
+                            likes: currentLikes,
+                            message: '좋아요를 추가했습니다.' 
+                        });
+                    });
+                });
+            });
+        }
+    });
+});
+
+// ==================================================================================================================
+// 사용자별 좋아요 상태 확인 API
+// ==================================================================================================================
+app.get('/api/posts/likes', (req, res) => {
+    const userId = req.session.userId;
+
+    if (!userId) {
+        return res.json({ likedPosts: [] });
+    }
+
+    const getLikedPostsQuery = 'SELECT post_id FROM post_likes WHERE user_id = ?';
+    
+    db.query(getLikedPostsQuery, [userId], (err, results) => {
+        if (err) {
+            console.error('좋아요 상태 조회 중 오류:', err);
+            return res.status(500).json({ error: '좋아요 상태 조회 중 오류가 발생했습니다.' });
+        }
+
+        const likedPosts = results.map(row => row.post_id);
+        res.json({ likedPosts });
+    });
 });
 
 // ==================================================================================================================
