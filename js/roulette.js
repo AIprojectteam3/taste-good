@@ -6,14 +6,30 @@ const newFoodInput = document.getElementById("newFood");
 const foodList = document.getElementById("foodList");
 const historyList = document.getElementById("historyList");
 
-let foods = ["김치찌개", "된장찌개", "치킨", "피자"];
+// 초기 음식 배열을 빈 배열로 설정
+let foods = [];
 let currentRotation = 0;
 let isSpinning = false;
 
 function drawWheel() {
   const numSlices = foods.length;
-  const angle = (2 * Math.PI) / numSlices;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (numSlices === 0) {
+    // 음식이 없을 때 안내 메시지
+    ctx.save();
+    ctx.translate(200, 200);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#bbb";
+    ctx.font = "20px sans-serif";
+    ctx.fillText("음식을 추가해 주세요!", 0, 0);
+    ctx.restore();
+    updateFoodList();
+    return;
+  }
+
+  const angle = (2 * Math.PI) / numSlices;
   for (let i = 0; i < numSlices; i++) {
     ctx.beginPath();
     ctx.moveTo(200, 200);
@@ -84,8 +100,9 @@ function spin() {
 
   setTimeout(() => {
     const normalizedRotation = currentRotation % 360;
-    const adjustedRotation = (360 - normalizedRotation + sliceDeg / 2) % 360;
-    const index = Math.floor(adjustedRotation / sliceDeg);
+    const pointerDeg = 270; // 12시 방향
+    const adjustedRotation = (normalizedRotation + pointerDeg) % 360;
+    const index = Math.floor(adjustedRotation / sliceDeg) % foods.length;
     const result = foods[index];
 
     alert(`오늘은 "${result}" 어때요? 😋`);
@@ -103,9 +120,9 @@ function addToHistory(food) {
 
 function toggleControls(enabled) {
   newFoodInput.disabled = !enabled;
-  document.querySelector('.controls button').disabled = !enabled;
-  const deleteButtons = document.querySelectorAll('#foodList button');
-  deleteButtons.forEach(btn => btn.disabled = !enabled);
+  // 모든 버튼 비활성화
+  document.querySelectorAll('.controls button').forEach(btn => btn.disabled = !enabled);
+  document.querySelectorAll('#foodList button').forEach(btn => btn.disabled = !enabled);
 }
 
 drawWheel();
