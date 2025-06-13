@@ -1,12 +1,13 @@
 #index-modal {
     display: none;
+    align-items: center;
+    justify-content: center;
     position: fixed;
     z-index: 2000;
     left: 0; top: 0;
     width: 100vw; height: 100vh;
     background: rgba(0,0,0,0.6);
-    justify-content: center;
-    align-items: center;
+    overflow: auto !important;
 }
 
 .modal-window {
@@ -29,6 +30,7 @@
 .modal-right {
     width : 45%;
     height : 100%;
+    overflow: auto !important;
 }
 
 .post-actions-menu > button {
@@ -329,6 +331,11 @@
     display : flex;
     flex-direction : column;
     width : 35%;
+}
+
+.comment-date {
+    margin-left : auto;
+    margin-right : 10px;
 }
 
 #index-modal .comment-date {

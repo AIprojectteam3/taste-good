@@ -48,9 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 슬라이더 뷰 업데이트 (메인 슬라이드 및 썸네일)
     function updateCreatePostSliderView() {
-        console.log('updateCreatePostSliderView 호출됨');
-        console.log('uploadedFilesForCreatePost:', uploadedFilesForCreatePost);
-        console.log('currentCreatePostSlideIndex:', currentCreatePostSlideIndex);
+        // console.log('updateCreatePostSliderView 호출됨');
+        // console.log('uploadedFilesForCreatePost:', uploadedFilesForCreatePost);
+        // console.log('currentCreatePostSlideIndex:', currentCreatePostSlideIndex);
         createPostSliderMain.innerHTML = ''; // 메인 슬라이드 영역 초기화
         createPostThumbnails.innerHTML = ''; // 썸네일 영역 초기화
 

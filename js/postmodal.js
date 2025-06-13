@@ -568,12 +568,65 @@ async function displayPostModal(postId) {
         // 9. 모달 표시
         modalOverlay.style.display = 'flex';
 
+        const heartBtn = modalOverlay.querySelector('.heartBtn');
+        if (heartBtn) {
+            heartBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await handleLikeClick(postId, heartBtn);
+            });
+        }
+
     } catch (error) {
         console.error('게시물 모달 표시 중 오류:', error);
         alert('게시물을 불러오는 중 오류가 발생했습니다.');
     }
 }
 
+async function handleLikeClick(postId, heartBtn) {
+    try {
+        const response = await fetch(`/api/post/${postId}/like`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const heartImg = heartBtn.querySelector('img');
+            const likeCountElement = heartBtn.parentNode.querySelector('.like-count');
+            
+            // 애니메이션 클래스 추가
+            heartBtn.classList.add('animating');
+            
+            // 애니메이션 완료 후 상태 업데이트
+            setTimeout(() => {
+                if (result.liked) {
+                    heartImg.src = 'image/heart-red.png';
+                    heartBtn.classList.add('liked');
+                    if (!modalLikedPosts.includes(postId)) {
+                        modalLikedPosts.push(postId);
+                    }
+                } else {
+                    heartImg.src = 'image/heart-icon.png';
+                    heartBtn.classList.remove('liked');
+                    modalLikedPosts = modalLikedPosts.filter(id => id !== postId);
+                }
+                
+                // 좋아요 수 업데이트
+                if (likeCountElement) {
+                    likeCountElement.textContent = result.likes || 0;
+                }
+                
+                heartBtn.classList.remove('animating');
+            }, 300);
+        } else {
+            alert(result.message || '좋아요 처리 중 오류가 발생했습니다.');
+        }
+    } catch (error) {
+        console.error('좋아요 처리 중 오류:', error);
+        alert('좋아요 처리 중 오류가 발생했습니다.');
+    }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     // 이벤트 위임(Event Delegation)을 사용하여 게시물 카드 클릭 처리
