@@ -88,6 +88,24 @@ ensureDirectoryExists('Uploads/Post_Image/');
 ensureDirectoryExists('uploads/default/');
 
 // 유효성 검사 함수들
+function validateUsername(username) {
+    if (!username || typeof username !== 'string') {
+        return { valid: false, message: '닉네임을 입력해주세요.' };
+    }
+    
+    const trimmedUsername = username.trim();
+    
+    if (trimmedUsername.length < 2) {
+        return { valid: false, message: '닉네임은 최소 2자 이상이어야 합니다.' };
+    }
+    
+    if (trimmedUsername.length > 8) {
+        return { valid: false, message: '닉네임은 최대 8자까지 입력 가능합니다.' };
+    }
+    
+    return { valid: true, message: '' };
+}
+
 function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -106,8 +124,9 @@ app.post('/api/signup', async (req, res) => {
     console.log('받은 데이터:', { username, email, password, passwordConfirm, address, detailAddress });
 
     // 1. 개별 필수 입력값 검증
-    if (!username) {
-        return res.status(400).json({ message: '닉네임을 입력해주세요.' });
+    const usernameValidation = validateUsername(username);
+    if (!usernameValidation.valid) {
+        return res.status(400).json({ message: usernameValidation.message });
     }
 
     if (!email) {
@@ -145,6 +164,18 @@ app.post('/api/signup', async (req, res) => {
     }
 
     try {
+        const checkUsernameQuery = 'SELECT id FROM users WHERE username = ?';
+        const usernameExists = await new Promise((resolve, reject) => {
+            db.query(checkUsernameQuery, [username.trim()], (err, results) => {
+                if (err) reject(err);
+                else resolve(results.length > 0);
+            });
+        });
+
+        if (usernameExists) {
+            return res.status(409).json({ message: '이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해주세요.' });
+        }
+
         // 비밀번호 해시화
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -1258,6 +1289,31 @@ app.put('/api/user/profile', upload.single('profileImage'), async (req, res) => 
     const { username, profileDescription, password, passwordConfirm } = req.body;
     const profileImageFile = req.file;
 
+    // 닉네임 변경 시 유효성 검사
+    if (username) {
+        const usernameValidation = validateUsername(username);
+        if (!usernameValidation.valid) {
+            return res.status(400).json({ success: false, message: usernameValidation.message });
+        }
+
+        try {
+            const checkUsernameQuery = 'SELECT id FROM users WHERE username = ? AND id != ?';
+            const usernameExists = await new Promise((resolve, reject) => {
+                db.query(checkUsernameQuery, [username.trim(), userId], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results.length > 0);
+                });
+            });
+
+            if (usernameExists) {
+                return res.status(409).json({ success: false, message: '이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해주세요.' });
+            }
+        } catch (error) {
+            console.error('닉네임 중복 확인 중 오류:', error);
+            return res.status(500).json({ success: false, message: '닉네임 확인 중 오류가 발생했습니다.' });
+        }
+    }
+
     // 비밀번호 변경 시 유효성 검사
     if (password) {
         if (!validatePassword(password)) {
@@ -1275,7 +1331,7 @@ app.put('/api/user/profile', upload.single('profileImage'), async (req, res) => 
 
     if (username) {
         updateFields.push('username = ?');
-        updateValues.push(username);
+        updateValues.push(username.trim());
     }
 
     if (profileDescription) {

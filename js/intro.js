@@ -2,6 +2,16 @@ function isMobile() {
     return window.matchMedia("(max-width: 768px)").matches;
 }
 
+function validateUsername(username) {
+    if (!username || username.trim().length < 2) {
+        return { valid: false, message: '닉네임은 최소 2자 이상이어야 합니다.' };
+    }
+    if (username.trim().length > 8) {
+        return { valid: false, message: '닉네임은 최대 8자까지 입력 가능합니다.' };
+    }
+    return { valid: true, message: '' };
+}
+
 function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -310,6 +320,13 @@ document.addEventListener('DOMContentLoaded', () => {
             address: e.target.querySelector('input[name="address"]').value,
             detailAddress: e.target.querySelector('input[name="detailAddress"]').value,
         };
+
+        // 닉네임 유효성 검사 추가
+        const usernameValidation = validateUsername(formData.username);
+        if (!usernameValidation.valid) {
+            alert(usernameValidation.message);
+            return;
+        }
 
         // 이메일 유효성 검사
         if (!validateEmail(formData.email)) {
