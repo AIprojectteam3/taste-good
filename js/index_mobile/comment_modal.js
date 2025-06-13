@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.body.addEventListener('click', function(e) {
-        if (e.target.classList.contains('comment-icon')) {
+        if (e.target.classList.contains('commentBtn')) {
             if (isMobile()) {
                 const postId = e.target.getAttribute('data-post-id');
                 openCommentOnlyModal(postId); // postId를 넘김

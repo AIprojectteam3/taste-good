@@ -1,9 +1,8 @@
-// 게시물 모달을 표시하는 함수
+// 게시물 모달을 표시하는 함수=
 async function displayPostModal(postId) {
     try {
         // 1. 현재 로그인한 사용자 정보 가져오기
         let currentUserId = sessionStorage.getItem('loggedInUserId');
-        
         // sessionStorage에 없으면 서버에서 가져오기
         if (!currentUserId) {
             try {
@@ -27,11 +26,11 @@ async function displayPostModal(postId) {
         if (!response.ok) {
             throw new Error(`HTTP 오류! 상태: ${response.status}`);
         }
+
         const postDetail = await response.json();
-        
         // console.log("현재 사용자 ID:", currentUserId);
         // console.log("게시물 작성자 ID:", postDetail.user_id);
-        
+
         // 3. 모달창의 각 HTML 요소를 선택합니다.
         const modalOverlay = document.getElementById('index-modal');
         const slideContainerDiv = modalOverlay.querySelector('.slide-container');
@@ -55,11 +54,11 @@ async function displayPostModal(postId) {
             if (images.length > 0) {
                 mainSlideImg.src = images[currentImageIndex];
                 mainSlideImg.alt = `${postDetail.title} 이미지 ${currentImageIndex + 1}`;
-                
+
                 slideThumbnailsDiv.querySelectorAll('.slide-thumb').forEach(thumb => {
                     thumb.classList.remove('active');
                 });
-                
+
                 const activeThumb = slideThumbnailsDiv.querySelector(`.slide-thumb[data-index="${currentImageIndex}"]`);
                 if (activeThumb) {
                     activeThumb.classList.add('active');
@@ -80,18 +79,20 @@ async function displayPostModal(postId) {
         if (postDetail.images && postDetail.images.length > 0) {
             images = postDetail.images;
             currentImageIndex = 0;
-            slideThumbnailsDiv.innerHTML = '';
 
+            slideThumbnailsDiv.innerHTML = '';
             images.forEach((imagePath, index) => {
                 const thumbImg = document.createElement('img');
                 thumbImg.classList.add('slide-thumb');
                 thumbImg.src = imagePath;
                 thumbImg.alt = `썸네일 ${index + 1}`;
                 thumbImg.dataset.index = index;
+
                 thumbImg.addEventListener('click', () => {
                     currentImageIndex = index;
                     updateSlideView();
                 });
+
                 slideThumbnailsDiv.appendChild(thumbImg);
             });
 
@@ -102,12 +103,14 @@ async function displayPostModal(postId) {
                 if (prevButton._clickHandler) {
                     prevButton.removeEventListener('click', prevButton._clickHandler);
                 }
+
                 prevButton._clickHandler = () => {
                     if (currentImageIndex > 0) {
                         currentImageIndex--;
                         updateSlideView();
                     }
                 };
+
                 prevButton.addEventListener('click', prevButton._clickHandler);
             }
 
@@ -115,12 +118,14 @@ async function displayPostModal(postId) {
                 if (nextButton._clickHandler) {
                     nextButton.removeEventListener('click', nextButton._clickHandler);
                 }
+
                 nextButton._clickHandler = () => {
                     if (currentImageIndex < images.length - 1) {
                         currentImageIndex++;
                         updateSlideView();
                     }
                 };
+
                 nextButton.addEventListener('click', nextButton._clickHandler);
             }
 
@@ -135,6 +140,7 @@ async function displayPostModal(postId) {
             if (slideThumbnailsDiv._wheelHandler) {
                 slideThumbnailsDiv.removeEventListener('wheel', slideThumbnailsDiv._wheelHandler);
             }
+
             slideThumbnailsDiv.addEventListener('wheel', wheelHandler);
             slideThumbnailsDiv._wheelHandler = wheelHandler;
         } else {
@@ -156,7 +162,7 @@ async function displayPostModal(postId) {
         // 6. 작성자 확인 및 수정/삭제 버튼 표시
         if (currentUserId && parseInt(currentUserId) === postDetail.user_id) {
             // console.log("현재 사용자와 게시물 작성자가 동일합니다. 수정 및 삭제 버튼 표시.");
-            
+
             const menuDiv = document.createElement('div');
             menuDiv.classList.add('post-actions-menu');
 
@@ -176,6 +182,7 @@ async function displayPostModal(postId) {
                         const response = await fetch(`/api/post/${postDetail.id}`, {
                             method: 'DELETE'
                         });
+
                         const result = await response.json();
                         if (result.success) {
                             alert('게시물이 삭제되었습니다.');
@@ -195,7 +202,7 @@ async function displayPostModal(postId) {
 
             menuDiv.appendChild(editButton);
             menuDiv.appendChild(deleteButton);
-            
+
             const nicknameContainer = userNicknameSpan.closest('.user-nickname');
             if (nicknameContainer) {
                 nicknameContainer.appendChild(menuDiv);
@@ -214,10 +221,9 @@ async function displayPostModal(postId) {
         setTimeout(() => {
             if (postContentDiv && readMoreBtn) {
                 const postContentDivContainer = modalOverlay.querySelector('.post-content-div > div');
-                
                 // 실제 콘텐츠 높이와 컨테이너 높이 비교
                 const hasOverflow = postContentDiv.scrollHeight > postContentDiv.clientHeight;
-                
+
                 if (hasOverflow) {
                     readMoreBtn.style.display = 'block';
                 } else {
@@ -227,7 +233,7 @@ async function displayPostModal(postId) {
                 readMoreBtn.onclick = () => {
                     postContentDivContainer.classList.toggle('expanded');
                     postContentDiv.classList.toggle('expanded'); // post-content에도 클래스 추가
-                    
+
                     if (postContentDivContainer.classList.contains('expanded')) {
                         readMoreBtn.textContent = '닫기';
                         // 스크롤을 맨 위로 이동
@@ -243,18 +249,20 @@ async function displayPostModal(postId) {
         // 8. 댓글 렌더링 함수
         function renderComments(commentsData, commentContainerDiv, currentPostId) {
             commentContainerDiv.innerHTML = '';
-            
+
             if (commentsData && commentsData.length > 0) {
                 commentsData.forEach(comment => {
                     const commentUserDiv = document.createElement('div');
                     commentUserDiv.classList.add('comment-user');
                     commentUserDiv.setAttribute('data-comment-id', comment.id);
+
                     const profileImgPath = comment.author_profile_path || 'image/profile-icon.png';
+
                     let commentTextHtml = comment.comment.replace(/\n/g, '<br>');
-                    
+
                     // 댓글 작성자가 현재 로그인한 사용자인지 확인
                     const isCommentOwner = currentUserId && parseInt(currentUserId) === comment.user_id;
-                    
+
                     commentUserDiv.innerHTML = `
                         <div class="comment-div">
                             <div class="user-profile-img">
@@ -279,13 +287,11 @@ async function displayPostModal(postId) {
                             ` : ''}
                         </div>
                     `;
+
                     commentContainerDiv.appendChild(commentUserDiv);
                 });
-
-                // 댓글 수정/삭제 버튼 이벤트 리스너 추가
-                setupCommentActions(commentContainerDiv, currentPostId);
             } else {
-                commentContainerDiv.innerHTML = '<p>댓글이 없습니다.</p>';
+                commentContainerDiv.innerHTML = '<div class="no-comment">댓글이 없습니다.</div>';
             }
         }
 
@@ -296,7 +302,7 @@ async function displayPostModal(postId) {
             if (existingHandler) {
                 container.removeEventListener('click', existingHandler);
             }
-            
+
             // 새로운 이벤트 핸들러 함수 생성
             const commentActionHandler = async (e) => {
                 // 수정 버튼 이벤트
@@ -310,14 +316,14 @@ async function displayPostModal(postId) {
                         // 버튼을 직접 클릭한 경우
                         commentId = e.target.getAttribute('data-comment-id');
                     }
-                    
+
                     console.log('수정할 댓글 ID:', commentId); // 디버깅용
-                    
+
                     if (!commentId) {
                         alert('댓글 ID를 찾을 수 없습니다.');
                         return;
                     }
-                    
+
                     const commentElement = e.target.closest('.comment-user');
                     const commentContentElement = commentElement.querySelector('.comment-content');
                     const currentText = commentContentElement.textContent;
@@ -326,51 +332,42 @@ async function displayPostModal(postId) {
                     const editContainer = document.createElement('div');
                     editContainer.classList.add('comment-edit-container');
                     editContainer.innerHTML = `
-                        <textarea class="comment-edit-input" rows="3">${currentText}</textarea>
-                        <div class="comment-edit-actions">
-                            <button class="save-comment-btn" data-comment-id="${commentId}">저장</button>
-                            <button class="cancel-comment-edit-btn">취소</button>
+                        <textarea class="comment-edit-textarea">${currentText}</textarea>
+                        <div class="comment-edit-btn-div">
+                            <button class="comment-save-btn" data-comment-id="${commentId}">저장</button>
+                            <button class="comment-cancel-btn">취소</button>
                         </div>
                     `;
 
-                    // 기존 댓글 내용을 숨기고 수정 폼 표시
+                    // 기존 내용을 숨기고 수정 폼 표시
                     commentContentElement.style.display = 'none';
-                    commentContentElement.parentNode.appendChild(editContainer);
-                    
-                    // 수정/삭제 버튼 숨기기
-                    const editBtn = commentElement.querySelector('.edit-comment-btn');
-                    const deleteBtn = commentElement.querySelector('.delete-comment-btn');
-                    if (editBtn) editBtn.style.display = 'none';
-                    if (deleteBtn) deleteBtn.style.display = 'none';
+                    commentContentElement.parentNode.insertBefore(editContainer, commentContentElement.nextSibling);
 
                     // 저장 버튼 이벤트
-                    editContainer.querySelector('.save-comment-btn').addEventListener('click', async () => {
-                        const newText = editContainer.querySelector('.comment-edit-input').value.trim();
-                        if (!newText) {
+                    editContainer.querySelector('.comment-save-btn').addEventListener('click', async () => {
+                        const newCommentText = editContainer.querySelector('.comment-edit-textarea').value.trim();
+
+                        if (!newCommentText) {
                             alert('댓글 내용을 입력해주세요.');
                             return;
                         }
 
                         try {
-                            console.log('수정 요청 URL:', `/api/comment/${commentId}`); // 디버깅용
                             const response = await fetch(`/api/comment/${commentId}`, {
                                 method: 'PUT',
                                 headers: {
-                                    'Content-Type': 'application/json',
+                                    'Content-Type': 'application/json'
                                 },
-                                body: JSON.stringify({ comment: newText }),
+                                body: JSON.stringify({ comment: newCommentText })
                             });
+
                             const result = await response.json();
 
                             if (result.success) {
-                                // 댓글 내용 업데이트
-                                commentContentElement.innerHTML = newText.replace(/\n/g, '<br>');
+                                // 수정된 내용으로 업데이트
+                                commentContentElement.innerHTML = newCommentText.replace(/\n/g, '<br>');
                                 commentContentElement.style.display = 'block';
                                 editContainer.remove();
-                                
-                                // 수정/삭제 버튼 다시 표시
-                                if (editBtn) editBtn.style.display = 'inline-block';
-                                if (deleteBtn) deleteBtn.style.display = 'inline-block';
                             } else {
                                 alert(result.message || '댓글 수정에 실패했습니다.');
                             }
@@ -381,54 +378,40 @@ async function displayPostModal(postId) {
                     });
 
                     // 취소 버튼 이벤트
-                    editContainer.querySelector('.cancel-comment-edit-btn').addEventListener('click', () => {
+                    editContainer.querySelector('.comment-cancel-btn').addEventListener('click', () => {
                         commentContentElement.style.display = 'block';
                         editContainer.remove();
-                        
-                        // 수정/삭제 버튼 다시 표시
-                        if (editBtn) editBtn.style.display = 'inline-block';
-                        if (deleteBtn) deleteBtn.style.display = 'inline-block';
                     });
                 }
 
-                // 댓글 삭제 버튼 이벤트
+                // 삭제 버튼 이벤트
                 if (e.target.classList.contains('delete-comment-btn') || e.target.classList.contains('delete-comment-btn-img')) {
-                    // 댓글 ID 가져오기 - 이미지를 클릭한 경우 부모 버튼에서 가져오기
                     let commentId;
                     if (e.target.classList.contains('delete-comment-btn-img')) {
-                        // 이미지를 클릭한 경우, 부모 버튼에서 data-comment-id 가져오기
                         commentId = e.target.closest('.delete-comment-btn').getAttribute('data-comment-id');
                     } else {
-                        // 버튼을 직접 클릭한 경우
                         commentId = e.target.getAttribute('data-comment-id');
                     }
-                    
+
                     console.log('삭제할 댓글 ID:', commentId); // 디버깅용
-                    
+
                     if (!commentId) {
                         alert('댓글 ID를 찾을 수 없습니다.');
                         return;
                     }
-                    
+
                     if (confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
                         try {
-                            console.log('삭제 요청 URL:', `/api/comment/${commentId}`); // 디버깅용
                             const response = await fetch(`/api/comment/${commentId}`, {
                                 method: 'DELETE'
                             });
+
                             const result = await response.json();
 
                             if (result.success) {
                                 // 댓글 요소 제거
                                 const commentElement = e.target.closest('.comment-user');
                                 commentElement.remove();
-                                
-                                // postDetail.comments 배열에서도 제거
-                                if (postDetail.comments) {
-                                    postDetail.comments = postDetail.comments.filter(comment => comment.id !== parseInt(commentId));
-                                }
-
-                                alert(result.message || '댓글을 삭제했습니다.');
                             } else {
                                 alert(result.message || '댓글 삭제에 실패했습니다.');
                             }
@@ -439,91 +422,52 @@ async function displayPostModal(postId) {
                     }
                 }
             };
-            
+
             // 새로운 이벤트 리스너 등록
             container.addEventListener('click', commentActionHandler);
+            container._commentActionHandler = commentActionHandler; // 나중에 제거하기 위해 저장
+        }
+
+        const communityBtnDiv = modalOverlay.querySelector('.communityBtn');
+        if (communityBtnDiv) {
+            // 기존 좋아요 관련 요소들 모두 제거
+            const existingHeartBtns = communityBtnDiv.querySelectorAll('.heartBtn');
+            const existingLikeCounts = communityBtnDiv.querySelectorAll('.like-count');
             
-            // 나중에 제거할 수 있도록 핸들러 참조 저장
-            container._commentActionHandler = commentActionHandler;
+            existingHeartBtns.forEach(btn => btn.remove());
+            existingLikeCounts.forEach(count => count.remove());
+            
+            // 좋아요 상태 확인
+            const isLiked = userLikedPosts.includes(parseInt(postId));
+            const heartIcon = isLiked ? 'image/heart-red.png' : 'image/heart-icon.png';
+            const likedClass = isLiked ? 'liked' : '';
+            
+            // 하트 버튼 생성
+            const heartBtn = document.createElement('button');
+            heartBtn.className = `heartBtn ${likedClass}`;
+            heartBtn.setAttribute('data-post-id', postId);
+            
+            const heartImg = document.createElement('img');
+            heartImg.src = heartIcon;
+            heartImg.alt = '좋아요';
+            
+            heartBtn.appendChild(heartImg);
+            
+            // 좋아요 수 표시
+            const likeCount = document.createElement('span');
+            likeCount.className = 'like-count';
+            likeCount.textContent = postDetail.likes || 0;
+            
+            // communityBtn의 첫 번째 자식으로 삽입
+            communityBtnDiv.insertBefore(likeCount, communityBtnDiv.firstChild);
+            communityBtnDiv.insertBefore(heartBtn, communityBtnDiv.firstChild);
         }
 
-        // 9. 댓글 렌더링
-        if (postDetail.comments) {
-            renderComments(postDetail.comments, postCommentDiv, postDetail.id);
-        }
+        // 댓글 목록 표시
+        renderComments(postDetail.comments, postCommentDiv, postId);
+        setupCommentActions(postCommentDiv, postId);
 
-        // --- 댓글 작성 기능 ---
-        const commentInputElement = modalOverlay.querySelector('.comment-input');
-        const commentSubmitButton = modalOverlay.querySelector('.comment-submit');
-
-        if (commentInputElement && commentSubmitButton) {
-            const handleCommentSubmit = async () => {
-                const commentText = commentInputElement.value.trim();
-                if (!commentText) {
-                    alert('댓글 내용을 입력해주세요.');
-                    return;
-                }
-
-                if (!postDetail || typeof postDetail.id === 'undefined') {
-                    console.error('댓글 작성 시 postDetail 또는 postDetail.id를 찾을 수 없습니다.');
-                    alert('게시물 정보를 찾을 수 없어 댓글을 등록할 수 없습니다.');
-                    return;
-                }
-                const currentPostId = postDetail.id;
-
-                try {
-                    const response = await fetch(`/api/post/${currentPostId}/comment`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ comment: commentText }),
-                    });
-                    const result = await response.json();
-
-                    if (result.success && result.comment) {
-                        commentInputElement.value = '';
-
-                        if (!postDetail.comments || !Array.isArray(postDetail.comments)) {
-                            console.warn(
-                                "postDetail.comments가 배열이 아니거나 undefined였습니다. 빈 배열로 초기화합니다.",
-                                "현재 postDetail.comments 상태:", postDetail.comments,
-                                "전체 postDetail 객체:", JSON.parse(JSON.stringify(postDetail))
-                            );
-                            postDetail.comments = [];
-                        }
-                        postDetail.comments.push(result.comment);
-                        renderComments(postDetail.comments, postCommentDiv, currentPostId);
-                        postCommentDiv.scrollTop = postCommentDiv.scrollHeight;
-                    } else {
-                        alert(result.message || '댓글 등록에 실패했습니다.');
-                    }
-                } catch (error) {
-                    console.error('댓글 등록 중 오류:', error);
-                    alert('댓글 등록 중 오류가 발생했습니다.');
-                }
-            };
-
-            commentSubmitButton.onclick = handleCommentSubmit;
-
-            const enterKeyListener = (event) => {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    commentSubmitButton.click();
-                }
-            };
-
-            if (commentInputElement._enterKeyListener) {
-                commentInputElement.removeEventListener('keydown', commentInputElement._enterKeyListener);
-            }
-            commentInputElement.addEventListener('keydown', enterKeyListener);
-            commentInputElement._enterKeyListener = enterKeyListener;
-
-        } else {
-            console.warn("댓글 입력 필드(.comment-input) 또는 등록 버튼(.comment-submit)을 모달에서 찾을 수 없습니다.");
-        }
-
-        // 10. 모달 표시
+        // 9. 모달 표시
         modalOverlay.style.display = 'flex';
 
     } catch (error) {
@@ -531,6 +475,7 @@ async function displayPostModal(postId) {
         alert('게시물을 불러오는 중 오류가 발생했습니다.');
     }
 }
+
 
 document.addEventListener("DOMContentLoaded", () => {
     // 이벤트 위임(Event Delegation)을 사용하여 게시물 카드 클릭 처리
