@@ -78,13 +78,15 @@ async function loadProfileData() {
         const followerEl = profileDiv.querySelector('.Follower_span');
         const pointEl = profileDiv.querySelector('.point_span');
         const userdesEl = profileDiv.querySelector('.profile_des');
-        const profileImageEl = document.querySelector('.myprofile-image > img'); // 프로필 이미지 요소 추가
+        const profileImageEl = document.querySelector('.myprofile-image > img');
+        const emailEl = document.querySelector('.emailSpan');
 
         if (usernameEl && userData.username) usernameEl.textContent = userData.username;
         if (levelEl && userData.level !== undefined) levelEl.textContent = userData.level;
         if (postEl && userData.post_count !== undefined) postEl.textContent = userData.post_count;
         if (followerEl && userData.follower_count !== undefined) followerEl.textContent = userData.follower_count;
         if (pointEl && userData.point !== undefined) pointEl.textContent = userData.point;
+        if (emailEl && userData.email !== undefined) emailEl.textContent = userData.email;
 
         // 프로필 이미지 업데이트
         if (profileImageEl) {
