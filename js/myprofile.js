@@ -46,6 +46,16 @@ async function fetchUserBookmarks() {
     }
 }
 
+function validateUsername(username) {
+    if (!username || username.trim().length < 2) {
+        return { valid: false, message: '닉네임은 최소 2자 이상이어야 합니다.' };
+    }
+    if (username.trim().length > 8) {
+        return { valid: false, message: '닉네임은 최대 8자까지 입력 가능합니다.' };
+    }
+    return { valid: true, message: '' };
+}
+
 function validatePassword(password) {
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,20}$/;
     return passwordRegex.test(password);
@@ -444,6 +454,16 @@ async function handleProfileUpdate(event) {
     const passwordConfirmInput = document.querySelector('.password_confirm_input');
     const profileImageInput = document.getElementById('profileImageUpload');
 
+    // 닉네임 유효성 검사 추가
+    if (usernameInput && usernameInput.value.trim()) {
+        const usernameValidation = validateUsername(usernameInput.value);
+        if (!usernameValidation.valid) {
+            alert(usernameValidation.message);
+            return;
+        }
+        formData.append('username', usernameInput.value.trim());
+    }
+
     // 비밀번호 입력이 비활성화되어 있으면 비밀번호 관련 처리 건너뛰기
     if (passwordInput && !passwordInput.disabled && passwordInput.value.trim()) {
         const password = passwordInput.value.trim();
@@ -462,11 +482,6 @@ async function handleProfileUpdate(event) {
 
         formData.append('password', password);
         formData.append('passwordConfirm', passwordConfirm);
-    }
-
-    // 폼 데이터 수집
-    if (usernameInput && usernameInput.value.trim()) {
-        formData.append('username', usernameInput.value.trim());
     }
 
     if (profileDescInput && profileDescInput.value.trim()) {
