@@ -212,7 +212,7 @@ function createCard(item, isPlaceholder = false, currentUserId = null) {
             <span class="like-count">${item.likes || 0}</span>
             <img src="image/SpeechBubble-icon.png" alt="댓글" class="commentBtn" data-post-id="${item.id}" />
         </div>
-        <input type="text" class="comInput" data-post-id="${item.id}" placeholder="댓글을 입력하세요...">
+        <input type="text" class="comInput" name = "comInput" data-post-id="${item.id}" placeholder="댓글을 입력하세요...">
     `;
 
     return card;
