@@ -211,7 +211,6 @@ function createCard(item, isPlaceholder = false, currentUserId = null) {
             </button>
             <span class="like-count">${item.likes || 0}</span>
             <img src="image/SpeechBubble-icon.png" alt="댓글" class="commentBtn" data-post-id="${item.id}" />
-            <img src="image/send-icon.png" alt="공유" />
         </div>
         <input type="text" class="comInput" data-post-id="${item.id}" placeholder="댓글을 입력하세요...">
     `;
