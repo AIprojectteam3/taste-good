@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>메뉴</title>
-    <link rel="stylesheet" href="css/menu.css">
+    <title>맛잘알연구소 - 다마고치</title>
+    <link rel = "stylesheet" href = "css/menu.css">
+    <link rel = "stylesheet" href = "css/tamagotchi.css">
+
+    <script src = "js/Back/menu.js"></script>
+    <script src = "js/tamagotchi.js"></script>
 </head>
 <body>
     <div class = "container">
@@ -86,9 +90,53 @@
             </nav>
         </aside>
 
-        <main class = "">
+        <div class="tamagotchi-content">
+            <div class="tamagotchi-container">
+                <!-- 다마고치 캐릭터 영역 -->
+                <div class="tamagotchi-display">
+                    <div class="pet-container">
+                        <img src="image/pet-dummy.png" alt="내 다마고치" class="pet-image">
+                        <div class="pet-status">
+                            <div class="status-bar">
+                                <span class="status-label">배고픔</span>
+                                <div class="status-progress">
+                                    <div class="progress-fill hunger" style="width: 70%"></div>
+                                </div>
+                            </div>
+                            <div class="status-bar">
+                                <span class="status-label">행복도</span>
+                                <div class="status-progress">
+                                    <div class="progress-fill happiness" style="width: 85%"></div>
+                                </div>
+                            </div>
+                            <div class="status-bar">
+                                <span class="status-label">건강도</span>
+                                <div class="status-progress">
+                                    <div class="progress-fill health" style="width: 60%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        </main>
+                <!-- 다마고치 메뉴 버튼들 -->
+                <div class="tamagotchi-menu">
+                    <button class="menu-button shop-btn">
+                        <div class="button-icon">
+                            <img src="image/shop-icon.png" alt="상점">
+                        </div>
+                        <span class="button-text">상점</span>
+                    </button>
+                    
+                    <button class="menu-button diary-btn">
+                        <div class="button-icon">
+                            <img src="image/diary-icon.png" alt="펫 다이어리">
+                        </div>
+                        <span class="button-text">펫 다이어리</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 모바일 네비게이션 -->
