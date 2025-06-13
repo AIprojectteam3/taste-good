@@ -22,10 +22,11 @@ async function fetchUserPosts() {
     }
 }
 
-// 사용자 북마크 게시물 로드 함수 (추후에 사용 및 수정 필요)
+// 사용자 좋아요한 게시물 로드 함수
 async function fetchUserBookmarks() {
     try {
-        const response = await fetch('/api/user/bookmarks');
+        const response = await fetch('/api/user/liked-posts');
+        
         // 401 오류 시 로그인 페이지로 리다이렉트
         if (response.status === 401) {
             alert('세션이 만료되었습니다. 다시 로그인해주세요.');
@@ -34,14 +35,14 @@ async function fetchUserBookmarks() {
         }
 
         if (!response.ok) {
-            console.error("사용자 북마크 로드 실패:", response.status);
+            console.error("사용자 좋아요 게시물 로드 실패:", response.status);
             return [];
         }
 
-        const bookmarks = await response.json();
-        return bookmarks || [];
+        const likedPosts = await response.json();
+        return likedPosts || [];
     } catch (error) {
-        console.error("사용자 북마크를 불러오는 중 오류:", error);
+        console.error("사용자 좋아요 게시물을 불러오는 중 오류:", error);
         return [];
     }
 }

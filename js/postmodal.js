@@ -1,3 +1,5 @@
+let modalLikedPosts = [];
+
 // 게시물 모달을 표시하는 함수=
 async function displayPostModal(postId) {
     try {
@@ -295,6 +297,77 @@ async function displayPostModal(postId) {
             }
         }
 
+        // --- 댓글 작성 기능 ---
+        const commentInputElement = modalOverlay.querySelector('.comment-input');
+        const commentSubmitButton = modalOverlay.querySelector('.comment-submit');
+
+        if (commentInputElement && commentSubmitButton) {
+            const handleCommentSubmit = async () => {
+                const commentText = commentInputElement.value.trim();
+                if (!commentText) {
+                    alert('댓글 내용을 입력해주세요.');
+                    return;
+                }
+
+                if (!postDetail || typeof postDetail.id === 'undefined') {
+                    console.error('댓글 작성 시 postDetail 또는 postDetail.id를 찾을 수 없습니다.');
+                    alert('게시물 정보를 찾을 수 없어 댓글을 등록할 수 없습니다.');
+                    return;
+                }
+                const currentPostId = postDetail.id;
+
+                try {
+                    const response = await fetch(`/api/post/${currentPostId}/comment`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ comment: commentText }),
+                    });
+                    const result = await response.json();
+
+                    if (result.success && result.comment) {
+                        commentInputElement.value = '';
+
+                        if (!postDetail.comments || !Array.isArray(postDetail.comments)) {
+                            console.warn(
+                                "postDetail.comments가 배열이 아니거나 undefined였습니다. 빈 배열로 초기화합니다.",
+                                "현재 postDetail.comments 상태:", postDetail.comments,
+                                "전체 postDetail 객체:", JSON.parse(JSON.stringify(postDetail))
+                            );
+                            postDetail.comments = [];
+                        }
+                        postDetail.comments.push(result.comment);
+                        renderComments(postDetail.comments, postCommentDiv, currentPostId);
+                        postCommentDiv.scrollTop = postCommentDiv.scrollHeight;
+                    } else {
+                        alert(result.message || '댓글 등록에 실패했습니다.');
+                    }
+                } catch (error) {
+                    console.error('댓글 등록 중 오류:', error);
+                    alert('댓글 등록 중 오류가 발생했습니다.');
+                }
+            };
+
+            commentSubmitButton.onclick = handleCommentSubmit;
+
+            const enterKeyListener = (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    commentSubmitButton.click();
+                }
+            };
+
+            if (commentInputElement._enterKeyListener) {
+                commentInputElement.removeEventListener('keydown', commentInputElement._enterKeyListener);
+            }
+            commentInputElement.addEventListener('keydown', enterKeyListener);
+            commentInputElement._enterKeyListener = enterKeyListener;
+
+        } else {
+            console.warn("댓글 입력 필드(.comment-input) 또는 등록 버튼(.comment-submit)을 모달에서 찾을 수 없습니다.");
+        }
+
         // 댓글 수정/삭제 기능 설정
         function setupCommentActions(container, postId) {
             // 기존 이벤트 리스너 제거
@@ -428,6 +501,31 @@ async function displayPostModal(postId) {
             container._commentActionHandler = commentActionHandler; // 나중에 제거하기 위해 저장
         }
 
+        // 좋아요 상태 확인 및 UI 업데이트
+        async function updateLikeStatus() {
+            try {
+                // 현재 사용자의 모든 좋아요한 게시물 목록 가져오기
+                const likeResponse = await fetch('/api/posts/likes');
+                if (likeResponse.ok) {
+                    const likeData = await likeResponse.json();
+                    modalLikedPosts = likeData.likedPosts || []; // 전역 배열 업데이트
+                    
+                    // console.log('사용자 좋아요 목록:', modalLikedPosts);
+                    // console.log('현재 게시물 ID:', postId);
+                    
+                } else {
+                    console.warn('좋아요 상태를 가져올 수 없습니다.');
+                    modalLikedPosts = []; // 빈 배열로 초기화
+                }
+            } catch (error) {
+                console.error('좋아요 상태 확인 중 오류:', error);
+                modalLikedPosts = []; // 오류 시 빈 배열로 초기화
+            }
+        }
+
+        // 좋아요 상태 업데이트 함수 호출
+        await updateLikeStatus();
+
         const communityBtnDiv = modalOverlay.querySelector('.communityBtn');
         if (communityBtnDiv) {
             // 기존 좋아요 관련 요소들 모두 제거
@@ -438,7 +536,7 @@ async function displayPostModal(postId) {
             existingLikeCounts.forEach(count => count.remove());
             
             // 좋아요 상태 확인
-            const isLiked = userLikedPosts.includes(parseInt(postId));
+            const isLiked = modalLikedPosts.includes(parseInt(postId));
             const heartIcon = isLiked ? 'image/heart-red.png' : 'image/heart-icon.png';
             const likedClass = isLiked ? 'liked' : '';
             
