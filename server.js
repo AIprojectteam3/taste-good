@@ -497,6 +497,7 @@ app.get('/api/user', (req, res) => {
         SELECT
             u.id,
             u.username,
+            u.email,                    -- 이메일 필드 추가
             u.profile_intro,
             u.profile_image_path,
             ul.level,
@@ -524,7 +525,7 @@ app.get('/api/user', (req, res) => {
         if (results.length > 0) {
             const userData = results[0];
             userData.level = userData.level || 1;
-            userData.point = userData.point || 0; // points -> point로 수정
+            userData.point = userData.point || 0;
             
             if (userData.profile_image_path) {
                 userData.profile_image_path = userData.profile_image_path.replace(/\\/g, '/');

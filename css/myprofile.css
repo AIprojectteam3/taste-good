@@ -80,6 +80,11 @@
     height : 30px;
 }
 
+.emailInfor > .emailSpan {
+    color : #666;
+    font-size : 0.9rem;
+}
+
 .myprofile .stats {
     display : flex;
     align-items : center;
