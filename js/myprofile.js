@@ -438,13 +438,17 @@ async function handleProfileUpdate(event) {
     const profileImageInput = document.getElementById('profileImageUpload');
 
     // 비밀번호 입력이 비활성화되어 있으면 비밀번호 관련 처리 건너뛰기
-    if (passwordInput && !passwordInput.disabled && passwordInput.value) {
-        if (passwordInput.value !== passwordConfirmInput.value) {
+    if (passwordInput && !passwordInput.disabled && passwordInput.value.trim()) {
+        const password = passwordInput.value.trim();
+        const passwordConfirm = passwordConfirmInput.value.trim();
+        
+        if (password !== passwordConfirm) {
             alert('비밀번호가 일치하지 않습니다.');
             return;
         }
-        formData.append('password', passwordInput.value);
-        formData.append('passwordConfirm', passwordConfirmInput.value);
+        
+        formData.append('password', password);
+        formData.append('passwordConfirm', passwordConfirm);
     }
 
     // 폼 데이터 수집
@@ -454,15 +458,6 @@ async function handleProfileUpdate(event) {
 
     if (profileDescInput && profileDescInput.value.trim()) {
         formData.append('profileDescription', profileDescInput.value.trim());
-    }
-
-    if (passwordInput && passwordInput.value) {
-        if (passwordInput.value !== passwordConfirmInput.value) {
-            alert('비밀번호가 일치하지 않습니다.');
-            return;
-        }
-        formData.append('password', passwordInput.value);
-        formData.append('passwordConfirm', passwordConfirmInput.value);
     }
 
     if (profileImageInput && profileImageInput.files[0]) {
