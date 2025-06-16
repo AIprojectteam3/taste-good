@@ -393,7 +393,6 @@ app.get('/kakao/callback', async (req, res) => {
 app.get('/naver/callback', async (req, res) => {
     const { code, state } = req.query;
     try {
-        // 네이버 인증 서버에서 액세스 토큰 요청
         const tokenResponse = await axios.post('https://nid.naver.com/oauth2.0/token', null, {
             params: {
                 grant_type: 'authorization_code',
@@ -402,49 +401,44 @@ app.get('/naver/callback', async (req, res) => {
                 code,
                 state,
             },
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         });
-        const accessToken = tokenResponse.data.access_token;
 
-        // 액세스 토큰을 사용해 사용자 정보 요청
         const userResponse = await axios.get('https://openapi.naver.com/v1/nid/me', {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
+            headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` },
         });
+        
         const naverUser = userResponse.data.response;
-        console.log('네이버 사용자 정보:', naverUser);
-
         const sns_id = naverUser.id.toString();
         const username = naverUser.name || naverUser.nickname;
         const email = naverUser.email;
+        const provider = 'naver'; // ▼▼▼ 오류가 발생할 수 있는 부분 수정: provider 변수 선언 ▼▼▼
 
-        // 1. sns_id로 기존 유저 조회 (sns_type 미사용)
-        const selectQuery = 'SELECT * FROM users WHERE sns_id = ?';
-        db.query(selectQuery, [sns_id], (err, rows) => {
+        const selectQuery = 'SELECT * FROM users WHERE sns_id = ? AND provider = ?';
+        db.query(selectQuery, [sns_id, provider], (err, rows) => {
             if (err) {
                 console.error('[ERROR] /naver/callback - DB select query failed:', err);
                 return res.redirect('/');
             }
 
-            if (rows.length > 0) { // 기존 네이버 연동 사용자
+            if (rows.length > 0) { // 기존 사용자
                 const dbUser = rows[0];
                 req.session.userId = dbUser.id;
                 req.session.isLoggedIn = true;
-                req.session.save(errSave => { // 세션 저장 후 리다이렉트
-                    if (errSave) {
-                        console.error('[ERROR] /naver/callback - Session save failed for existing user:', dbUser.id, errSave);
-                        return res.redirect('/');
-                    }
-                    console.log('네이버 기존 사용자 로그인 성공, 세션 저장:', req.session);
-                    return res.redirect('/index.html');
+
+                logSuccessfulLogin(db, dbUser.id, req, provider, (logErr) => {
+                    req.session.save(saveErr => {
+                        if (saveErr) {
+                            console.error('[ERROR] /naver/callback - Session save failed:', saveErr);
+                            return res.redirect('/');
+                        }
+                        return res.redirect('/index.html');
+                    });
                 });
-            } else { // 신규 네이버 연동 사용자
-                // users 테이블 INSERT (sns_type 미사용)
-                const insertUserQuery = 'INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)';
-                db.query(insertUserQuery, [sns_id, username, email], (errInsertUser, result) => {
+
+            } else { // 신규 사용자
+                const insertUserQuery = 'INSERT INTO users (sns_id, username, email, provider) VALUES (?, ?, ?, ?)';
+                db.query(insertUserQuery, [sns_id, username, email, provider], (errInsertUser, result) => {
                     if (errInsertUser) {
                         console.error('[ERROR] /naver/callback - DB users insert query failed:', errInsertUser);
                         if (errInsertUser.code === 'ER_DUP_ENTRY' && email) {
@@ -454,27 +448,18 @@ app.get('/naver/callback', async (req, res) => {
                     }
 
                     const userId = result.insertId;
-
-                    // 1. 세션 정보 설정
                     req.session.userId = userId;
                     req.session.isLoggedIn = true;
-                    console.log('[INFO] /naver/callback - New Naver user registered, userId:', userId, '. Session data set.');
-
-                    // 2. 부가 정보 삽입 부분에서 user_allergies 관련 코드 제거
-                    // const insertAllergyQuery = 'INSERT INTO user_allergies (user_id) VALUES (?)';
-                    // db.query(insertAllergyQuery, [userId], (errAlg) => {
-                    //     if (errAlg) console.error('[ERROR] /naver/callback - Inserting into user_allergies failed for userId:', userId, errAlg);
-                        
-                    // 3. 세션 저장 후 리다이렉션 (부가 정보 삽입이 없으므로 바로 실행)
-                    req.session.save(errSave => {
-                        if (errSave) {
-                            console.error('[ERROR] /naver/callback - Session save failed for new user:', userId, errSave);
-                            return res.redirect('/'); // 세션 저장 실패 시 대처
-                        }
-                        console.log('[INFO] /naver/callback - Session saved. Redirecting to /index.html for new user:', userId);
-                        return res.redirect('/index.html'); // 최종 리다이렉션
+                    
+                    logSuccessfulLogin(db, userId, req, provider, (logErr) => {
+                        req.session.save(saveErr => {
+                            if (saveErr) {
+                                console.error('[ERROR] /naver/callback - Session save failed for new user:', saveErr);
+                                return res.redirect('/');
+                            }
+                            return res.redirect('/index.html');
+                        });
                     });
-                    // }); // user_allergies 삽입 콜백 괄호 제거
                 });
             }
         });
