@@ -117,6 +117,29 @@ function validatePassword(password) {
 }
 
 // ===============================================================================================================================================
+// 로그인 기록 남기기 함수
+// ===============================================================================================================================================
+function logSuccessfulLogin(dbConnection, userId, req, provider, callback) {
+    // user_logins 테이블에 provider 컬럼이 없다면 추가해야 합니다.
+    // ALTER TABLE user_logins ADD COLUMN provider VARCHAR(20) NOT NULL DEFAULT 'local';
+    const logQuery = 'INSERT INTO user_logins (user_id, ip_address, device_info, login_status, provider) VALUES (?, ?, ?, ?, ?)';
+    const ipAddress = req.ip;
+    const deviceInfo = req.headers['user-agent'];
+    const loginStatus = 'success';
+
+    dbConnection.query(logQuery, [userId, ipAddress, deviceInfo, loginStatus, provider], (logErr, logResult) => {
+        if (logErr) {
+            console.error(`[ERROR] Login log failed for user_id ${userId} via ${provider}:`, logErr);
+            // 로그 기록에 실패하더라도 로그인 절차는 계속 진행하도록 콜백을 호출합니다.
+            return callback(logErr);
+        }
+        console.log(`[INFO] Login log recorded for user_id ${userId} via ${provider}, log_id: ${logResult.insertId}`);
+        // 에러 없이 성공적으로 완료되면 null을 전달하여 콜백을 호출합니다.
+        callback(null);
+    });
+}
+
+// ===============================================================================================================================================
 // 회원가입 처리
 // ===============================================================================================================================================
 app.post('/api/signup', async (req, res) => {
@@ -234,18 +257,11 @@ app.post('/api/login', async (req, res) => {
     console.log('요청 데이터:', req.body);
     const { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.json({ success: false, message: '모든 필드를 입력해주세요.' });
-    }
-
-    // 이메일 유효성 검사
-    if (!validateEmail(email)) {
-        return res.json({ success: false, message: '올바른 이메일 형식을 입력해주세요.' });
+    if (!email || !password || !validateEmail(email)) {
+        return res.json({ success: false, message: '이메일과 비밀번호를 올바르게 입력해주세요.' });
     }
 
     const query = 'SELECT * FROM users WHERE email = ?';
-    console.log('실행 쿼리:', query, [email]);
-
     db.query(query, [email], async (err, results) => {
         if (err) {
             console.error('로그인 중 오류 발생:', err);
@@ -254,16 +270,28 @@ app.post('/api/login', async (req, res) => {
 
         if (results.length > 0) {
             const user = results[0];
-            
             try {
-                // 해시된 비밀번호와 비교
                 const passwordMatch = await bcrypt.compare(password, user.password);
-                
                 if (passwordMatch) {
                     req.session.userId = user.id;
                     req.session.isLoggedIn = true;
-                    console.log('로그인 성공:', user);
-                    return res.json({ success: true, message: '로그인 성공!', redirectUrl: '/index.html' });
+
+                    // 1. 로그인 로그 기록 함수를 호출합니다.
+                    logSuccessfulLogin(db, user.id, req, 'local', (logErr) => {
+                        if (logErr) {
+                            console.error('로그 기록에 실패했지만 로그인은 계속합니다.');
+                        }
+                        // 2. 로그 기록 시도가 끝난 후(성공/실패 무관) 클라이언트에 응답을 보냅니다.
+                        console.log('로그인 성공 및 로그 기록 완료, 응답 전송:', user.email);
+                        req.session.save(saveErr => {
+                            if (saveErr) {
+                                console.error('세션 저장 실패:', saveErr);
+                                return res.json({ success: false, message: '세션 저장 중 오류 발생' });
+                            }
+                            return res.json({ success: true, message: '로그인 성공!', redirectUrl: '/index.html' });
+                        });
+                    });
+
                 } else {
                     res.json({ success: false, message: '로그인 실패: 이메일 또는 비밀번호가 잘못되었습니다.' });
                 }
@@ -283,7 +311,6 @@ app.post('/api/login', async (req, res) => {
 app.get('/kakao/callback', async (req, res) => {
     const { code } = req.query;
     try {
-        // 카카오 인증 서버에서 액세스 토큰 요청
         const tokenResponse = await axios.post('https://kauth.kakao.com/oauth/token', null, {
             params: {
                 grant_type: 'authorization_code',
@@ -291,72 +318,65 @@ app.get('/kakao/callback', async (req, res) => {
                 redirect_uri: 'http://localhost:3000/kakao/callback',
                 code,
             },
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         });
-        const accessToken = tokenResponse.data.access_token;
 
-        // 액세스 토큰을 사용해 사용자 정보 요청
         const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
+            headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` },
         });
+
         const kakaoUser = userResponse.data;
-        console.log('카카오 사용자 정보:', kakaoUser);
-
-        const sns_id = kakaoUser.id.toString(); // sns_id는 문자열로 통일하는 것이 좋을 수 있음
+        const sns_id = kakaoUser.id.toString();
         const username = kakaoUser.kakao_account.profile.nickname;
-        const email = kakaoUser.kakao_account.email; // 카카오 이메일 (사용자 동의 필요)
+        const email = kakaoUser.kakao_account.email;
+        const provider = 'kakao'; // ▼▼▼ 오류가 발생한 부분 수정: provider 변수 선언 ▼▼▼
 
-        // 1. sns_id로 기존 유저 조회 (sns_type 미사용 시)
-        const selectQuery = 'SELECT * FROM users WHERE sns_id = ?';
-        db.query(selectQuery, [sns_id], (err, rows) => {
+        // provider 컬럼이 있는 경우를 가정하여 쿼리 수정
+        const selectQuery = 'SELECT * FROM users WHERE sns_id = ? AND provider = ?';
+        db.query(selectQuery, [sns_id, provider], (err, rows) => {
             if (err) {
                 console.error('[ERROR] /kakao/callback - DB select query failed:', err);
-                return res.redirect('/'); // 오류 발생 시 홈으로 리다이렉트
+                return res.redirect('/');
             }
 
             if (rows.length > 0) { // 기존 사용자
                 const dbUser = rows[0];
                 req.session.userId = dbUser.id;
                 req.session.isLoggedIn = true;
-                // 세션 저장 후 리다이렉트 (검색 결과 [4], [5], [8] 참고)
-                req.session.save(errSave => {
-                    if (errSave) {
-                        console.error('[ERROR] /kakao/callback - Session save failed for existing user:', dbUser.id, errSave);
-                        return res.redirect('/'); // 세션 저장 실패 시에도 일단 홈으로
-                    }
-                    console.log('카카오 기존 사용자 로그인 성공, 세션 저장:', req.session);
-                    return res.redirect('/index.html');
+                
+                logSuccessfulLogin(db, dbUser.id, req, provider, (logErr) => {
+                    req.session.save(saveErr => {
+                        if (saveErr) {
+                            console.error('[ERROR] /kakao/callback - Session save failed:', saveErr);
+                            return res.redirect('/');
+                        }
+                        return res.redirect('/index.html');
+                    });
                 });
+
             } else { // 신규 사용자
-                const insertUserQuery = 'INSERT INTO users (sns_id, username, email) VALUES (?, ?, ?)'; // sns_type 미사용
-                db.query(insertUserQuery, [sns_id, username, email], (errInsertUser, result) => {
+                const insertUserQuery = 'INSERT INTO users (sns_id, username, email, provider) VALUES (?, ?, ?, ?)';
+                db.query(insertUserQuery, [sns_id, username, email, provider], (errInsertUser, result) => {
                     if (errInsertUser) {
                         console.error('[ERROR] /kakao/callback - DB users insert query failed:', errInsertUser);
                         if (errInsertUser.code === 'ER_DUP_ENTRY' && email) {
                             return res.status(409).send('이미 가입된 이메일입니다. 다른 방법으로 로그인해주세요.');
                         }
-                        return res.redirect('/'); // 기타 DB 삽입 오류
+                        return res.redirect('/');
                     }
 
                     const userId = result.insertId;
-
-                    // 1. 세션 정보 설정
                     req.session.userId = userId;
                     req.session.isLoggedIn = true;
-                    console.log('[INFO] /kakao/callback - New Kakao user registered, userId:', userId, '. Session data set.');
 
-                    // ⭐️ 3. 세션 저장 후 리다이렉션 (이것이 핵심 수정 사항)
-                    req.session.save(errSave => {
-                        if (errSave) {
-                            console.error('[ERROR] /kakao/callback - Session save failed for new user:', userId, errSave);
-                            return res.redirect('/'); // 세션 저장 실패 시 대처
-                        }
-                        console.log('[INFO] /kakao/callback - Session saved. Redirecting to /index.html for new user:', userId);
-                        return res.redirect('/index.html'); // 최종 리다이렉션
+                    logSuccessfulLogin(db, userId, req, provider, (logErr) => {
+                        req.session.save(saveErr => {
+                            if (saveErr) {
+                                console.error('[ERROR] /kakao/callback - Session save failed for new user:', saveErr);
+                                return res.redirect('/');
+                            }
+                            return res.redirect('/index.html');
+                        });
                     });
                 });
             }
@@ -367,7 +387,9 @@ app.get('/kakao/callback', async (req, res) => {
     }
 });
 
+// ===============================================================================================================================================
 // 네이버 콜백 처리
+// ===============================================================================================================================================
 app.get('/naver/callback', async (req, res) => {
     const { code, state } = req.query;
     try {
