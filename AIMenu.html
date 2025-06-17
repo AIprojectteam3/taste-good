@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메뉴</title>
+    <link rel="stylesheet" href="css/menu.css">
+</head>
+<body>
+    <div class = "container">
+        <!-- 메뉴 영역 -->
+        <aside class="menu">
+            <section class="profile">
+                <div class = "profile-header">
+                    <div class="image">
+                        <img src="image/profile-icon.png" alt="프로필 사진" />
+                    </div>
+                    <div class="nickname">방문자</div>
+                    <div class="level">
+                        <span class="level-text">LV.</span>
+                        <span class="level-text level-value">0</span>
+                        <span class="level-icon">🏆</span>
+                    </div>
+                </div>
+                <div class = "profile-stats">
+                    <div class="post">
+                        <a href = "#">
+                            <span>Posts</span>
+                            <span class = "post-count">0</span>
+                        </a>
+                    </div>
+                    <div class="follower">
+                        <a href = "#">
+                            <span>Followers</span>
+                            <span class = "follower-count">0</span>
+                        </a>
+                    </div>
+                    <div class="point">
+                        <a href = "#">
+                            <span>Point</span>
+                            <span class = "point-count">0</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 차트 영역 -->
+            <section class="chart">
+                <div class="chart-header">
+                    <h3>실시간 인기 검색어</h3>
+                </div>
+                <ol id="searchRankingList">
+                    <!-- 순위 데이터가 여기에 동적으로 삽입됩니다 -->
+                </ol>
+            </section>
+
+            <!-- 메인 메뉴 -->
+            <nav class="main-menu">
+                <ul>
+                    <hr>
+                    <li><a href = "index.html">
+                        <img src = "image/popularity-icon.png" alt = "인기 메뉴">
+                        <span>인기 메뉴</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "#">
+                        <img src = "image/ai-icon.png" alt = "AI 메뉴 추천">
+                        <span>AI 메뉴 추천</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "#">
+                        <img src = "image/roulette-icon.png" alt = "룰렛">
+                        <span>룰렛</span>
+                    </a></li>
+                    <li><a href = "tamagotchi.html">
+                        <img src = "image/tamagotchi-icon.png" alt = "다마고치">
+                        <span>다마고치</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "myprofile.html">
+                        <img src = "image/myprofile-icon.png" alt = "마이페이지">
+                        <span>마이페이지</span>
+                    </a></li>
+                    <hr>
+                    <li><a href = "#" class = "logoutPCMenu">
+                        <img src = "" alt = "로그아웃">
+                        <span>로그아웃</span>
+                    </a></li>
+                    <hr>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class = "">
+
+        </main>
+    </div>
+
+    <!-- 모바일 네비게이션 -->
+    <nav class="bottom-nav">
+        <div class = "hamburger-menu" id = "hamburgerMenu">
+            <img src = "image/menu-icon.png" alt = "메뉴 아이콘">
+        </div>
+        <div class = "site-title">맛잘알연구소</div>
+
+        <div class="mobile-menu" id="mobileMenu">
+            <ul class="mobile-menu-list">
+                <li><a href="index.html">인기메뉴</a></li>
+                <li><a href="#">AI 메뉴 추천</a></li>
+                <li><a href="#">룰렛</a></li>
+                <li><a href="tamagotchi.html">다마고치</a></li>
+                <li><a href="myprofile.html">마이페이지</a></li>
+                <li><a href="#" class = "logoutMenu">로그아웃</a></li>
+            </ul>
+        </div>
+    </nav>
+</body>
+</html>
