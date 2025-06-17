@@ -1,7 +1,6 @@
-/* menu.css에 추가할 추천 기능 스타일 */
-
+/* 기본 레이아웃 및 기존 스타일 */
 .content {
-    margin-left: 250px; 
+    margin-left: 250px;
     padding: 20px;
 }
 
@@ -9,10 +8,10 @@
     max-width: 1200px;
     margin: 40px auto;
     padding: 30px;
-    background-color: #ffffff; /* 흰색 배경 */
+    background-color: #ffffff;
     border-radius: 12px;
     text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* 그림자 효과 */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
     border: 1px solid #eee;
 }
 
@@ -30,56 +29,120 @@
 .filters {
     display: flex;
     justify-content: center;
+    align-items: flex-start; /* 상단 정렬 */
     gap: 25px;
     margin-bottom: 30px;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* 너비가 좁아지면 다음 줄로 */
 }
 
 .filter-group {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center; /* 내부 아이템 가운데 정렬 */
+    gap: 8px;
 }
 
 .filter-group label {
-    margin-bottom: 8px;
     font-weight: bold;
     color: #555;
-    font-size: 0.9em;
+    font-size: 1.1em; /* 라벨 폰트 크기 키움 */
 }
 
-.filter-group select {
-    padding: 12px 15px;
-    border-radius: 8px;
+.checkbox-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 15px;
+    justify-content: center;
     border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 8px;
     background-color: #fcfcfc;
-    min-width: 220px;
-    font-size: 1em;
+    min-width: 300px; /* 최소 너비 지정 */
+    max-width: 500px; /* 최대 너비 지정 */
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: 1.2em;
+    height: 1.2em;
     cursor: pointer;
-    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.filter-group select:hover {
-    border-color: #ff6f61;
+.checkbox-item label {
+    font-size: 0.95em;
+    color: #333;
+    font-weight: normal; /* 하위 라벨은 일반 굵기 */
 }
 
-.filter-group select:focus {
+/* === 새로 추가된 레인지 슬라이더 스타일 === */
+.range-slider-group {
+    min-width: 300px;
+    max-width: 500px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fcfcfc;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 5px;
     outline: none;
-    border-color: #ff6f61;
-    box-shadow: 0 0 0 3px rgba(255, 111, 97, 0.2);
+    opacity: 0.7;
+    transition: opacity .2s;
+    cursor: pointer;
 }
 
+input[type="range"]:hover {
+    opacity: 1;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #ff6f61;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #ff6f61;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+#kcal-value, #price-value {
+    font-size: 1em;
+    font-weight: bold;
+    color: #ff6f61;
+    margin-top: 5px;
+}
+
+/* === 버튼 및 기타 스타일 === */
 #get-recommendation-btn {
     padding: 14px 30px;
     font-size: 1.1em;
     font-weight: bold;
     color: white;
-    background-color: #ff6f61; /* 포인트 색상 */
+    background-color: #ff6f61;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s;
     box-shadow: 0 4px 8px rgba(255, 111, 97, 0.3);
+    margin-top: 20px; /* 필터와의 간격 */
 }
 
 #get-recommendation-btn:hover {
@@ -90,17 +153,15 @@
 
 #recommendation-results {
     margin-top: 40px;
-    /* card-grid 스타일은 기존 스타일을 재사용합니다. */
 }
 
-/* 로딩 스피너 스타일 */
 .spinner {
     border: 4px solid rgba(0, 0, 0, 0.1);
     width: 36px;
     height: 36px;
     border-radius: 50%;
     border-left-color: #ff6f61;
-    margin: 10px auto;
+    margin: 20px auto;
     animation: spin 1s ease infinite;
 }
 

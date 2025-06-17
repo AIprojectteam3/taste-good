@@ -95,56 +95,54 @@
             </nav>
         </aside>
 
-        <main class = "content">
+        <div class="content">
             <div class="recommender-container">
                 <h2>AI 메뉴 추천 연구소</h2>
-                <p>지금 당신의 기분과 날씨에 딱 맞는 메뉴를 찾아보세요!</p>
+                <p>지금 당신의 상황과 조건에 딱 맞는 메뉴를 찾아보세요!</p>
 
                 <div class="filters">
-                    <!-- '감정/상황' 선택 드롭다운 -->
+                    <!-- 1. 카테고리 필터 -->
                     <div class="filter-group">
-                        <label for="need-select">어떤 상황인가요?</label>
-                        <select id="need-select" name="need">
-                            <option value="" disabled selected>감정/상황 선택</option>
-                            <!-- 자바스크립트로 옵션이 채워질 예정 -->
-                        </select>
+                        <label>어떤 종류의 음식을 원하세요?</label>
+                        <div id="categories-container" class="checkbox-container"></div>
                     </div>
-
-                    <!-- '목표' 선택 드롭다운 -->
+                    <!-- 2. 유저 기분 필터 -->
                     <div class="filter-group">
-                        <label for="goal-select">무엇을 원하세요?</label>
-                        <select id="goal-select" name="goal">
-                            <option value="" disabled selected>목표 선택</option>
-                            <!-- 자바스크립트로 옵션이 채워질 예정 -->
-                        </select>
+                        <label>어떤 상황인가요?</label>
+                        <div id="needs-container" class="checkbox-container"></div>
                     </div>
-
-                    <!-- '날씨' 선택 드롭다운 -->
+                    <!-- 3. 원하는 기분 필터 -->
                     <div class="filter-group">
-                        <label for="weather-select">날씨는 어떤가요?</label>
-                        <select id="weather-select" name="weather">
-                            <option value="" disabled selected>날씨 선택</option>
-                            <!-- 자바스크립트로 옵션이 채워질 예정 -->
-                        </select>
+                        <label>무엇을 원하세요?</label>
+                        <div id="goals-container" class="checkbox-container"></div>
+                    </div>
+                    <!-- 4. 날씨 필터 -->
+                    <div class="filter-group">
+                        <label>날씨는 어떤가요?</label>
+                        <div id="weathers-container" class="checkbox-container"></div>
+                    </div>
+                    <!-- 5. 칼로리 필터 -->
+                    <div class="filter-group range-slider-group">
+                        <label for="kcal-slider">칼로리 (최대)</label>
+                        <input type="range" id="kcal-slider" name="kcal" min="0" max="2000" value="2000" step="50">
+                        <span id="kcal-value">상관없음</span>
+                    </div>
+                    <!-- 6. 가격 필터 -->
+                    <div class="filter-group range-slider-group">
+                        <label for="price-slider">가격 (최대)</label>
+                        <input type="range" id="price-slider" name="price" min="0" max="50000" value="50000" step="1000">
+                        <span id="price-value">상관없음</span>
                     </div>
                 </div>
 
-                <!-- 추천받기 버튼 -->
                 <button id="get-recommendation-btn">AI 메뉴 추천받기</button>
 
-                <!-- 로딩 스피너 (초기에는 숨김) -->
-                <div id="loading-spinner" style="display: none; margin-top: 20px;">
-                    <p>AI가 당신을 위한 메뉴를 분석중입니다...</p>
-                    <div class="spinner"></div>
-                </div>
-
-
-                <!-- 추천 결과가 표시될 영역 -->
-                <div id="recommendation-results" class="card-grid">
-                    <!-- 자바스크립트로 추천 메뉴 카드가 채워질 예정 -->
+                <div id="loading-spinner" class="spinner" style="display: none;"></div>
+                <div id="recommendation-results">
+                    <!-- 추천 결과가 여기에 표시됩니다 -->
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 
     <!-- 모바일 네비게이션 -->
