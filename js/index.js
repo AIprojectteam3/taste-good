@@ -3,6 +3,7 @@ function isMobile() {
 }
 
 let userLikedPosts = [];
+let currentSearchTerm = null;
 
 // =======================================================================================================
 // 게시물(카드) 생성 함수
@@ -671,6 +672,7 @@ async function loadUserLikedPosts() {
 
 // 게시물 로드 함수
 async function loadPosts() {
+    currentSearchTerm = null;
     try {
         const response = await fetch('/api/posts');
         if (!response.ok) {
@@ -759,6 +761,21 @@ async function handleLikeClick(postId, heartBtn) {
     } catch (error) {
         console.error('좋아요 처리 중 오류:', error);
         alert('좋아요 처리 중 오류가 발생했습니다.');
+    }
+}
+
+// 검색 결과 클릭 시 로그 전송 함수
+async function logSearchClick(searchTerm, clickedPostId) {
+    if (!searchTerm || !clickedPostId) return;
+
+    try {
+        await fetch('/api/search/click_log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ searchTerm, clickedPostId }),
+        });
+    } catch (error) {
+        console.error('검색 클릭 로그 전송 실패:', error);
     }
 }
 
@@ -878,14 +895,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             const data = await response.json();
 
             if (data.success) {
-                // 검색 결과 표시 - currentUserId 전달
                 displaySearchResults(data.posts, data.searchInfo, data.pagination, data.currentUserId);
-                
-                // 검색어 로깅
                 logSearch(filters.query, filters.searchType, data.posts.length);
-                
-                // 현재 필터 상태 저장
                 currentSearchFilters = { ...filters };
+
+                currentSearchTerm = filters.query;
             } else {
                 alert(data.error || '검색 중 오류가 발생했습니다.');
             }
@@ -913,11 +927,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 검색 결과 표시 함수
     function displaySearchResults(posts, searchInfo, pagination, currentUserId = null) {
         const cardContainer = document.querySelector('.content');
-        
-        // 기존 카드들 모두 제거
         cardContainer.innerHTML = '';
-        
-        // 검색 결과 헤더 생성
         const searchHeader = createSearchResultsHeader(searchInfo, pagination);
         cardContainer.appendChild(searchHeader);
         
@@ -926,6 +936,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             posts.forEach(post => {
                 const cardElement = createCard(post, false, currentUserId);
                 if (cardElement) {
+                    cardElement.addEventListener('click', () => {
+                        const postId = cardElement.getAttribute('data-post-id');
+                        logSearchClick(currentSearchTerm, postId);
+                        // 기존의 모달 열기 로직은 그대로 유지됩니다.
+                    });
                     cardContainer.appendChild(cardElement);
                 }
             });

@@ -2130,6 +2130,45 @@ app.get('/api/search/ranking/live', (req, res) => {
 });
 
 // ==================================================================================================================
+// 검색 후 게시물 클릭 로그 저장
+// ==================================================================================================================
+app.post('/api/search/click_log', (req, res) => {
+    console.log('[API HIT] /api/search/click_log'); // (D) API가 호출되었는지 확인
+    const { searchTerm, clickedPostId } = req.body;
+    const userId = req.session.userId || null;
+
+    console.log('[DATA RECEIVED]', { searchTerm, clickedPostId, userId }); // (E) 서버가 받은 데이터 확인
+
+    if (!searchTerm || !clickedPostId) {
+        return res.status(400).send();
+    }
+
+    const updateLogQuery = `
+        UPDATE search_logs 
+        SET clicked_post_id = ? 
+        WHERE (user_id = ? OR (? IS NULL AND user_id IS NULL)) AND search_term = ? AND clicked_post_id IS NULL
+        ORDER BY created_at DESC 
+        LIMIT 1
+    `;
+
+    db.query(updateLogQuery, [clickedPostId, userId, userId, searchTerm], (err, result) => {
+        if (err) {
+            console.error('검색 클릭 로그 업데이트 중 오류:', err);
+            return res.status(500).json({ success: false, message: 'DB 오류' }); // 오류 시 응답 추가
+        }
+        
+        console.log('[DB RESULT]', result); // (F) DB 쿼리 결과 확인
+        
+        // 중요: affectedRows가 0이면 업데이트된 행이 없다는 의미
+        if (result.affectedRows === 0) {
+            console.warn('[DB WARNING] 업데이트된 로그가 없습니다. WHERE 조건이 일치하는 레코드를 찾지 못했습니다.');
+        }
+
+        res.status(200).json({ success: true });
+    });
+});
+
+// ==================================================================================================================
 // 서버 시작
 // ==================================================================================================================
 app.listen(PORT, () => {
