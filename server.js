@@ -15,9 +15,17 @@ const JWT_SECRET = 'YOUR_JWT_SECRET';
 //4tm4ibvzRt4UK09un3v9 naver key
 const NAVER_CLIENT_ID = '4tm4ibvzRt4UK09un3v9';
 const NAVER_CLIENT_SECRET = 'aEIsjYJR1G';
+const cors = require('cors');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // 폼 데이터 처리를 위해 추가
+
+const corsOptions = {
+    origin: 'http://localhost:3000', // 프론트엔드 주소
+    optionsSuccessStatus: 200 
+};
+
+app.use(cors(corsOptions));
 
 // MySQL 연결 설정
 const db = mysql.createConnection({
@@ -2167,6 +2175,10 @@ app.post('/api/search/click_log', (req, res) => {
         res.status(200).json({ success: true });
     });
 });
+
+// ==================================================================================================================
+// AI 메뉴 추천 API
+// ==================================================================================================================
 
 // ==================================================================================================================
 // 서버 시작
