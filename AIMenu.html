@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>메뉴</title>
-    <link rel="stylesheet" href="css/menu.css">
+    <link rel = "stylesheet" href = "css/menu.css">
+    <link rel = "stylesheet" href = "css/AIMenu.css">
+
+    <script src = "js/Back/menu.js"></script>
+    <script src = "js/AIMenu.js"></script>
 </head>
 <body>
     <div class = "container">
@@ -91,8 +95,55 @@
             </nav>
         </aside>
 
-        <main class = "">
+        <main class = "content">
+            <div class="recommender-container">
+                <h2>AI 메뉴 추천 연구소</h2>
+                <p>지금 당신의 기분과 날씨에 딱 맞는 메뉴를 찾아보세요!</p>
 
+                <div class="filters">
+                    <!-- '감정/상황' 선택 드롭다운 -->
+                    <div class="filter-group">
+                        <label for="need-select">어떤 상황인가요?</label>
+                        <select id="need-select" name="need">
+                            <option value="" disabled selected>감정/상황 선택</option>
+                            <!-- 자바스크립트로 옵션이 채워질 예정 -->
+                        </select>
+                    </div>
+
+                    <!-- '목표' 선택 드롭다운 -->
+                    <div class="filter-group">
+                        <label for="goal-select">무엇을 원하세요?</label>
+                        <select id="goal-select" name="goal">
+                            <option value="" disabled selected>목표 선택</option>
+                            <!-- 자바스크립트로 옵션이 채워질 예정 -->
+                        </select>
+                    </div>
+
+                    <!-- '날씨' 선택 드롭다운 -->
+                    <div class="filter-group">
+                        <label for="weather-select">날씨는 어떤가요?</label>
+                        <select id="weather-select" name="weather">
+                            <option value="" disabled selected>날씨 선택</option>
+                            <!-- 자바스크립트로 옵션이 채워질 예정 -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 추천받기 버튼 -->
+                <button id="get-recommendation-btn">AI 메뉴 추천받기</button>
+
+                <!-- 로딩 스피너 (초기에는 숨김) -->
+                <div id="loading-spinner" style="display: none; margin-top: 20px;">
+                    <p>AI가 당신을 위한 메뉴를 분석중입니다...</p>
+                    <div class="spinner"></div>
+                </div>
+
+
+                <!-- 추천 결과가 표시될 영역 -->
+                <div id="recommendation-results" class="card-grid">
+                    <!-- 자바스크립트로 추천 메뉴 카드가 채워질 예정 -->
+                </div>
+            </div>
         </main>
     </div>
 

@@ -2,6 +2,91 @@ use taste_good;
 -- =================================================================
 -- 1. 기본 정보 테이블 데이터 입력 (Lookup Tables)
 -- =================================================================
+CREATE TABLE Need (
+    NeedID INT PRIMARY KEY,
+    NeedKor VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Goal (
+    GoalID INT PRIMARY KEY,
+    GoalKor VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Weather (
+    WeatherID INT PRIMARY KEY,
+    WeatherKor VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Season (
+    SeasonID INT PRIMARY KEY,
+    SeasonKor VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Allergen (
+    AllergenID INT PRIMARY KEY,
+    AllergenKor VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Menu (
+    MenuID INT PRIMARY KEY,
+    MenuKor VARCHAR(255) NOT NULL,
+    Category VARCHAR(50),
+    kcal INT,
+    Price INT,
+    imagePath VARCHAR(255)
+);
+
+CREATE TABLE MenuNeed (
+    MenuID INT,
+    NeedID INT,
+    PRIMARY KEY (MenuID, NeedID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (NeedID) REFERENCES Need(NeedID) ON DELETE CASCADE
+);
+
+CREATE TABLE MenuGoal (
+    MenuID INT,
+    GoalID INT,
+    PRIMARY KEY (MenuID, GoalID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (GoalID) REFERENCES Goal(GoalID) ON DELETE CASCADE
+);
+
+CREATE TABLE MenuWeather (
+    MenuID INT,
+    WeatherID INT,
+    PRIMARY KEY (MenuID, WeatherID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (WeatherID) REFERENCES Weather(WeatherID) ON DELETE CASCADE
+);
+
+CREATE TABLE MenuSeason (
+    MenuID INT,
+    SeasonID INT,
+    PRIMARY KEY (MenuID, SeasonID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (SeasonID) REFERENCES Season(SeasonID) ON DELETE CASCADE
+);
+
+CREATE TABLE MenuAllergen (
+    MenuID INT,
+    AllergenID INT,
+    PRIMARY KEY (MenuID, AllergenID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (AllergenID) REFERENCES Allergen(AllergenID) ON DELETE CASCADE
+);
+
+CREATE TABLE user_allergen (
+    user_id      INT NOT NULL,
+    allergen_id  INT NOT NULL,
+    PRIMARY KEY (user_id, allergen_id),
+    CONSTRAINT fk_user_allergen_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_allergen_allergen
+        FOREIGN KEY (allergen_id)
+        REFERENCES allergen(id) ON DELETE CASCADE
+);
 
 -- Need 테이블 데이터 입력
 INSERT INTO Need (NeedID, NeedKor) VALUES
