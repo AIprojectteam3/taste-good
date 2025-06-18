@@ -1,5 +1,8 @@
 /* 기본 레이아웃 및 기존 스타일 */
 .content {
+    display : flex;
+    align-items : center;
+    justify-content : center;
     margin-left: 250px;
     padding: 20px;
 }
@@ -276,4 +279,34 @@ input[type="range"]::-moz-range-thumb {
 #map {
     border-radius: 8px;
     border: 1px solid #ddd;
+}
+@media (min-width : 768px) {
+    .content {
+        height : 100vh;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        margin-top : 60px;
+    }
+
+    .content {
+        margin : 0;
+        width : 100%;
+    }
+
+    .recommender-container {
+        margin : 0;
+        width : 100%;
+        max-width : none;
+    }
+
+    .modal-body {
+        flex-direction : column;
+    }
+
+    #modal-left img {
+        max-height : 150px;
+    }
 }

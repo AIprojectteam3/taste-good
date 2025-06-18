@@ -219,7 +219,7 @@ async function displayRecommendations(items) {
         <img src="${item.imagePath || 'image/food-icon.png'}" 
              alt="${item.MenuKor}"
              onerror="this.src='image/food-icon.png'; this.onerror=null;"
-             style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px; margin-bottom: 20px;">
+             style="width: 100%; object-fit: cover; border-radius: 8px; margin-bottom: 20px;">
         <h3>${item.MenuKor}</h3>
         <div class="menu-info">
             <p><strong>카테고리:</strong> ${item.Category}</p>
