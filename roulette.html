@@ -121,16 +121,17 @@
             <div class="main-layout">
                 <div class="left-area">
                     <div class="roulette-area">
-                        <div class="needle"></div>
-                        <div class="wheel" id="wheel">
-                            <canvas id="canvas" width="400" height="400"></canvas>
-                        </div>
+                        <img src="image/roulette_pointer.png" class="needle" alt="룰렛 바늘">
+                        <canvas id="canvas" width="500" height="500"></canvas>
                     </div>
-                    <button class="spin-button" onclick="spin()">돌리기!</button>
+                    <button class="spin-button" id="spinBtn">돌리기!</button>
+                    <div id="result"></div>
                 </div>
                 <div class="controls">
-                    <input type="text" id="newFood" placeholder="음식 추가">
-                    <button onclick="addFood()">추가</button>
+                    <div class="input-row">
+                        <input type="text" id="newFood" placeholder="음식 추가">
+                        <button id="addBtn">추가</button>
+                    </div>
                     <ul id="foodList"></ul>
                 </div>
             </div>
@@ -138,8 +139,6 @@
                 <h3>🍽️ 추천 기록</h3>
                 <ul id="historyList"></ul>
             </div>
-
-            <script src="js/roulette.js"></script>
         </main>
     </div>
 
@@ -160,5 +159,9 @@
             </ul>
         </div>
     </nav>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/TweenMax.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/zarocknz/javascript-winwheel@2.7.0/Winwheel.min.js"></script>
+    <script src="js/roulette.js"></script>
 </body>
 </html>

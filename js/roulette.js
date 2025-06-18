@@ -8,15 +8,25 @@ const historyList = document.getElementById("historyList");
 
 // 초기 음식 배열을 빈 배열로 설정
 let foods = [];
-let currentRotation = 0;
-let isSpinning = false;
+let theWheel = null;
+
+// 파스텔톤 색상 배열
+const pastelColors = [
+  "#FFD1DC", // 연핑크
+  "#B5EAD7", // 연민트
+  "#C7CEEA", // 연보라
+  "#FFDAC1", // 연살구
+  "#E2F0CB", // 연연두
+  "#FFF1BA", // 연노랑
+  "#B5D8FA", // 연하늘
+  "#FFB7B2"  // 연코랄
+];
 
 function drawWheel() {
   const numSlices = foods.length;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (numSlices === 0) {
-    // 음식이 없을 때 안내 메시지
     ctx.save();
     ctx.translate(200, 200);
     ctx.textAlign = "center";
@@ -31,18 +41,23 @@ function drawWheel() {
 
   const angle = (2 * Math.PI) / numSlices;
   for (let i = 0; i < numSlices; i++) {
+    // 조각 그리기: 12시 방향(-Math.PI/2)부터 시작
     ctx.beginPath();
     ctx.moveTo(200, 200);
-    ctx.arc(200, 200, 200, i * angle, (i + 1) * angle);
+    ctx.arc(200, 200, 200, i * angle - Math.PI / 2, (i + 1) * angle - Math.PI / 2);
+    ctx.closePath();
     ctx.fillStyle = i % 2 === 0 ? "#ffd54f" : "#4fc3f7";
     ctx.fill();
+
+    // 텍스트: 조각의 중앙, 12시 기준
     ctx.save();
     ctx.translate(200, 200);
-    ctx.rotate(i * angle + angle / 2);
-    ctx.textAlign = "right";
+    ctx.rotate(i * angle + angle / 2 - Math.PI / 2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillStyle = "#000";
     ctx.font = "16px sans-serif";
-    ctx.fillText(foods[i], 180, 10);
+    ctx.fillText(foods[i], 120, 0);
     ctx.restore();
   }
   updateFoodList();
@@ -62,54 +77,36 @@ function updateFoodList() {
 }
 
 function addFood() {
-  if (isSpinning) return;
   const newFood = newFoodInput.value.trim();
   if (newFood && !foods.includes(newFood)) {
     foods.push(newFood);
     newFoodInput.value = "";
-    drawWheel();
+    makeWheel(); // drawWheel() 대신 makeWheel() 호출
+    updateFoodList();
   }
 }
 
 function removeFood(name) {
-  if (isSpinning) return;
   foods = foods.filter(f => f !== name);
   if (foods.length === 0) {
     currentRotation = 0;
     wheel.style.transform = `rotate(0deg)`;
   }
-  drawWheel();
+  makeWheel(); // drawWheel() 대신 makeWheel() 호출
+  updateFoodList();
 }
 
 function spin() {
-  if (isSpinning || foods.length === 0) {
-    alert("현재 회전 중이거나 음식이 없습니다.");
+  if (foods.length === 0) {
+    alert("음식이 없습니다.");
     return;
   }
-  isSpinning = true;
-  toggleControls(false);
+  theWheel.startAnimation();
+}
 
-  const sliceDeg = 360 / foods.length;
-  const extra = 360 * 5;
-  const randomAngleWithinSlice = Math.random() * sliceDeg;
-  const targetAngle = extra + randomAngleWithinSlice;
-
-  currentRotation += targetAngle;
-  wheel.style.transition = "transform 5s cubic-bezier(0.33, 1, 0.68, 1)";
-  wheel.style.transform = `rotate(${currentRotation}deg)`;
-
-  setTimeout(() => {
-    const normalizedRotation = currentRotation % 360;
-    const pointerDeg = 270; // 12시 방향
-    const adjustedRotation = (normalizedRotation + pointerDeg) % 360;
-    const index = Math.floor(adjustedRotation / sliceDeg) % foods.length;
-    const result = foods[index];
-
-    alert(`오늘은 "${result}" 어때요? 😋`);
-    addToHistory(result);
-    isSpinning = false;
-    toggleControls(true);
-  }, 5200);
+function alertResult(indicatedSegment) {
+  alert(`오늘은 "${indicatedSegment.text}" 어때요? 😋`);
+  addToHistory(indicatedSegment.text);
 }
 
 function addToHistory(food) {
@@ -118,6 +115,81 @@ function addToHistory(food) {
   historyList.prepend(li);
 }
 
+function makeWheel() {
+  if (!foods.length) {
+    // 음식이 없으면 안내 메시지
+    ctx.clearRect(0, 0, 400, 400);
+    ctx.save();
+    ctx.translate(200, 200);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#bbb";
+    ctx.font = "20px sans-serif";
+    ctx.fillText("음식을 추가해 주세요!", 0, 0);
+    ctx.restore();
+    return;
+  }
+  theWheel = new Winwheel({
+    'canvasId': 'canvas',
+    'numSegments': foods.length,
+    'segments': foods.map((f, i) => ({
+      'fillStyle': pastelColors[i % pastelColors.length], // 파스텔톤 순환
+      'strokeStyle': 'transparent', // 테두리 색상
+      'lineWidth': 0,
+      'text': f
+    })),
+    'animation': {
+      'type': 'spinToStop',
+      'duration': 5,
+      'spins': 5,
+      'callbackFinished': alertResult
+    },
+    'pointerAngle': 0 // 12시 방향
+  });
+}
+
+document.getElementById('addBtn').onclick = function() {
+  const input = document.getElementById('newFood');
+  const value = input.value.trim();
+  if (value && !foods.includes(value)) {
+    foods.push(value);
+    input.value = '';
+    updateFoodList();
+    makeWheel();
+  }
+};
+
+// spin 버튼 클릭 이벤트에서 룰렛 도는 동안 입력, 추가, 삭제 버튼 모두 비활성화
+document.getElementById('spinBtn').onclick = function() {
+  if (theWheel && foods.length) {
+    // 입력창, 추가 버튼, 삭제 버튼 비활성화
+    document.getElementById('newFood').disabled = true;
+    document.getElementById('addBtn').disabled = true;
+    document.querySelectorAll('#foodList button').forEach(btn => btn.disabled = true);
+
+    // 애니메이션 상태 초기화
+    theWheel.stopAnimation(false);
+    theWheel.rotationAngle = 0;
+    theWheel.draw();
+
+    // 애니메이션 옵션 새로 할당
+    theWheel.animation = {
+      'type': 'spinToStop',
+      'duration': 5,
+      'spins': 5,
+      'callbackFinished': function(seg) {
+        alertResult(seg);
+        // 룰렛 멈추면 다시 활성화
+        document.getElementById('newFood').disabled = false;
+        document.getElementById('addBtn').disabled = false;
+        document.querySelectorAll('#foodList button').forEach(btn => btn.disabled = false);
+      }
+    };
+
+    theWheel.startAnimation();
+  }
+};
+
 function toggleControls(enabled) {
   newFoodInput.disabled = !enabled;
   // 모든 버튼 비활성화
@@ -125,4 +197,15 @@ function toggleControls(enabled) {
   document.querySelectorAll('#foodList button').forEach(btn => btn.disabled = !enabled);
 }
 
-drawWheel();
+function resizeCanvas() {
+  const area = document.querySelector('.roulette-area');
+  const size = Math.min(area.offsetWidth, 400); // 최대 400px
+  const canvas = document.getElementById('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  if (typeof makeWheel === 'function') makeWheel(); // Winwheel.js라면 다시 그리기
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('DOMContentLoaded', resizeCanvas);
+
+makeWheel();
