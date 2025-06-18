@@ -553,16 +553,18 @@ app.get('/api/user', (req, res) => {
     }
 
     const userId = req.session.userId;
+    // 쿼리에 u.address와 u.detail_address 추가
     const query = `
         SELECT
             u.id,
             u.username,
-            u.email,                    -- 이메일 필드 추가
+            u.email,
+            u.address,
             u.profile_intro,
             u.profile_image_path,
             ul.level,
             up.point,
-            sns_id,
+            u.sns_id,
             IFNULL(p.post_count, 0) AS post_count
         FROM users u
         LEFT JOIN user_levels ul ON u.id = ul.user_id
@@ -586,11 +588,9 @@ app.get('/api/user', (req, res) => {
             const userData = results[0];
             userData.level = userData.level || 1;
             userData.point = userData.point || 0;
-            
             if (userData.profile_image_path) {
                 userData.profile_image_path = userData.profile_image_path.replace(/\\/g, '/');
             }
-
             console.log('[INFO] /api/user - User data fetched for userId:', userId, userData);
             return res.json(userData);
         } else {
