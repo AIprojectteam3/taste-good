@@ -467,10 +467,9 @@
         display: grid;
         place-items: center; /* 추가: 그리드 아이템 중앙 정렬 */
         grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(auto-fill, minmax(140px, 1fr)); /* 카드 높이 자동 조정 */
+        grid-template-rows: repeat(auto-fill, minmax(120px, 1fr)); /* 카드 높이 자동 조정 */
         grid-auto-rows: auto;
         gap: 5px; /* 카드 간 간격 제거 */
-        padding: 5px;
         margin : 0;
         width: 100vw !important; /* 화면 전체 너비 */
         max-width: 100vw !important;
@@ -487,8 +486,9 @@
 
     .card {
         margin : none;
-        aspect-ratio: 1;
-        border-radius: 15px;
+        min-width : 120px;
+        border : 1px solid #666;
+        border-radius: 10px;
     }
     
     .card img {
