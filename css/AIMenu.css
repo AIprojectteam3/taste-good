@@ -353,6 +353,24 @@ input[type="range"]::-moz-range-thumb {
     border: 1px solid #ddd;
 }
 
+/* 내 위치 마커 정보 */
+.myLocDiv {
+    padding: 8px 12px;
+    min-width: 150px;
+    line-height: 1.4;
+    font-size: 12px;
+}
+
+.myLoc {
+    margin-bottom: 4px;
+    font-weight: bold;
+    color: #1E90FF;
+}
+
+.myLocAddress {
+    color: #333;
+}
+
 @media (max-width: 768px) {
     .container {
         margin-top : 60px;
@@ -392,5 +410,11 @@ input[type="range"]::-moz-range-thumb {
 
     .sliderDiv {
         flex-direction : column;
+    }
+
+    .modal {
+        display : flex;
+        align-items : center;
+        justify-content : center;
     }
 }

@@ -236,6 +236,8 @@ async function displayRecommendations(items) {
                 <p>다른 조건으로 다시 시도해보세요!</p>
             </div>
         `;
+        // 결과가 없어도 스크롤 이동
+        scrollToResults();
         return;
     }
 
@@ -287,6 +289,27 @@ async function displayRecommendations(items) {
     });
     
     resultsContainer.appendChild(resultCard);
+    
+    // 추천 결과 출력 완료 후 스크롤 이동
+    scrollToResults();
+}
+
+// 스크롤 이동 함수
+function scrollToResults() {
+    const resultsContainer = document.getElementById('recommendation-results');
+    if (resultsContainer) {
+        // 부드러운 스크롤 애니메이션
+        resultsContainer.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+        
+        // 또는 페이지 맨 아래로 스크롤하려면 다음 코드 사용
+        // window.scrollTo({
+        //     top: document.body.scrollHeight,
+        //     behavior: 'smooth'
+        // });
+    }
 }
 
 // 모달 표시 함수
@@ -301,7 +324,6 @@ function showMenuModal(item) {
             <p><strong>카테고리:</strong> ${item.Category}</p>
             <p><strong>칼로리:</strong> ${item.kcal}kcal</p>
             <p><strong>가격:</strong> ${item.Price ? item.Price.toLocaleString() + '원' : '정보 없음'}</p>
-            ${item.total_score ? `<p><strong>추천 점수:</strong> ${item.total_score}점</p>` : ''}
         </div>
     `;
     
@@ -310,7 +332,7 @@ function showMenuModal(item) {
     // 지도 초기화
     setTimeout(() => {
         initializeMap();
-    }, 100);
+    }, 500);
 }
 
 // 모달 설정
@@ -347,41 +369,88 @@ async function initializeMap() {
             return;
         }
 
-        // 카카오맵 API 로드 및 초기화
-        if (typeof kakao !== 'undefined' && kakao.maps) {
-            const mapContainer = document.getElementById('map');
-            const mapOption = {
-                center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
-                level: 3
-            };
-            
-            const map = new kakao.maps.Map(mapContainer, mapOption);
-            
-            // 주소로 좌표 검색
-            const geocoder = new kakao.maps.services.Geocoder();
-            geocoder.addressSearch(userData.address, function(result, status) {
-                if (status === kakao.maps.services.Status.OK) {
-                    const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                    map.setCenter(coords);
-                    
-                    // 마커 표시
-                    const marker = new kakao.maps.Marker({
-                        map: map,
-                        position: coords
-                    });
-                    
-                    // 주변 음식점 검색
-                    searchNearbyRestaurants(map, coords);
-                }
-            });
-        } else {
+        // 카카오맵 API가 로드되었는지 확인
+        if (typeof kakao === 'undefined') {
             document.getElementById('modal-right').innerHTML = `
                 <div style="text-align: center; padding: 40px; color: #666;">
-                    <h4>지도 로딩 중...</h4>
+                    <h4>지도 API 로딩 중...</h4>
                     <p>잠시 후 다시 시도해주세요.</p>
                 </div>
             `;
+            return;
         }
+
+        // kakao.maps.load를 사용하여 API가 완전히 로드된 후 실행
+        kakao.maps.load(() => {
+            try {
+                const mapContainer = document.getElementById('map');
+                if (!mapContainer) {
+                    console.error('지도 컨테이너를 찾을 수 없습니다.');
+                    return;
+                }
+
+                const mapOption = {
+                    center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
+                    level: 3
+                };
+                
+                const map = new kakao.maps.Map(mapContainer, mapOption);
+                
+                // 주소로 좌표 검색
+                const geocoder = new kakao.maps.services.Geocoder();
+                geocoder.addressSearch(userData.address, function(result, status) {
+                    if (status === kakao.maps.services.Status.OK) {
+                        const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                        map.setCenter(coords);
+                        
+                        // 내 위치 마커 생성 (빨간색)
+                        const myLocationMarker = new kakao.maps.Marker({
+                            map: map,
+                            position: coords,
+                            image: createMarkerImage() // 빨간색 마커 이미지
+                        });
+                        
+                        // 내 위치 인포윈도우 생성
+                        const myLocationInfoWindow = new kakao.maps.InfoWindow({
+                            content: `
+                                <div class = "myLocDiv">
+                                    <div class = "myLoc">내 위치</div>
+                                    <div class = "myLocAddress">${userData.address}</div>
+                                </div>
+                            `,
+                            removable: false
+                        });
+                        
+                        // 내 위치 마커에 인포윈도우 표시
+                        myLocationInfoWindow.open(map, myLocationMarker);
+                        
+                        // 내 위치 마커 클릭 이벤트
+                        kakao.maps.event.addListener(myLocationMarker, 'click', function() {
+                            myLocationInfoWindow.open(map, myLocationMarker);
+                        });
+                        
+                        // 주변 음식점 검색
+                        searchNearbyRestaurants(map, coords);
+                    } else {
+                        console.error('주소 검색 실패:', status);
+                        // 기본 위치로 지도 표시
+                        const defaultCoords = new kakao.maps.LatLng(37.5665, 126.9780);
+                        map.setCenter(defaultCoords);
+                        searchNearbyRestaurants(map, defaultCoords);
+                    }
+                });
+                
+            } catch (mapError) {
+                console.error('지도 생성 중 오류:', mapError);
+                document.getElementById('modal-right').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <h4>지도 생성 실패</h4>
+                        <p>지도를 불러올 수 없습니다.</p>
+                    </div>
+                `;
+            }
+        });
+        
     } catch (error) {
         console.error('지도 초기화 중 오류:', error);
         document.getElementById('modal-right').innerHTML = `
@@ -393,6 +462,19 @@ async function initializeMap() {
     }
 }
 
+function createMarkerImage() {
+    const svgMarker = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#4285F4">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+    `;
+    const imageSrc = 'data:image/svg+xml;base64,' + btoa(svgMarker);
+    const imageSize = new kakao.maps.Size(44, 44); // 마커 이미지 크기
+    const imageOption = { offset: new kakao.maps.Point(22, 44) }; // 마커 좌표에 일치시킬 이미지 내에서의 좌표
+    
+    return new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+}
+
 // 주변 음식점 검색
 function searchNearbyRestaurants(map, coords) {
     const ps = new kakao.maps.services.Places();
@@ -401,10 +483,14 @@ function searchNearbyRestaurants(map, coords) {
         if (status === kakao.maps.services.Status.OK) {
             const bounds = new kakao.maps.LatLngBounds();
             
+            // 내 위치 좌표를 bounds에 포함
+            bounds.extend(coords);
+            
             for (let i = 0; i < Math.min(data.length, 10); i++) {
                 const place = data[i];
                 const placePosition = new kakao.maps.LatLng(place.y, place.x);
                 
+                // 일반 음식점 마커 (기본 색상)
                 const marker = new kakao.maps.Marker({
                     map: map,
                     position: placePosition
@@ -422,6 +508,8 @@ function searchNearbyRestaurants(map, coords) {
             }
             
             map.setBounds(bounds);
+        } else {
+            console.error('주변 음식점 검색 실패:', status);
         }
     }, {
         location: coords,
