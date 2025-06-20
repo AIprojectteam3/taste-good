@@ -1,7 +1,3 @@
-<<<<<<< HEAD
 node_modules/
 .env
 dist/
-=======
-node_modules
->>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
