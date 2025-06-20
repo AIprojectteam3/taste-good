@@ -2242,6 +2242,19 @@ app.get('/api/options/goals', (req, res) => {
     });
 });
 
+// 계절(season) 옵션 조회
+app.get('/api/options/season', (req, res) => {
+    const query = "SELECT SeasonID, SeasonKor FROM season ORDER BY SeasonID";
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('계절 옵션 조회 중 오류:', err);
+            return res.status(500).json({ message: '시간대 데이터를 조회하는 중 오류가 발생했습니다.' });
+        }
+        res.json(results);
+    });
+});
+
 // 날씨(Weather) 옵션 조회
 app.get('/api/options/weathers', (req, res) => {
     const query = "SELECT WeatherID, WeatherKor FROM Weather ORDER BY WeatherID";
@@ -2418,6 +2431,7 @@ app.get('/api/recommend', async (req, res) => {
     const category_str = req.query.category;
     const need_ids_str = req.query.need;
     const goal_ids_str = req.query.goal;
+    const season_ids_str = req.query.season;
     const weather_ids_str = req.query.weather;
     const time_ids_str = req.query.time;
     const season_ids_str = req.query.season;
@@ -2456,6 +2470,7 @@ app.get('/api/recommend', async (req, res) => {
     if (max_price_str) prompt += `최대 가격: ${max_price_str}\n`;
     prompt += "메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려줘.";
 
+<<<<<<< HEAD
     try {
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
@@ -2468,6 +2483,21 @@ app.get('/api/recommend', async (req, res) => {
     } catch (err) {
         console.error("GPT 응답 실패:", err.message);
         res.status(500).json({ error: "GPT 응답 실패", detail: err.message });
+=======
+    const season_ids = season_ids_str ? season_ids_str.split(',') : [];
+    if (season_ids.length > 0 && !season_ids.includes('all')) {
+        const placeholders = season_ids.map(() => '?').join(',');
+        sub_queries.push(`SELECT MenuID, 1 as score FROM MenuSeason WHERE SeasonID IN (${placeholders})`);
+        params_score.push(...season_ids);
+    }
+
+    // 날씨 점수
+    const weather_ids = weather_ids_str ? weather_ids_str.split(',') : [];
+    if (weather_ids.length > 0 && !weather_ids.includes('all')) {
+        const placeholders = weather_ids.map(() => '?').join(',');
+        sub_queries.push(`SELECT MenuID, 1 as score FROM MenuWeather WHERE WeatherID IN (${placeholders})`);
+        params_score.push(...weather_ids);
+>>>>>>> 40f187307c474af02dece911c3e1271d7c6d46db
     }
 });
 

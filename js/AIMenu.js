@@ -33,6 +33,7 @@ function initializeRecommender() {
         populateCheckboxes('/api/options/categories', 'categories-container', 'Category', 'Category', 'category'),
         populateCheckboxes('/api/options/needs', 'needs-container', 'NeedID', 'NeedKor', 'need'),
         populateCheckboxes('/api/options/goals', 'goals-container', 'GoalID', 'GoalKor', 'goal'),
+        populateCheckboxes('/api/options/season', 'season-container', 'SeasonID', 'SeasonKor', 'season'),
         populateCheckboxes('/api/options/weathers', 'weathers-container', 'WeatherID', 'WeatherKor', 'weather'),
         populateCheckboxes('/api/options/times', 'times-container', 'TimeID', 'TimeKor', 'time')
     ]).catch(error => {
@@ -104,7 +105,11 @@ function setupAllCheckboxHandler(containerId, name) {
     const container = document.getElementById(containerId);
     const allCheckbox = container.querySelector(`input[value="all"]`);
     const otherCheckboxes = container.querySelectorAll(`input[name="${name}"]:not([value="all"])`);
-    
+
+    // 단일 선택 제한이 필요한 카테고리들
+    const singleSelectCategories = ['season', 'weather', 'time'];
+    const isSingleSelect = singleSelectCategories.includes(name);
+
     // "상관없음" 체크박스 클릭 시
     allCheckbox.addEventListener('change', function() {
         if (this.checked) {
@@ -114,13 +119,22 @@ function setupAllCheckboxHandler(containerId, name) {
             });
         }
     });
-    
+
     // 다른 체크박스들 클릭 시
     otherCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             if (this.checked) {
                 // 다른 체크박스가 체크되면 "상관없음" 해제
                 allCheckbox.checked = false;
+                
+                // 단일 선택 제한이 있는 경우 다른 체크박스들 해제
+                if (isSingleSelect) {
+                    otherCheckboxes.forEach(otherCheckbox => {
+                        if (otherCheckbox !== this) {
+                            otherCheckbox.checked = false;
+                        }
+                    });
+                }
             }
         });
     });
@@ -173,6 +187,7 @@ function getRecommendation() {
     const selectedCategories = getSelectedValues('category');
     const selectedNeeds = getSelectedValues('need');
     const selectedGoals = getSelectedValues('goal');
+    const selectedSeason = getSelectedValues('season');
     const selectedWeathers = getSelectedValues('weather');
     const selectedTimes = getSelectedValues('time');
     
@@ -200,6 +215,9 @@ function getRecommendation() {
     }
     if (selectedGoals.length > 0 && !selectedGoals.includes('all')) {
         params.append('goal', selectedGoals.join(','));
+    }
+    if (selectedSeason.length > 0 && !selectedSeason.includes('all')) {
+        params.append('season', selectedSeason.join(','));
     }
     if (selectedWeathers.length > 0 && !selectedWeathers.includes('all')) {
         params.append('weather', selectedWeathers.join(','));
@@ -370,30 +388,15 @@ function setupModal() {
     });
 }
 
-// 지도 초기화 함수
-async function initializeMap() {
-    try {
-        const response = await fetch('/api/user');
-        const userData = await response.json();
-        
-        if (!userData || !userData.address) {
-            document.getElementById('modal-right').innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <h4>위치 정보가 없습니다</h4>
-                    <p>정확한 위치 기반 검색을 위해<br>마이페이지에서 주소를 설정해주세요.</p>
-                </div>
-            `;
-            return;
-        }
+let kakaoMap = null;
+let currentMarker = null;
 
-        // 카카오맵 API가 로드되었는지 확인
+// 지도 초기화 함수
+function initializeMap() {
+    return new Promise((resolve, reject) => {
+        // kakao 객체가 존재하는지 확인
         if (typeof kakao === 'undefined') {
-            document.getElementById('modal-right').innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <h4>지도 API 로딩 중...</h4>
-                    <p>잠시 후 다시 시도해주세요.</p>
-                </div>
-            `;
+            reject(new Error('카카오 지도 API가 로드되지 않았습니다.'));
             return;
         }
 
@@ -402,7 +405,7 @@ async function initializeMap() {
             try {
                 const mapContainer = document.getElementById('map');
                 if (!mapContainer) {
-                    console.error('지도 컨테이너를 찾을 수 없습니다.');
+                    reject(new Error('지도 컨테이너를 찾을 수 없습니다.'));
                     return;
                 }
 
@@ -411,72 +414,13 @@ async function initializeMap() {
                     level: 3
                 };
                 
-                const map = new kakao.maps.Map(mapContainer, mapOption);
-                
-                // 주소로 좌표 검색
-                const geocoder = new kakao.maps.services.Geocoder();
-                geocoder.addressSearch(userData.address, function(result, status) {
-                    if (status === kakao.maps.services.Status.OK) {
-                        const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                        map.setCenter(coords);
-                        
-                        // 내 위치 마커 생성 (빨간색)
-                        const myLocationMarker = new kakao.maps.Marker({
-                            map: map,
-                            position: coords,
-                            image: createMarkerImage() // 빨간색 마커 이미지
-                        });
-                        
-                        // 내 위치 인포윈도우 생성
-                        const myLocationInfoWindow = new kakao.maps.InfoWindow({
-                            content: `
-                                <div class = "myLocDiv">
-                                    <div class = "myLoc">내 위치</div>
-                                    <div class = "myLocAddress">${userData.address}</div>
-                                </div>
-                            `,
-                            removable: false
-                        });
-                        
-                        // 내 위치 마커에 인포윈도우 표시
-                        myLocationInfoWindow.open(map, myLocationMarker);
-                        
-                        // 내 위치 마커 클릭 이벤트
-                        kakao.maps.event.addListener(myLocationMarker, 'click', function() {
-                            myLocationInfoWindow.open(map, myLocationMarker);
-                        });
-                        
-                        // 주변 음식점 검색
-                        searchNearbyRestaurants(map, coords);
-                    } else {
-                        console.error('주소 검색 실패:', status);
-                        // 기본 위치로 지도 표시
-                        const defaultCoords = new kakao.maps.LatLng(37.5665, 126.9780);
-                        map.setCenter(defaultCoords);
-                        searchNearbyRestaurants(map, defaultCoords);
-                    }
-                });
-                
-            } catch (mapError) {
-                console.error('지도 생성 중 오류:', mapError);
-                document.getElementById('modal-right').innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #666;">
-                        <h4>지도 생성 실패</h4>
-                        <p>지도를 불러올 수 없습니다.</p>
-                    </div>
-                `;
+                kakaoMap = new kakao.maps.Map(mapContainer, mapOption);
+                resolve(kakaoMap);
+            } catch (error) {
+                reject(error);
             }
         });
-        
-    } catch (error) {
-        console.error('지도 초기화 중 오류:', error);
-        document.getElementById('modal-right').innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <h4>지도 로딩 실패</h4>
-                <p>네트워크 연결을 확인해주세요.</p>
-            </div>
-        `;
-    }
+    });
 }
 
 function createMarkerImage() {
