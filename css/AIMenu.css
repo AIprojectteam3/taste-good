@@ -305,7 +305,7 @@ input[type="range"]::-moz-range-thumb {
     text-decoration: none;
 }
 
-/* 모달 바디 (2단 레이아웃) */
+/* 모달 바디 (2단 레이아웃). */
 .modal-body {
     display: flex;
     gap: 20px;
