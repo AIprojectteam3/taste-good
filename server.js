@@ -2277,6 +2277,7 @@ app.get('/api/recommend', (req, res) => {
     const category_str = req.query.category;
     const need_ids_str = req.query.need;
     const goal_ids_str = req.query.goal;
+    const season_ids_str = req.query.season;
     const weather_ids_str = req.query.weather;
     const time_ids_str = req.query.time;
     const max_kcal_str = req.query.max_kcal;
@@ -2331,6 +2332,13 @@ app.get('/api/recommend', (req, res) => {
         const placeholders = goal_ids.map(() => '?').join(',');
         sub_queries.push(`SELECT MenuID, 1 as score FROM MenuGoal WHERE GoalID IN (${placeholders})`);
         params_score.push(...goal_ids);
+    }
+
+    const season_ids = season_ids_str ? season_ids_str.split(',') : [];
+    if (season_ids.length > 0 && !season_ids.includes('all')) {
+        const placeholders = season_ids.map(() => '?').join(',');
+        sub_queries.push(`SELECT MenuID, 1 as score FROM MenuSeason WHERE SeasonID IN (${placeholders})`);
+        params_score.push(...season_ids);
     }
 
     // 날씨 점수
