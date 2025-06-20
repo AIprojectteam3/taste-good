@@ -35,12 +35,8 @@ function initializeRecommender() {
         populateCheckboxes('/api/options/categories', 'categories-container', 'Category', 'Category', 'category'),
         populateCheckboxes('/api/options/needs', 'needs-container', 'NeedID', 'NeedKor', 'need'),
         populateCheckboxes('/api/options/goals', 'goals-container', 'GoalID', 'GoalKor', 'goal'),
-<<<<<<< HEAD
-        populateCheckboxes('/api/options/weathers', 'weathers-container', 'WeatherID', 'WeatherKor', 'weather')
-=======
         populateCheckboxes('/api/options/weathers', 'weathers-container', 'WeatherID', 'WeatherKor', 'weather'),
         populateCheckboxes('/api/options/times', 'times-container', 'TimeID', 'TimeKor', 'Time')
->>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
     ]).catch(error => {
         console.error("체크박스 생성 중 오류 발생:", error);
         resultsContainer.innerHTML = '<div class="result-card"><h3>추천 옵션을 불러오는 데 실패했습니다. 페이지를 새로고침 해주세요.</h3></div>';
@@ -106,94 +102,6 @@ function setupRangeSlider(sliderId, valueId, unit, maxValue, defaultText) {
 }
 
 // 체크박스 옵션 생성
-<<<<<<< HEAD
-async function populateCheckboxes(url, containerId, valueKey, textKey, name) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    const fragment = document.createDocumentFragment();
-
-    try {
-        const response = await fetch(`http://localhost:5000${url}`);
-        if (!response.ok) throw new Error('옵션을 가져오지 못했습니다.');
-
-        const options = await response.json();
-
-        // 상관없음 옵션 추가
-        addIrrelevantOption(fragment, container, name);
-
-        options.forEach(option => {
-            const wrapper = document.createElement('div');
-            wrapper.classList.add('checkbox-item');
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            const optionValue = option[valueKey];
-            checkbox.id = `${name}-${optionValue}`;
-            checkbox.name = name;
-            checkbox.value = optionValue;
-
-            const label = document.createElement('label');
-            label.htmlFor = `${name}-${optionValue}`;
-            label.textContent = option[textKey];
-
-            checkbox.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    const irrelevantCheckbox = container.querySelector(`input[value="none"]`);
-                    if (irrelevantCheckbox) {
-                        irrelevantCheckbox.checked = false;
-                        const otherCheckboxes = container.querySelectorAll(`input[name="${name}"]:not([value="none"])`);
-                        otherCheckboxes.forEach(cb => cb.disabled = false);
-                    }
-                }
-            });
-
-            wrapper.appendChild(checkbox);
-            wrapper.appendChild(label);
-            fragment.appendChild(wrapper);
-        });
-
-        container.appendChild(fragment);
-    } catch (error) {
-        console.error(`${url}에서 옵션을 가져오지 못했습니다:`, error);
-        container.innerHTML = '<div>옵션을 불러올 수 없습니다.</div>';
-        throw error;
-    }
-}
-
-// 상관없음 옵션 추가
-function addIrrelevantOption(fragment, container, name) {
-    const wrapper = document.createElement('div');
-    wrapper.classList.add('checkbox-item', 'irrelevant-option');
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = `${name}-none`;
-    checkbox.name = name;
-    checkbox.value = 'none';
-
-    const label = document.createElement('label');
-    label.htmlFor = `${name}-none`;
-    label.textContent = '상관없음';
-
-    checkbox.addEventListener('change', (e) => {
-        const otherCheckboxes = container.querySelectorAll(`input[name="${name}"]:not([value="none"])`);
-        if (e.target.checked) {
-            otherCheckboxes.forEach(cb => {
-                cb.checked = false;
-                cb.disabled = true;
-            });
-        } else {
-            otherCheckboxes.forEach(cb => {
-                cb.disabled = false;
-            });
-        }
-    });
-
-    wrapper.appendChild(checkbox);
-    wrapper.appendChild(label);
-    fragment.appendChild(wrapper);
-=======
 async function populateCheckboxes(apiUrl, containerId, valueKey, textKey, name) {
     try {
         const response = await fetch(`http://localhost:5000${apiUrl}`);
@@ -305,7 +213,6 @@ function setupAllCheckboxHandler(containerId, name) {
             }
         });
     });
->>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
 }
 
 // 체크된 값들 가져오기
