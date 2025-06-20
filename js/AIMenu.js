@@ -191,11 +191,17 @@ function getSelectedValues(name) {
 }
 
 // 슬라이더 설정
+// 슬라이더 설정
 function setupSliders() {
     const kcalSlider = document.getElementById('kcal-slider');
     const priceSlider = document.getElementById('price-slider');
+    const peopleSlider = document.getElementById('people-slider'); // 인원 수 슬라이더 추가
+    const menuCountSlider = document.getElementById('menu-count-slider'); // 메뉴 수 슬라이더 추가
+    
     const kcalValue = document.getElementById('kcal-value');
     const priceValue = document.getElementById('price-value');
+    const peopleValue = document.getElementById('people-value'); // 인원 수 표시
+    const menuCountValue = document.getElementById('menu-count-value'); // 메뉴 수 표시
 
     // 칼로리 슬라이더
     kcalSlider.addEventListener('input', function() {
@@ -217,11 +223,31 @@ function setupSliders() {
         }
     });
 
+    // 인원 수 슬라이더 추가
+    peopleSlider.addEventListener('input', function() {
+        const value = parseInt(this.value);
+        if (value === 1) {
+            peopleValue.textContent = '1명';
+        } else {
+            peopleValue.textContent = `${value}명`;
+        }
+    });
+
+    // 추천 메뉴 수 슬라이더 추가
+    menuCountSlider.addEventListener('input', function() {
+        const value = parseInt(this.value);
+        menuCountValue.textContent = `${value}개`;
+    });
+
     // 초기값 설정
     kcalSlider.dispatchEvent(new Event('input'));
     priceSlider.dispatchEvent(new Event('input'));
+    peopleSlider.dispatchEvent(new Event('input'));
+    menuCountSlider.dispatchEvent(new Event('input'));
 }
 
+
+// 추천 요청 함수
 // 추천 요청 함수
 // 추천 요청 함수
 function getRecommendation() {
@@ -237,16 +263,21 @@ function getRecommendation() {
     const selectedTimes = getSelectedValues('time');
     const maxKcal = document.getElementById('kcal-slider').value;
     const maxPrice = document.getElementById('price-slider').value;
+    const peopleCount = document.getElementById('people-slider').value; // 인원 수 추가
+    const menuCount = document.getElementById('menu-count-slider').value; // 메뉴 수 추가
 
     // 콘솔에 선택값 출력
     console.log('[AI 추천 요청] 선택값:', {
         category: selectedCategories,
         need: selectedNeeds,
         goal: selectedGoals,
+        season: selectedSeason,
         weather: selectedWeathers,
         time: selectedTimes,
         maxKcal,
-        maxPrice
+        maxPrice,
+        peopleCount, // 추가
+        menuCount // 추가
     });
 
     // API 요청 파라미터 구성
@@ -271,6 +302,10 @@ function getRecommendation() {
     }
     if (maxKcal < 2000) params.append('max_kcal', maxKcal);
     if (maxPrice < 50000) params.append('max_price', maxPrice);
+    
+    // 인원 수와 메뉴 수 파라미터 추가
+    params.append('people_count', peopleCount);
+    params.append('menu_count', menuCount);
 
     // 로딩 표시
     loadingSpinner.style.display = 'block';
@@ -299,8 +334,6 @@ function getRecommendation() {
         });
 }
 
-
-// 추천 결과 표시
 // 추천 결과 표시
 async function displayRecommendations(data) {
     const resultsContainer = document.getElementById('recommendation-results');

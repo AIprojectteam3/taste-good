@@ -139,13 +139,25 @@
                         <div class="filter-group range-slider-group">
                             <label for="kcal-slider">칼로리 (최대)</label>
                             <input type="range" id="kcal-slider" name="kcal" min="0" max="2000" value="2000" step="50">
-                            <span id="kcal-value">상관없음</span>
+                            <span class = "slider-value" id="kcal-value">상관없음</span>
                         </div>
                         <!-- 6. 가격 필터 -->
                         <div class="filter-group range-slider-group">
                             <label for="price-slider">가격 (최대)</label>
                             <input type="range" id="price-slider" name="price" min="0" max="50000" value="50000" step="1000">
-                            <span id="price-value">상관없음</span>
+                            <span class = "slider-value" id="price-value">상관없음</span>
+                        </div>
+                    </div>
+                    <div class = "sliderDiv">
+                        <div class="filter-group range-slider-group">
+                            <label for="people-slider">인원 수</label>
+                            <input type="range" id="people-slider" min="1" max="8" value="1" class="slider">
+                            <span class = "slider-value" id="people-value">2명</span>
+                        </div>
+                        <div class="filter-group range-slider-group">
+                            <label for="menu-count-slider">추천받을 메뉴 수</label>
+                            <input type="range" id="menu-count-slider" min="1" max="10" value="1" class="slider">
+                            <span class = "slider-value" id="menu-count-value">3개</span>
                         </div>
                     </div>
                 </div>

@@ -2437,9 +2437,12 @@ app.get('/api/recommend', async (req, res) => {
     const allergen_ids_str = req.query.allergen;
     const max_kcal_str = req.query.max_kcal;
     const max_price_str = req.query.max_price;
+    const people_count = req.query.people_count || 1; // 인원 수 추가
+    const menu_count = req.query.menu_count || 1; // 메뉴 수 추가
 
     // 프롬프트 동적 생성
-    let prompt = "조건에 맞는 메뉴를 추천해줘.\n";
+    let prompt = `${people_count}명이 먹을 수 있는 메뉴를 ${menu_count}개 추천해줘.\n`;
+    
     if (category_str) prompt += `카테고리: ${category_str}\n`;
     if (need_ids_str) {
         const kor = need_ids_str.split(',').map(id => needKorMap[id] || id).join(', ');
@@ -2467,13 +2470,14 @@ app.get('/api/recommend', async (req, res) => {
     }
     if (max_kcal_str) prompt += `최대 칼로리: ${max_kcal_str}\n`;
     if (max_price_str) prompt += `최대 가격: ${max_price_str}\n`;
-    prompt += "메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려줘.";
+    
+    prompt += `각 메뉴마다 메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려줘. ${people_count}명이 함께 먹기 좋은 메뉴로 추천해줘.`;
 
     try {
         // OpenAI API 키 확인
         if (!process.env.OPENAI_API_KEY) {
             console.error('OPENAI_API_KEY 환경변수가 설정되지 않았습니다.');
-            return res.status(500).json({ 
+            return res.status(500).json({
                 error: "OpenAI API 키가 설정되지 않았습니다.",
                 gpt: "죄송합니다. 현재 AI 추천 서비스를 이용할 수 없습니다. 잠시 후 다시 시도해주세요."
             });
@@ -2482,7 +2486,7 @@ app.get('/api/recommend', async (req, res) => {
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: prompt }],
-            max_tokens: 500,
+            max_tokens: 800, // 메뉴 수가 늘어날 수 있으므로 토큰 수 증가
             temperature: 0.7
         });
 
@@ -2496,14 +2500,12 @@ app.get('/api/recommend', async (req, res) => {
         console.error("GPT 응답 실패:", err.message);
         console.error("전체 오류:", err);
         
-        // 사용자에게 친화적인 오류 메시지 반환
-        res.status(200).json({ 
+        res.status(200).json({
             gpt: "죄송합니다. 현재 AI 추천 서비스에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
             error: "GPT 응답 실패"
         });
     }
 });
-
 
 // ==================================================================================================================
 // 서버 시작
