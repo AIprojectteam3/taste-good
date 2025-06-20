@@ -64,20 +64,17 @@ async function populateCheckboxes(apiUrl, containerId, valueKey, textKey, name) 
             </div>
         `;
         
-        // 데이터베이스에서 가져온 옵션들 추가
+        // value를 한글명(textKey)로!
         htmlString += data.map(item => `
             <div class="checkbox-item">
-                <input type="checkbox" name="${name}" value="${item[valueKey]}" id="${name}-${item[valueKey]}">
+                <input type="checkbox" name="${name}" value="${item[textKey]}" id="${name}-${item[valueKey]}">
                 <label for="${name}-${item[valueKey]}">${item[textKey]}</label>
             </div>
         `).join('');
         
         container.innerHTML = htmlString;
         
-        // "상관없음" 체크박스 이벤트 리스너 추가
         setupAllCheckboxHandler(containerId, name);
-        
-        // 버튼 클릭 애니메이션 추가
         setupButtonAnimations(containerId);
         
     } catch (error) {
@@ -196,7 +193,18 @@ function getRecommendation() {
     
     const maxKcal = document.getElementById('kcal-slider').value;
     const maxPrice = document.getElementById('price-slider').value;
-    
+
+    // 콘솔에 선택값 출력
+    console.log('[AI 추천 요청] 선택값:', {
+        category: selectedCategories,
+        need: selectedNeeds,
+        goal: selectedGoals,
+        weather: selectedWeathers,
+        time: selectedTimes,
+        maxKcal,
+        maxPrice
+    });
+
     // API 요청 파라미터 구성
     const params = new URLSearchParams();
     if (selectedCategories.length > 0 && !selectedCategories.includes('all')) {
@@ -240,26 +248,35 @@ function getRecommendation() {
 }
 
 // 추천 결과 표시
-async function displayRecommendations(items) {
-    const modal = document.getElementById('recommendation-modal');
-    const modalLeft = document.getElementById('modal-left');
+async function displayRecommendations(data) {
     const resultsContainer = document.getElementById('recommendation-results');
-    
     resultsContainer.innerHTML = '';
-    
-    if (!items || items.length === 0) {
+
+    // GPT 응답일 경우
+    if (data.gpt) {
+        resultsContainer.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <h3>AI 추천 결과</h3>
+                <pre style="white-space: pre-wrap; text-align:left;">${data.gpt}</pre>
+            </div>
+        `;
+        scrollToResults();
+        return;
+    }
+
+    // 기존 DB 추천 방식 (예전 코드)
+    if (!data || data.length === 0) {
         resultsContainer.innerHTML = `
             <div style="text-align: center; padding: 40px; color: #666;">
                 <h3>조건에 맞는 메뉴를 찾을 수 없습니다</h3>
                 <p>다른 조건으로 다시 시도해보세요!</p>
             </div>
         `;
-        // 결과가 없어도 스크롤 이동
         scrollToResults();
         return;
     }
 
-    const item = items[0]; // 첫 번째 추천 메뉴
+    const item = data[0]; // 첫 번째 추천 메뉴
     
     // 결과 카드 생성
     const resultCard = document.createElement('div');
