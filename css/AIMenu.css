@@ -203,7 +203,7 @@ input[type="range"]::-moz-range-thumb {
     cursor: pointer;
 }
 
-#kcal-value, #price-value {
+.slider-value {
     font-size: 1em;
     font-weight: bold;
     color: #ff6f61;
