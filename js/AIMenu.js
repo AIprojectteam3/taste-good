@@ -353,30 +353,15 @@ function setupModal() {
     });
 }
 
-// 지도 초기화 함수
-async function initializeMap() {
-    try {
-        const response = await fetch('/api/user');
-        const userData = await response.json();
-        
-        if (!userData || !userData.address) {
-            document.getElementById('modal-right').innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <h4>위치 정보가 없습니다</h4>
-                    <p>정확한 위치 기반 검색을 위해<br>마이페이지에서 주소를 설정해주세요.</p>
-                </div>
-            `;
-            return;
-        }
+let kakaoMap = null;
+let currentMarker = null;
 
-        // 카카오맵 API가 로드되었는지 확인
+// 지도 초기화 함수
+function initializeMap() {
+    return new Promise((resolve, reject) => {
+        // kakao 객체가 존재하는지 확인
         if (typeof kakao === 'undefined') {
-            document.getElementById('modal-right').innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <h4>지도 API 로딩 중...</h4>
-                    <p>잠시 후 다시 시도해주세요.</p>
-                </div>
-            `;
+            reject(new Error('카카오 지도 API가 로드되지 않았습니다.'));
             return;
         }
 
@@ -385,7 +370,7 @@ async function initializeMap() {
             try {
                 const mapContainer = document.getElementById('map');
                 if (!mapContainer) {
-                    console.error('지도 컨테이너를 찾을 수 없습니다.');
+                    reject(new Error('지도 컨테이너를 찾을 수 없습니다.'));
                     return;
                 }
 
@@ -394,72 +379,13 @@ async function initializeMap() {
                     level: 3
                 };
                 
-                const map = new kakao.maps.Map(mapContainer, mapOption);
-                
-                // 주소로 좌표 검색
-                const geocoder = new kakao.maps.services.Geocoder();
-                geocoder.addressSearch(userData.address, function(result, status) {
-                    if (status === kakao.maps.services.Status.OK) {
-                        const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                        map.setCenter(coords);
-                        
-                        // 내 위치 마커 생성 (빨간색)
-                        const myLocationMarker = new kakao.maps.Marker({
-                            map: map,
-                            position: coords,
-                            image: createMarkerImage() // 빨간색 마커 이미지
-                        });
-                        
-                        // 내 위치 인포윈도우 생성
-                        const myLocationInfoWindow = new kakao.maps.InfoWindow({
-                            content: `
-                                <div class = "myLocDiv">
-                                    <div class = "myLoc">내 위치</div>
-                                    <div class = "myLocAddress">${userData.address}</div>
-                                </div>
-                            `,
-                            removable: false
-                        });
-                        
-                        // 내 위치 마커에 인포윈도우 표시
-                        myLocationInfoWindow.open(map, myLocationMarker);
-                        
-                        // 내 위치 마커 클릭 이벤트
-                        kakao.maps.event.addListener(myLocationMarker, 'click', function() {
-                            myLocationInfoWindow.open(map, myLocationMarker);
-                        });
-                        
-                        // 주변 음식점 검색
-                        searchNearbyRestaurants(map, coords);
-                    } else {
-                        console.error('주소 검색 실패:', status);
-                        // 기본 위치로 지도 표시
-                        const defaultCoords = new kakao.maps.LatLng(37.5665, 126.9780);
-                        map.setCenter(defaultCoords);
-                        searchNearbyRestaurants(map, defaultCoords);
-                    }
-                });
-                
-            } catch (mapError) {
-                console.error('지도 생성 중 오류:', mapError);
-                document.getElementById('modal-right').innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #666;">
-                        <h4>지도 생성 실패</h4>
-                        <p>지도를 불러올 수 없습니다.</p>
-                    </div>
-                `;
+                kakaoMap = new kakao.maps.Map(mapContainer, mapOption);
+                resolve(kakaoMap);
+            } catch (error) {
+                reject(error);
             }
         });
-        
-    } catch (error) {
-        console.error('지도 초기화 중 오류:', error);
-        document.getElementById('modal-right').innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <h4>지도 로딩 실패</h4>
-                <p>네트워크 연결을 확인해주세요.</p>
-            </div>
-        `;
-    }
+    });
 }
 
 function createMarkerImage() {
