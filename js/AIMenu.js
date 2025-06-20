@@ -33,6 +33,7 @@ function initializeRecommender() {
         populateCheckboxes('/api/options/categories', 'categories-container', 'Category', 'Category', 'category'),
         populateCheckboxes('/api/options/needs', 'needs-container', 'NeedID', 'NeedKor', 'need'),
         populateCheckboxes('/api/options/goals', 'goals-container', 'GoalID', 'GoalKor', 'goal'),
+        populateCheckboxes('/api/options/season', 'season-container', 'SeasonID', 'SeasonKor', 'season'),
         populateCheckboxes('/api/options/weathers', 'weathers-container', 'WeatherID', 'WeatherKor', 'weather'),
         populateCheckboxes('/api/options/times', 'times-container', 'TimeID', 'TimeKor', 'time')
     ]).catch(error => {
@@ -176,6 +177,7 @@ function getRecommendation() {
     const selectedCategories = getSelectedValues('category');
     const selectedNeeds = getSelectedValues('need');
     const selectedGoals = getSelectedValues('goal');
+    const selectedSeason = getSelectedValues('Season');
     const selectedWeathers = getSelectedValues('weather');
     const selectedTimes = getSelectedValues('time');
     
@@ -192,6 +194,9 @@ function getRecommendation() {
     }
     if (selectedGoals.length > 0 && !selectedGoals.includes('all')) {
         params.append('goal', selectedGoals.join(','));
+    }
+    if (selectedTimes.length > 0 && !selectedTimes.includes('all')) {
+        params.append('season', selectedTimes.join(','));
     }
     if (selectedWeathers.length > 0 && !selectedWeathers.includes('all')) {
         params.append('weather', selectedWeathers.join(','));

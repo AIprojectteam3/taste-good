@@ -2232,6 +2232,19 @@ app.get('/api/options/goals', (req, res) => {
     });
 });
 
+// 계절(season) 옵션 조회
+app.get('/api/options/season', (req, res) => {
+    const query = "SELECT SeasonID, SeasonKor FROM season ORDER BY SeasonID";
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('계절 옵션 조회 중 오류:', err);
+            return res.status(500).json({ message: '시간대 데이터를 조회하는 중 오류가 발생했습니다.' });
+        }
+        res.json(results);
+    });
+});
+
 // 날씨(Weather) 옵션 조회
 app.get('/api/options/weathers', (req, res) => {
     const query = "SELECT WeatherID, WeatherKor FROM Weather ORDER BY WeatherID";
