@@ -5,7 +5,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const session = require('express-session');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const app = express();
 const PORT = 3000;
 //89ad63367f00d39537ef72651c1dce55 rest api key
