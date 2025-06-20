@@ -2434,7 +2434,6 @@ app.get('/api/recommend', async (req, res) => {
     const season_ids_str = req.query.season;
     const weather_ids_str = req.query.weather;
     const time_ids_str = req.query.time;
-    const season_ids_str = req.query.season;
     const allergen_ids_str = req.query.allergen;
     const max_kcal_str = req.query.max_kcal;
     const max_price_str = req.query.max_price;
@@ -2470,7 +2469,6 @@ app.get('/api/recommend', async (req, res) => {
     if (max_price_str) prompt += `최대 가격: ${max_price_str}\n`;
     prompt += "메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려줘.";
 
-<<<<<<< HEAD
     try {
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
@@ -2483,21 +2481,6 @@ app.get('/api/recommend', async (req, res) => {
     } catch (err) {
         console.error("GPT 응답 실패:", err.message);
         res.status(500).json({ error: "GPT 응답 실패", detail: err.message });
-=======
-    const season_ids = season_ids_str ? season_ids_str.split(',') : [];
-    if (season_ids.length > 0 && !season_ids.includes('all')) {
-        const placeholders = season_ids.map(() => '?').join(',');
-        sub_queries.push(`SELECT MenuID, 1 as score FROM MenuSeason WHERE SeasonID IN (${placeholders})`);
-        params_score.push(...season_ids);
-    }
-
-    // 날씨 점수
-    const weather_ids = weather_ids_str ? weather_ids_str.split(',') : [];
-    if (weather_ids.length > 0 && !weather_ids.includes('all')) {
-        const placeholders = weather_ids.map(() => '?').join(',');
-        sub_queries.push(`SELECT MenuID, 1 as score FROM MenuWeather WHERE WeatherID IN (${placeholders})`);
-        params_score.push(...weather_ids);
->>>>>>> 40f187307c474af02dece911c3e1271d7c6d46db
     }
 });
 
