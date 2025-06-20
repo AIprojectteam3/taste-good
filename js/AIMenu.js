@@ -108,7 +108,11 @@ function setupAllCheckboxHandler(containerId, name) {
     const container = document.getElementById(containerId);
     const allCheckbox = container.querySelector(`input[value="all"]`);
     const otherCheckboxes = container.querySelectorAll(`input[name="${name}"]:not([value="all"])`);
-    
+
+    // 단일 선택 제한이 필요한 카테고리들
+    const singleSelectCategories = ['season', 'weather', 'time'];
+    const isSingleSelect = singleSelectCategories.includes(name);
+
     // "상관없음" 체크박스 클릭 시
     allCheckbox.addEventListener('change', function() {
         if (this.checked) {
@@ -118,13 +122,22 @@ function setupAllCheckboxHandler(containerId, name) {
             });
         }
     });
-    
+
     // 다른 체크박스들 클릭 시
     otherCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             if (this.checked) {
                 // 다른 체크박스가 체크되면 "상관없음" 해제
                 allCheckbox.checked = false;
+                
+                // 단일 선택 제한이 있는 경우 다른 체크박스들 해제
+                if (isSingleSelect) {
+                    otherCheckboxes.forEach(otherCheckbox => {
+                        if (otherCheckbox !== this) {
+                            otherCheckbox.checked = false;
+                        }
+                    });
+                }
             }
         });
     });
@@ -177,7 +190,7 @@ function getRecommendation() {
     const selectedCategories = getSelectedValues('category');
     const selectedNeeds = getSelectedValues('need');
     const selectedGoals = getSelectedValues('goal');
-    const selectedSeason = getSelectedValues('Season');
+    const selectedSeason = getSelectedValues('season');
     const selectedWeathers = getSelectedValues('weather');
     const selectedTimes = getSelectedValues('time');
     
@@ -195,8 +208,8 @@ function getRecommendation() {
     if (selectedGoals.length > 0 && !selectedGoals.includes('all')) {
         params.append('goal', selectedGoals.join(','));
     }
-    if (selectedTimes.length > 0 && !selectedTimes.includes('all')) {
-        params.append('season', selectedTimes.join(','));
+    if (selectedSeason.length > 0 && !selectedSeason.includes('all')) {
+        params.append('season', selectedSeason.join(','));
     }
     if (selectedWeathers.length > 0 && !selectedWeathers.includes('all')) {
         params.append('weather', selectedWeathers.join(','));
