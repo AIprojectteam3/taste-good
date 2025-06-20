@@ -2282,128 +2282,7 @@ app.get('/api/options/times', (req, res) => {
 });
 
 // AI 메뉴 추천 API
-// app.get('/api/recommend', (req, res) => {
-//     // 파라미터 수신
-//     const category_str = req.query.category;
-//     const need_ids_str = req.query.need;
-//     const goal_ids_str = req.query.goal;
-//     const weather_ids_str = req.query.weather;
-//     const time_ids_str = req.query.time;
-//     const max_kcal_str = req.query.max_kcal;
-//     const max_price_str = req.query.max_price;
 
-//     // WHERE 조건 (필수 필터링)
-//     let where_clauses = ["1=1"];
-//     let params_where = [];
-
-//     // 칼로리/가격 필터
-//     if (max_kcal_str && parseInt(max_kcal_str) < 2000) {
-//         where_clauses.push("m.kcal <= ?");
-//         params_where.push(parseInt(max_kcal_str));
-//     }
-
-//     if (max_price_str && parseInt(max_price_str) < 50000) {
-//         where_clauses.push("m.Price <= ?");
-//         params_where.push(parseInt(max_price_str));
-//     }
-
-//     // 시간대 필터 (필수 조건으로 추가)
-//     const time_ids = time_ids_str ? time_ids_str.split(',') : [];
-//     if (time_ids.length > 0 && !time_ids.includes('all')) {
-//         const placeholders = time_ids.map(() => '?').join(',');
-//         where_clauses.push(`m.MenuID IN (SELECT MenuID FROM MenuTime WHERE TimeID IN (${placeholders}))`);
-//         params_where.push(...time_ids);
-//     }
-
-//     // 점수 계산용 서브쿼리
-//     let sub_queries = [];
-//     let params_score = [];
-
-//     // 카테고리 점수
-//     const categories = category_str ? category_str.split(',') : [];
-//     if (categories.length > 0 && !categories.includes('all')) {
-//         const placeholders = categories.map(() => '?').join(',');
-//         sub_queries.push(`SELECT MenuID, 1 as score FROM Menu WHERE Category IN (${placeholders})`);
-//         params_score.push(...categories);
-//     }
-
-//     // 상황 점수
-//     const need_ids = need_ids_str ? need_ids_str.split(',') : [];
-//     if (need_ids.length > 0 && !need_ids.includes('all')) {
-//         const placeholders = need_ids.map(() => '?').join(',');
-//         sub_queries.push(`SELECT MenuID, 1 as score FROM MenuNeed WHERE NeedID IN (${placeholders})`);
-//         params_score.push(...need_ids);
-//     }
-
-//     // 목표 점수
-//     const goal_ids = goal_ids_str ? goal_ids_str.split(',') : [];
-//     if (goal_ids.length > 0 && !goal_ids.includes('all')) {
-//         const placeholders = goal_ids.map(() => '?').join(',');
-//         sub_queries.push(`SELECT MenuID, 1 as score FROM MenuGoal WHERE GoalID IN (${placeholders})`);
-//         params_score.push(...goal_ids);
-//     }
-
-//     // 날씨 점수
-//     const weather_ids = weather_ids_str ? weather_ids_str.split(',') : [];
-//     if (weather_ids.length > 0 && !weather_ids.includes('all')) {
-//         const placeholders = weather_ids.map(() => '?').join(',');
-//         sub_queries.push(`SELECT MenuID, 1 as score FROM MenuWeather WHERE WeatherID IN (${placeholders})`);
-//         params_score.push(...weather_ids);
-//     }
-
-//     // 시간대 점수 (추가 점수)
-//     if (time_ids.length > 0 && !time_ids.includes('all')) {
-//         const placeholders = time_ids.map(() => '?').join(',');
-//         sub_queries.push(`SELECT MenuID, 1 as score FROM MenuTime WHERE TimeID IN (${placeholders})`);
-//         params_score.push(...time_ids);
-//     }
-
-//     // 최종 쿼리 구성
-//     let query;
-//     let final_params;
-
-//     if (sub_queries.length === 0) {
-//         // 체크박스 선택이 없을 경우
-//         query = `
-//             SELECT m.MenuID, m.MenuKor, m.Category, m.kcal, m.Price, m.imagePath
-//             FROM Menu m
-//             WHERE ${where_clauses.join(" AND ")}
-//             ORDER BY RAND()
-//             LIMIT 1
-//         `;
-//         final_params = params_where;
-//     } else {
-//         // 체크박스 선택이 있을 경우
-//         const union_query = sub_queries.join(" UNION ALL ");
-//         query = `
-//             SELECT
-//                 m.MenuID, m.MenuKor, m.Category, m.kcal, m.Price, m.imagePath,
-//                 COALESCE(ScoreTable.total_score, 0) as total_score
-//             FROM
-//                 Menu m
-//             LEFT JOIN (
-//                 SELECT MenuID, SUM(score) as total_score
-//                 FROM (${union_query}) AS ScoreSubQuery
-//                 GROUP BY MenuID
-//             ) AS ScoreTable ON m.MenuID = ScoreTable.MenuID
-//             WHERE
-//                 ${where_clauses.join(" AND ")}
-//             ORDER BY
-//                 total_score DESC, RAND()
-//             LIMIT 1
-//         `;
-//         final_params = [...params_score, ...params_where];
-//     }
-
-//     // 쿼리 실행
-//     db.query(query, final_params, (err, results) => {
-//         if (err) {
-//             console.error('메뉴 추천 쿼리 오류:', err);
-//             return res.status(500).json({ message: '추천 메뉴를 불러오는 중 오류가 발생했습니다.' });
-//         }
-//         res.json(results);
-//     });
-// });
 
 // 1. 한글명 매핑 객체 직접 선언
 const needKorMap = {
@@ -2469,9 +2348,8 @@ app.get('/api/recommend', async (req, res) => {
         prompt += `알레르기: ${kor}\n`;
     }
     if (max_kcal_str) prompt += `최대 칼로리: ${max_kcal_str}\n`;
-    if (max_price_str) prompt += `최대 가격: ${max_price_str}\n`;
-    
-    prompt += `각 메뉴마다 메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려줘. ${people_count}명이 함께 먹기 좋은 메뉴로 추천해줘.`;
+    if (max_price_str) prompt += `인당 최대 가격: ${max_price_str}\n`; // ← 인당 가격으로 명확히!
+    prompt += "메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려줘.";
 
     try {
         // OpenAI API 키 확인
