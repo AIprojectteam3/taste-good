@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     if (document.querySelector('.recommender-container')) {
         checkLoginStatus();
-        setupModal(); // 모달 설정 함수 호출
+        setupModal();
     }
 });
 
@@ -10,7 +10,6 @@ async function checkLoginStatus() {
     try {
         const response = await fetch('/api/check-session');
         const data = await response.json();
-        
         if (data.loggedIn) {
             initializeRecommender();
         } else {
@@ -28,7 +27,6 @@ async function checkLoginStatus() {
 function initializeRecommender() {
     const getBtn = document.getElementById('get-recommendation-btn');
     const resultsContainer = document.getElementById('recommendation-results');
-    const loadingSpinner = document.getElementById('loading-spinner');
 
     // 모든 옵션 로드
     Promise.all([
@@ -36,75 +34,23 @@ function initializeRecommender() {
         populateCheckboxes('/api/options/needs', 'needs-container', 'NeedID', 'NeedKor', 'need'),
         populateCheckboxes('/api/options/goals', 'goals-container', 'GoalID', 'GoalKor', 'goal'),
         populateCheckboxes('/api/options/weathers', 'weathers-container', 'WeatherID', 'WeatherKor', 'weather'),
-        populateCheckboxes('/api/options/times', 'times-container', 'TimeID', 'TimeKor', 'Time')
+        populateCheckboxes('/api/options/times', 'times-container', 'TimeID', 'TimeKor', 'time')
     ]).catch(error => {
         console.error("체크박스 생성 중 오류 발생:", error);
-        resultsContainer.innerHTML = '<div class="result-card"><h3>추천 옵션을 불러오는 데 실패했습니다. 페이지를 새로고침 해주세요.</h3></div>';
+        resultsContainer.innerHTML = '<p>데이터 로드에 실패했습니다.</p>';
     });
-
-    // 레인지 슬라이더 설정
-    setupRangeSlider('kcal-slider', 'kcal-value', ' kcal', 2000, '상관없음');
-    setupRangeSlider('price-slider', 'price-value', ' 원', 50000, '상관없음');
 
     // 추천 버튼 이벤트 리스너
-    getBtn.addEventListener('click', async () => {
-        const selectedCategories = getCheckedValues('category').filter(id => id !== 'none');
-        const selectedNeeds = getCheckedValues('need').filter(id => id !== 'none');
-        const selectedGoals = getCheckedValues('goal').filter(id => id !== 'none');
-        const selectedWeathers = getCheckedValues('weather').filter(id => id !== 'none');
-        const maxKcal = document.getElementById('kcal-slider').value;
-        const maxPrice = document.getElementById('price-slider').value;
+    getBtn.addEventListener('click', getRecommendation);
 
-        loadingSpinner.style.display = 'block';
-        resultsContainer.innerHTML = '';
-
-        try {
-            const queryParams = new URLSearchParams({
-                category: selectedCategories.join(','),
-                need: selectedNeeds.join(','),
-                goal: selectedGoals.join(','),
-                weather: selectedWeathers.join(','),
-                max_kcal: maxKcal,
-                max_price: maxPrice,
-            });
-
-            const response = await fetch(`http://localhost:5000/api/recommend?${queryParams}`);
-            if (!response.ok) throw new Error(`서버 응답 오류: ${response.status}`);
-
-            const recommendations = await response.json();
-            displayRecommendations(recommendations);
-        } catch (error) {
-            console.error('추천 메뉴를 가져오는 데 실패했습니다:', error);
-            resultsContainer.innerHTML = '<div class="result-card"><h3>추천 메뉴를 불러오는 데 실패했습니다. 다시 시도해주세요.</h3></div>';
-        } finally {
-            loadingSpinner.style.display = 'none';
-        }
-    });
+    // 슬라이더 이벤트 리스너
+    setupSliders();
 }
 
-// 레인지 슬라이더 설정
-function setupRangeSlider(sliderId, valueId, unit, maxValue, defaultText) {
-    const slider = document.getElementById(sliderId);
-    const valueDisplay = document.getElementById(valueId);
-    
-    if (!slider || !valueDisplay) return;
-
-    const updateValue = () => {
-        if (parseInt(slider.value) === maxValue) {
-            valueDisplay.textContent = defaultText;
-        } else {
-            valueDisplay.textContent = `~ ${parseInt(slider.value).toLocaleString()}${unit}`;
-        }
-    };
-
-    slider.addEventListener('input', updateValue);
-    updateValue();
-}
-
-// 체크박스 옵션 생성
+// 체크박스 생성 함수
 async function populateCheckboxes(apiUrl, containerId, valueKey, textKey, name) {
     try {
-        const response = await fetch(`http://localhost:5000${apiUrl}`);
+        const response = await fetch(apiUrl);
         const data = await response.json();
         
         const container = document.getElementById(containerId);
@@ -156,7 +102,7 @@ function setupButtonAnimations(containerId) {
     });
 }
 
-// "상관없음" 체크박스 핸들러 (기존과 동일)
+// "상관없음" 체크박스 핸들러
 function setupAllCheckboxHandler(containerId, name) {
     const container = document.getElementById(containerId);
     const allCheckbox = container.querySelector(`input[value="all"]`);
@@ -183,300 +129,302 @@ function setupAllCheckboxHandler(containerId, name) {
     });
 }
 
-// 선택된 값들 가져오기 함수 (기존과 동일)
+// 선택된 값들 가져오기 함수
 function getSelectedValues(name) {
     const checkedBoxes = document.querySelectorAll(`input[name="${name}"]:checked`);
     return Array.from(checkedBoxes).map(cb => cb.value);
 }
 
-function setupAllCheckboxHandler(containerId, name) {
-    const container = document.getElementById(containerId);
-    const allCheckbox = container.querySelector(`input[value="all"]`);
-    const otherCheckboxes = container.querySelectorAll(`input[name="${name}"]:not([value="all"])`);
-    
-    // "상관없음" 체크박스 클릭 시
-    allCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            // "상관없음"이 체크되면 다른 모든 체크박스 해제
-            otherCheckboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
+// 슬라이더 설정
+function setupSliders() {
+    const kcalSlider = document.getElementById('kcal-slider');
+    const priceSlider = document.getElementById('price-slider');
+    const kcalValue = document.getElementById('kcal-value');
+    const priceValue = document.getElementById('price-value');
+
+    // 칼로리 슬라이더
+    kcalSlider.addEventListener('input', function() {
+        const value = parseInt(this.value);
+        if (value >= 2000) {
+            kcalValue.textContent = '상관없음';
+        } else {
+            kcalValue.textContent = `${value}kcal 이하`;
         }
     });
-    
-    // 다른 체크박스들 클릭 시
-    otherCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            if (this.checked) {
-                // 다른 체크박스가 체크되면 "상관없음" 해제
-                allCheckbox.checked = false;
-            }
-        });
+
+    // 가격 슬라이더
+    priceSlider.addEventListener('input', function() {
+        const value = parseInt(this.value);
+        if (value >= 50000) {
+            priceValue.textContent = '상관없음';
+        } else {
+            priceValue.textContent = `${value.toLocaleString()}원 이하`;
+        }
     });
+
+    // 초기값 설정
+    kcalSlider.dispatchEvent(new Event('input'));
+    priceSlider.dispatchEvent(new Event('input'));
 }
 
-// 체크된 값들 가져오기
-function getCheckedValues(name) {
-    const checkedBoxes = document.querySelectorAll(`input[name="${name}"]:checked`);
-    return Array.from(checkedBoxes).map(cb => cb.value);
+// 추천 요청 함수
+function getRecommendation() {
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const resultsContainer = document.getElementById('recommendation-results');
+    
+    // 선택된 값들 수집
+    const selectedCategories = getSelectedValues('category');
+    const selectedNeeds = getSelectedValues('need');
+    const selectedGoals = getSelectedValues('goal');
+    const selectedWeathers = getSelectedValues('weather');
+    const selectedTimes = getSelectedValues('time');
+    
+    const maxKcal = document.getElementById('kcal-slider').value;
+    const maxPrice = document.getElementById('price-slider').value;
+    
+    // API 요청 파라미터 구성
+    const params = new URLSearchParams();
+    if (selectedCategories.length > 0 && !selectedCategories.includes('all')) {
+        params.append('category', selectedCategories.join(','));
+    }
+    if (selectedNeeds.length > 0 && !selectedNeeds.includes('all')) {
+        params.append('need', selectedNeeds.join(','));
+    }
+    if (selectedGoals.length > 0 && !selectedGoals.includes('all')) {
+        params.append('goal', selectedGoals.join(','));
+    }
+    if (selectedWeathers.length > 0 && !selectedWeathers.includes('all')) {
+        params.append('weather', selectedWeathers.join(','));
+    }
+    if (selectedTimes.length > 0 && !selectedTimes.includes('all')) {
+        params.append('time', selectedTimes.join(','));
+    }
+    
+    if (maxKcal < 2000) params.append('max_kcal', maxKcal);
+    if (maxPrice < 50000) params.append('max_price', maxPrice);
+    
+    // 로딩 표시
+    loadingSpinner.style.display = 'block';
+    resultsContainer.innerHTML = '';
+    
+    // Node.js API 호출
+    fetch(`/api/recommend?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            loadingSpinner.style.display = 'none';
+            displayRecommendations(data);
+        })
+        .catch(error => {
+            loadingSpinner.style.display = 'none';
+            console.error('추천 요청 중 오류:', error);
+            resultsContainer.innerHTML = '<p>추천을 가져오는 중 오류가 발생했습니다.</p>';
+        });
 }
 
-// === 단순화된 추천 결과 표시 및 지도 연동 ===
+// 추천 결과 표시
 async function displayRecommendations(items) {
     const modal = document.getElementById('recommendation-modal');
     const modalLeft = document.getElementById('modal-left');
     const resultsContainer = document.getElementById('recommendation-results');
     
     resultsContainer.innerHTML = '';
-
+    
     if (!items || items.length === 0) {
         resultsContainer.innerHTML = `
-            <div class="result-card">
-                <h3>아쉽게도 조건에 맞는 메뉴를 찾지 못했어요. 😥</h3>
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <h3>조건에 맞는 메뉴를 찾을 수 없습니다</h3>
                 <p>다른 조건으로 다시 시도해보세요!</p>
-            </div>`;
+            </div>
+        `;
         return;
     }
 
-    const item = items[0];
+    const item = items[0]; // 첫 번째 추천 메뉴
+    
+    // 결과 카드 생성
+    const resultCard = document.createElement('div');
+    resultCard.className = 'recommendation-card';
+    resultCard.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin: 20px auto;
+        max-width: 600px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    `;
+    
+    resultCard.innerHTML = `
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <img src="${item.imagePath || '/image/default-food.png'}" 
+                 alt="${item.MenuKor}" 
+                 style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px;">
+            <div style="flex: 1;">
+                <h3 style="margin: 0 0 10px 0; color: #ff6f61; font-size: 1.5em;">${item.MenuKor}</h3>
+                <p style="margin: 5px 0; color: #666;"><strong>카테고리:</strong> ${item.Category}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>칼로리:</strong> ${item.kcal}kcal</p>
+                <p style="margin: 5px 0; color: #666;"><strong>가격:</strong> ${item.Price ? item.Price.toLocaleString() + '원' : '정보 없음'}</p>
+                <p style="margin: 10px 0 0 0; color: #ff6f61; font-weight: bold;">클릭하여 상세 정보 보기</p>
+            </div>
+        </div>
+    `;
+    
+    // 호버 효과
+    resultCard.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-5px)';
+        this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+    });
+    
+    resultCard.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+    });
+    
+    // 클릭 이벤트 - 모달 열기
+    resultCard.addEventListener('click', function() {
+        showMenuModal(item);
+    });
+    
+    resultsContainer.appendChild(resultCard);
+}
 
-    // 모달 왼쪽 컨텐츠 채우기
+// 모달 표시 함수
+function showMenuModal(item) {
+    const modal = document.getElementById('recommendation-modal');
+    const modalLeft = document.getElementById('modal-left');
+    
     modalLeft.innerHTML = `
-        <img src="${item.imagePath || 'image/food-icon.png'}" 
-             alt="${item.MenuKor}"
-             onerror="this.src='image/food-icon.png'; this.onerror=null;"
-             style="width: 100%; object-fit: cover; border-radius: 8px; margin-bottom: 20px;">
+        <img src="${item.imagePath || '/image/default-food.png'}" alt="${item.MenuKor}">
         <h3>${item.MenuKor}</h3>
         <div class="menu-info">
             <p><strong>카테고리:</strong> ${item.Category}</p>
-            <p><strong>칼로리:</strong> ${item.kcal} kcal</p>
-            <p><strong>예상 가격:</strong> ${item.Price.toLocaleString()} 원</p>
+            <p><strong>칼로리:</strong> ${item.kcal}kcal</p>
+            <p><strong>가격:</strong> ${item.Price ? item.Price.toLocaleString() + '원' : '정보 없음'}</p>
+            ${item.total_score ? `<p><strong>추천 점수:</strong> ${item.total_score}점</p>` : ''}
         </div>
     `;
+    
+    modal.style.display = 'block';
+    
+    // 지도 초기화
+    setTimeout(() => {
+        initializeMap();
+    }, 100);
+}
 
-    // 사용자 정보 가져오기 및 단순화된 지도 검색 시작
-    try {
-        const userResponse = await fetch('/api/user');
-        if (!userResponse.ok) {
-            throw new Error('사용자 정보 조회에 실패했습니다.');
+// 모달 설정
+function setupModal() {
+    const modal = document.getElementById('recommendation-modal');
+    const closeBtn = document.querySelector('.close-button');
+    
+    // 닫기 버튼 클릭
+    closeBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    // 모달 외부 클릭시 닫기
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
         }
-        const userData = await userResponse.json();
+    });
+}
 
-        if (userData && userData.address) {
-            // 단순화된 메뉴 검색 시스템 초기화
-            initializeSimpleMenuSearch(userData.address, item.MenuKor);
+// 지도 초기화 함수
+async function initializeMap() {
+    try {
+        const response = await fetch('/api/user');
+        const userData = await response.json();
+        
+        if (!userData || !userData.address) {
+            document.getElementById('modal-right').innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <h4>위치 정보가 없습니다</h4>
+                    <p>정확한 위치 기반 검색을 위해<br>마이페이지에서 주소를 설정해주세요.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // 카카오맵 API 로드 및 초기화
+        if (typeof kakao !== 'undefined' && kakao.maps) {
+            const mapContainer = document.getElementById('map');
+            const mapOption = {
+                center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
+                level: 3
+            };
+            
+            const map = new kakao.maps.Map(mapContainer, mapOption);
+            
+            // 주소로 좌표 검색
+            const geocoder = new kakao.maps.services.Geocoder();
+            geocoder.addressSearch(userData.address, function(result, status) {
+                if (status === kakao.maps.services.Status.OK) {
+                    const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                    map.setCenter(coords);
+                    
+                    // 마커 표시
+                    const marker = new kakao.maps.Marker({
+                        map: map,
+                        position: coords
+                    });
+                    
+                    // 주변 음식점 검색
+                    searchNearbyRestaurants(map, coords);
+                }
+            });
         } else {
-            document.getElementById('map').innerHTML = `
-                <div style="padding: 20px; text-align: center; color: #666;">
-                    <h4>지도를 표시할 수 없습니다</h4>
-                    <p>정확한 위치 기반 검색을 위해<br>
-                    <a href="/myprofile.html" style="color: #ff6f61; text-decoration: underline;">
-                    마이페이지</a>에서 주소를 설정해주세요.</p>
+            document.getElementById('modal-right').innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <h4>지도 로딩 중...</h4>
+                    <p>잠시 후 다시 시도해주세요.</p>
                 </div>
             `;
         }
     } catch (error) {
-        console.error('사용자 정보 조회 또는 지도 로딩 실패:', error);
-        document.getElementById('map').innerHTML = `
-            <div style="padding: 20px; text-align: center; color: #666;">
-                <h4>일시적인 오류가 발생했습니다</h4>
-                <p>잠시 후 다시 시도해주세요.</p>
+        console.error('지도 초기화 중 오류:', error);
+        document.getElementById('modal-right').innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <h4>지도 로딩 실패</h4>
+                <p>네트워크 연결을 확인해주세요.</p>
             </div>
         `;
     }
-
-    // 모달 표시
-    modal.style.display = 'block';
 }
 
-// === 단순화된 메뉴 검색 시스템 (실시간 검색 비활성화) ===
-function initializeSimpleMenuSearch(address, menuName) {
-    kakao.maps.load(() => {
-        const geocoder = new kakao.maps.services.Geocoder();
-        
-        // 주소를 좌표로 변환
-        geocoder.addressSearch(address, function(result, status) {
-            if (status === kakao.maps.services.Status.OK) {
-                const userCoords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                
-                // 단일 검색만 실행 (실시간 검색 비활성화)
-                searchRestaurantsByRadius(userCoords, menuName, 3000); // 3km로 확대
-                
-            } else {
-                console.error('주소를 좌표로 변환하는데 실패했습니다.');
-                // 기본 위치로 지도 표시
-                const defaultCoords = new kakao.maps.LatLng(37.5665, 126.9780);
-                searchRestaurantsByRadius(defaultCoords, menuName, 5000); // 기본 위치에서는 5km
-            }
-        });
-    });
-}
-
-// === 단일 좌표 기반 반경 검색 구현 ===
-function searchRestaurantsByRadius(userCoords, menuName, radius = 3000) {
-    const mapContainer = document.getElementById('map');
-    const map = new kakao.maps.Map(mapContainer, {
-        center: userCoords,
-        level: 6
-    });
-    
-    // 사용자 위치 마커 표시
-    const userMarkerImage = new kakao.maps.MarkerImage(
-        'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
-        new kakao.maps.Size(24, 35)
-    );
-    
-    const userMarker = new kakao.maps.Marker({
-        map: map,
-        position: userCoords,
-        image: userMarkerImage
-    });
-    
-    const userInfowindow = new kakao.maps.InfoWindow({
-        content: `<div style="padding:5px;font-size:12px;color:#0066cc;font-weight:bold;">내 위치</div>`
-    });
-    userInfowindow.open(map, userMarker);
-    
-    // 메뉴명만으로 키워드 검색
+// 주변 음식점 검색
+function searchNearbyRestaurants(map, coords) {
     const ps = new kakao.maps.services.Places();
     
-    // 1차: 메뉴명으로만 키워드 검색
-    ps.keywordSearch(menuName, function(data, status) {
-        if (status === kakao.maps.services.Status.OK && data.length > 0) {
-            displayRestaurantsWithDistance(data, map, userCoords);
-        } else {
-            // 2차: 메뉴명 + "맛집"으로 검색
-            ps.keywordSearch(`${menuName} 맛집`, function(data2, status2) {
-                if (status2 === kakao.maps.services.Status.OK && data2.length > 0) {
-                    displayRestaurantsWithDistance(data2, map, userCoords);
-                } else {
-                    // 3차: 메뉴명 + "전문점"으로 검색
-                    ps.keywordSearch(`${menuName} 전문점`, function(data3, status3) {
-                        if (status3 === kakao.maps.services.Status.OK && data3.length > 0) {
-                            displayRestaurantsWithDistance(data3, map, userCoords);
-                        } else {
-                            // 최종 대안: 일반 "음식점"으로 검색
-                            ps.keywordSearch('음식점', function(data4, status4) {
-                                if (status4 === kakao.maps.services.Status.OK) {
-                                    displayRestaurantsWithDistance(data4.slice(0, 10), map, userCoords);
-                                } else {
-                                    // 검색 실패 메시지 표시
-                                    const errorInfowindow = new kakao.maps.InfoWindow({
-                                        content: `<div style="padding:10px;font-size:12px;color:#ff0000;">
-                                            "${menuName}" 관련 식당을 찾을 수 없습니다.<br>
-                                            다른 메뉴를 추천받아보세요.
-                                        </div>`
-                                    });
-                                    errorInfowindow.open(map);
-                                }
-                            }, {
-                                location: userCoords,
-                                radius: radius
-                            });
-                        }
-                    }, {
-                        location: userCoords,
-                        radius: radius
-                    });
-                }
-            }, {
-                location: userCoords,
-                radius: radius
-            });
+    ps.keywordSearch('음식점', function(data, status) {
+        if (status === kakao.maps.services.Status.OK) {
+            const bounds = new kakao.maps.LatLngBounds();
+            
+            for (let i = 0; i < Math.min(data.length, 10); i++) {
+                const place = data[i];
+                const placePosition = new kakao.maps.LatLng(place.y, place.x);
+                
+                const marker = new kakao.maps.Marker({
+                    map: map,
+                    position: placePosition
+                });
+                
+                const infowindow = new kakao.maps.InfoWindow({
+                    content: `<div style="padding:5px;font-size:12px;">${place.place_name}</div>`
+                });
+                
+                kakao.maps.event.addListener(marker, 'click', function() {
+                    infowindow.open(map, marker);
+                });
+                
+                bounds.extend(placePosition);
+            }
+            
+            map.setBounds(bounds);
         }
     }, {
-        location: userCoords,
-        radius: radius
+        location: coords,
+        radius: 1000
     });
-}
-
-// === 거리 계산 함수 ===
-function calculateDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371; // 지구의 반지름 (km)
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c;
-    return distance;
-}
-
-// === 거리 포맷팅 함수 ===
-function formatDistance(distance) {
-    if (distance < 1) {
-        return Math.round(distance * 1000) + 'm';
-    } else {
-        return distance.toFixed(1) + 'km';
-    }
-}
-
-// === 거리 정보와 함께 식당 표시 ===
-function displayRestaurantsWithDistance(restaurants, map, userCoords) {
-    const bounds = new kakao.maps.LatLngBounds();
-    
-    // 사용자 위치도 bounds에 포함
-    if (userCoords) {
-        bounds.extend(userCoords);
-    }
-
-    restaurants.forEach(restaurant => {
-        const marker = new kakao.maps.Marker({
-            map: map,
-            position: new kakao.maps.LatLng(restaurant.y, restaurant.x)
-        });
-
-        // 거리 계산
-        let distanceText = '';
-        if (userCoords) {
-            const distance = calculateDistance(
-                userCoords.getLat(), 
-                userCoords.getLng(), 
-                parseFloat(restaurant.y), 
-                parseFloat(restaurant.x)
-            );
-            distanceText = `<br><span style="color:#666;font-size:11px;">거리: ${formatDistance(distance)}</span>`;
-        }
-
-        // 인포윈도우 생성
-        const infowindow = new kakao.maps.InfoWindow({
-            content: `<div style="padding:8px;font-size:12px;line-height:1.4;">
-                        <strong>${restaurant.place_name}</strong><br>
-                        <span style="color:#666;font-size:11px;">${restaurant.road_address_name || restaurant.address_name}</span>
-                        ${distanceText}
-                      </div>`,
-            zIndex: 1
-        });
-
-        // 마커 클릭 이벤트
-        kakao.maps.event.addListener(marker, 'click', function() {
-            infowindow.open(map, marker);
-        });
-
-        bounds.extend(new kakao.maps.LatLng(restaurant.y, restaurant.x));
-    });
-    
-    // 지도 범위 조정
-    map.setBounds(bounds);
-}
-
-// === 모달 닫기 기능 설정 ===
-function setupModal() {
-    const modal = document.getElementById('recommendation-modal');
-    const closeBtn = document.querySelector('.close-button');
-
-    // 닫기 버튼 클릭 시
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            modal.style.display = 'none';
-        }
-    }
-
-    // 모달 바깥 영역 클릭 시
-    window.onclick = (event) => {
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
-    }
 }
