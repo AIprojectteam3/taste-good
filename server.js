@@ -2470,19 +2470,40 @@ app.get('/api/recommend', async (req, res) => {
     prompt += "메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려줘.";
 
     try {
+        // OpenAI API 키 확인
+        if (!process.env.OPENAI_API_KEY) {
+            console.error('OPENAI_API_KEY 환경변수가 설정되지 않았습니다.');
+            return res.status(500).json({ 
+                error: "OpenAI API 키가 설정되지 않았습니다.",
+                gpt: "죄송합니다. 현재 AI 추천 서비스를 이용할 수 없습니다. 잠시 후 다시 시도해주세요."
+            });
+        }
+
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
-            messages: [{ role: "user", content: prompt }]
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 500,
+            temperature: 0.7
         });
+
         const gptAnswer = completion.choices[0].message.content;
         console.log("===== [AI 추천 프롬프트] =====\n" + prompt);
         console.log("===== [AI 응답] =====\n" + gptAnswer);
+        
         res.json({ gpt: gptAnswer });
+        
     } catch (err) {
         console.error("GPT 응답 실패:", err.message);
-        res.status(500).json({ error: "GPT 응답 실패", detail: err.message });
+        console.error("전체 오류:", err);
+        
+        // 사용자에게 친화적인 오류 메시지 반환
+        res.status(200).json({ 
+            gpt: "죄송합니다. 현재 AI 추천 서비스에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+            error: "GPT 응답 실패"
+        });
     }
 });
+
 
 // ==================================================================================================================
 // 서버 시작

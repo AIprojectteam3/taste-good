@@ -110,6 +110,40 @@ function setupAllCheckboxHandler(containerId, name) {
     const singleSelectCategories = ['season', 'weather', 'time'];
     const isSingleSelect = singleSelectCategories.includes(name);
 
+    // 자동 스크롤 함수
+    function scrollToNextCheckboxGroup(currentContainerId) {
+        const containerOrder = [
+            'categories-container',
+            'needs-container', 
+            'goals-container',
+            'season-container',
+            'weathers-container',
+            'times-container'
+        ];
+        
+        const currentIndex = containerOrder.indexOf(currentContainerId);
+        if (currentIndex >= 0 && currentIndex < containerOrder.length - 1) {
+            const nextContainerId = containerOrder[currentIndex + 1];
+            const nextContainer = document.getElementById(nextContainerId);
+            
+            if (nextContainer) {
+                nextContainer.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        } else if (currentIndex === containerOrder.length - 1) {
+            // 마지막 그룹인 경우 추천 버튼으로 스크롤
+            const recommendButton = document.getElementById('get-recommendation-btn');
+            if (recommendButton) {
+                recommendButton.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        }
+    }
+
     // "상관없음" 체크박스 클릭 시
     allCheckbox.addEventListener('change', function() {
         if (this.checked) {
@@ -117,6 +151,11 @@ function setupAllCheckboxHandler(containerId, name) {
             otherCheckboxes.forEach(checkbox => {
                 checkbox.checked = false;
             });
+            
+            // 자동 스크롤
+            setTimeout(() => {
+                scrollToNextCheckboxGroup(containerId);
+            }, 300);
         }
     });
 
@@ -135,6 +174,11 @@ function setupAllCheckboxHandler(containerId, name) {
                         }
                     });
                 }
+                
+                // 자동 스크롤
+                setTimeout(() => {
+                    scrollToNextCheckboxGroup(containerId);
+                }, 300);
             }
         });
     });
@@ -179,10 +223,11 @@ function setupSliders() {
 }
 
 // 추천 요청 함수
+// 추천 요청 함수
 function getRecommendation() {
     const loadingSpinner = document.getElementById('loading-spinner');
     const resultsContainer = document.getElementById('recommendation-results');
-    
+
     // 선택된 값들 수집
     const selectedCategories = getSelectedValues('category');
     const selectedNeeds = getSelectedValues('need');
@@ -190,7 +235,6 @@ function getRecommendation() {
     const selectedSeason = getSelectedValues('season');
     const selectedWeathers = getSelectedValues('weather');
     const selectedTimes = getSelectedValues('time');
-    
     const maxKcal = document.getElementById('kcal-slider').value;
     const maxPrice = document.getElementById('price-slider').value;
 
@@ -225,14 +269,22 @@ function getRecommendation() {
     if (selectedTimes.length > 0 && !selectedTimes.includes('all')) {
         params.append('time', selectedTimes.join(','));
     }
-    
     if (maxKcal < 2000) params.append('max_kcal', maxKcal);
     if (maxPrice < 50000) params.append('max_price', maxPrice);
-    
+
     // 로딩 표시
     loadingSpinner.style.display = 'block';
     resultsContainer.innerHTML = '';
-    
+
+    // 추천 버튼 클릭 시 결과 영역으로 스크롤
+    setTimeout(() => {
+        resultsContainer.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+        });
+    }, 100);
+
     // Node.js API 호출
     fetch(`/api/recommend?${params.toString()}`)
         .then(response => response.json())
@@ -247,87 +299,113 @@ function getRecommendation() {
         });
 }
 
+
+// 추천 결과 표시
 // 추천 결과 표시
 async function displayRecommendations(data) {
     const resultsContainer = document.getElementById('recommendation-results');
     resultsContainer.innerHTML = '';
 
+    // 오류 처리
+    if (data.error && !data.gpt) {
+        resultsContainer.innerHTML = `
+            <div class="no-results">
+                <h3>😅 추천 서비스에 문제가 발생했습니다</h3>
+                <p>잠시 후 다시 시도해주세요.</p>
+            </div>
+        `;
+        // 오류 메시지 출력 후 스크롤
+        setTimeout(() => {
+            resultsContainer.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+                inline: 'nearest'
+            });
+        }, 100);
+        return;
+    }
+
     // GPT 응답일 경우
     if (data.gpt) {
         resultsContainer.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <h3>AI 추천 결과</h3>
-                <pre style="white-space: pre-wrap; text-align:left;">${data.gpt}</pre>
+            <div class="ai-recommendation">
+                <h3>🤖 AI 추천 결과</h3>
+                <div class="ai-response">
+                    ${data.gpt.replace(/\n/g, '<br>')}
+                </div>
+                <p class="ai-note">💡 더 구체적인 추천을 원하시면 다른 조건으로 다시 시도해보세요!</p>
             </div>
         `;
-        scrollToResults();
+        
+        // GPT 답변 출력 후 해당 영역으로 스크롤
+        setTimeout(() => {
+            const aiRecommendation = resultsContainer.querySelector('.ai-recommendation');
+            if (aiRecommendation) {
+                aiRecommendation.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                    inline: 'nearest'
+                });
+            }
+        }, 200);
         return;
     }
 
-    // 기존 DB 추천 방식 (예전 코드)
-    if (!data || data.length === 0) {
-        resultsContainer.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <h3>조건에 맞는 메뉴를 찾을 수 없습니다</h3>
-                <p>다른 조건으로 다시 시도해보세요!</p>
-            </div>
-        `;
-        scrollToResults();
+    // 기존 메뉴 데이터 배열일 경우 (향후 DB 연동 시)
+    if (Array.isArray(data) && data.length > 0) {
+        data.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'recommendation-card';
+            card.innerHTML = `
+                <div class="card-content">
+                    <h3>${item.Name || item.MenuKor || '메뉴명 없음'}</h3>
+                    <p><strong>카테고리:</strong> ${item.Category || '정보 없음'}</p>
+                    <p><strong>칼로리:</strong> ${item.kcal || '정보 없음'}kcal</p>
+                    <p><strong>가격:</strong> ${item.Price ? item.Price.toLocaleString() + '원' : '정보 없음'}</p>
+                    ${item.imagePath ? `<img src="${item.imagePath}" alt="${item.Name}" class="menu-image">` : ''}
+                    <div class="card-footer">
+                        <span class="click-hint">클릭하여 상세 정보 보기</span>
+                    </div>
+                </div>
+            `;
+
+            // 카드 클릭 이벤트 (모달 표시)
+            card.addEventListener('click', () => {
+                showMenuModal(item);
+            });
+
+            resultsContainer.appendChild(card);
+        });
+        
+        // 메뉴 카드 출력 후 스크롤
+        setTimeout(() => {
+            resultsContainer.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+                inline: 'nearest'
+            });
+        }, 100);
         return;
     }
 
-    const item = data[0]; // 첫 번째 추천 메뉴
-    
-    // 결과 카드 생성
-    const resultCard = document.createElement('div');
-    resultCard.className = 'recommendation-card';
-    resultCard.style.cssText = `
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        padding: 20px;
-        margin: 20px auto;
-        max-width: 600px;
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
-    `;
-    
-    resultCard.innerHTML = `
-        <div style="display: flex; gap: 20px; align-items: center;">
-            <img src="${item.imagePath || '/image/default-food.png'}" 
-                 alt="${item.MenuKor}" 
-                 style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px;">
-            <div style="flex: 1;">
-                <h3 style="margin: 0 0 10px 0; color: #ff6f61; font-size: 1.5em;">${item.MenuKor}</h3>
-                <p style="margin: 5px 0; color: #666;"><strong>카테고리:</strong> ${item.Category}</p>
-                <p style="margin: 5px 0; color: #666;"><strong>칼로리:</strong> ${item.kcal}kcal</p>
-                <p style="margin: 5px 0; color: #666;"><strong>가격:</strong> ${item.Price ? item.Price.toLocaleString() + '원' : '정보 없음'}</p>
-                <p style="margin: 10px 0 0 0; color: #ff6f61; font-weight: bold;">클릭하여 상세 정보 보기</p>
-            </div>
+    // 데이터가 없는 경우
+    resultsContainer.innerHTML = `
+        <div class="no-results">
+            <h3>😅 조건에 맞는 추천 결과가 없습니다</h3>
+            <p>다른 조건으로 다시 시도해보세요!</p>
         </div>
     `;
     
-    // 호버 효과
-    resultCard.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-5px)';
-        this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-    });
-    
-    resultCard.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0)';
-        this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-    });
-    
-    // 클릭 이벤트 - 모달 열기
-    resultCard.addEventListener('click', function() {
-        showMenuModal(item);
-    });
-    
-    resultsContainer.appendChild(resultCard);
-    
-    // 추천 결과 출력 완료 후 스크롤 이동
-    scrollToResults();
+    // 결과 없음 메시지 출력 후 스크롤
+    setTimeout(() => {
+        resultsContainer.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+        });
+    }, 100);
 }
+
 
 // 스크롤 이동 함수
 function scrollToResults() {
