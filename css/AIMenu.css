@@ -1,6 +1,7 @@
 /* 기본 레이아웃 및 기존 스타일 */
 .content {
     display : flex;
+<<<<<<< HEAD
     align-items : center;
     justify-content : center;
     margin-left: 250px;
@@ -11,6 +12,21 @@
     max-width: 1200px;
     margin: 40px auto;
     padding: 30px;
+=======
+    align-items : flex-start;
+    justify-content : center;
+    margin-left: 250px;
+    padding: 20px;
+    min-height: 100vh; /* 최소 높이만 설정 */
+    height: auto; /* 자동 높이 */
+}
+
+.recommender-container {
+    margin: 20px auto;
+    padding: 30px;
+    width : 80%;
+    min-height: calc(100vh - 40px);
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
     background-color: #ffffff;
     border-radius: 12px;
     text-align: center;
@@ -31,8 +47,14 @@
 
 .filters {
     display: flex;
+<<<<<<< HEAD
     justify-content: center;
     align-items: flex-start; /* 상단 정렬 */
+=======
+    align-items: flex-start; /* 상단 정렬 */
+    justify-content: center;
+    flex-direction : column;
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
     gap: 25px;
     margin-bottom: 30px;
     flex-wrap: wrap; /* 너비가 좁아지면 다음 줄로 */
@@ -43,6 +65,10 @@
     flex-direction: column;
     align-items: center; /* 내부 아이템 가운데 정렬 */
     gap: 8px;
+<<<<<<< HEAD
+=======
+    width : 100%;
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
 }
 
 .filter-group label {
@@ -51,17 +77,37 @@
     font-size: 1.1em; /* 라벨 폰트 크기 키움 */
 }
 
+<<<<<<< HEAD
 .checkbox-container {
     display: flex;
     flex-wrap: wrap;
     gap: 10px 15px;
     justify-content: center;
+=======
+.sliderDiv {
+    display : flex;
+    align-items : center;
+    justify-content : center;
+    gap : 10px;
+    width : 100%;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items : center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
     border: 1px solid #ddd;
     padding: 15px;
     border-radius: 8px;
     background-color: #fcfcfc;
+<<<<<<< HEAD
     min-width: 300px; /* 최소 너비 지정 */
     max-width: 500px; /* 최대 너비 지정 */
+=======
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
 }
 
 .checkbox-item {
@@ -71,6 +117,7 @@
 }
 
 .checkbox-item input[type="checkbox"] {
+<<<<<<< HEAD
     width: 1.2em;
     height: 1.2em;
     cursor: pointer;
@@ -80,6 +127,77 @@
     font-size: 0.95em;
     color: #333;
     font-weight: normal; /* 하위 라벨은 일반 굵기 */
+=======
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.checkbox-item label {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    color: #495057;
+    transition: all 0.3s ease;
+    user-select: none;
+    min-width: 80px;
+    text-align: center;
+}
+
+.checkbox-item label:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.checkbox-item input[type="checkbox"]:checked + label {
+    background-color: #ff6f61;
+    border-color: #ff6f61;
+    color: white;
+    font-weight: 600;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(255, 111, 97, 0.3);
+}
+
+.checkbox-item input[type="checkbox"]:checked + label:hover {
+    background-color: #e65a50;
+    border-color: #e65a50;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 111, 97, 0.4);
+}
+
+.checkbox-item input[value="all"] + label {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+.checkbox-item input[value="all"]:checked + label {
+    background-color: #495057;
+    border-color: #495057;
+}
+
+/* 포커스 상태 */
+.checkbox-item input[type="checkbox"]:focus + label {
+    outline: 2px solid #ff6f61;
+    outline-offset: 2px;
+}
+
+/* 비활성화 상태 */
+.checkbox-item input[type="checkbox"]:disabled + label {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
 }
 
 /* === 새로 추가된 레인지 슬라이더 스타일 === */
@@ -280,11 +398,14 @@ input[type="range"]::-moz-range-thumb {
     border-radius: 8px;
     border: 1px solid #ddd;
 }
+<<<<<<< HEAD
 @media (min-width : 768px) {
     .content {
         height : 100vh;
     }
 }
+=======
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
 
 @media (max-width: 768px) {
     .container {
@@ -300,6 +421,10 @@ input[type="range"]::-moz-range-thumb {
         margin : 0;
         width : 100%;
         max-width : none;
+<<<<<<< HEAD
+=======
+        min-height: 100vh; /* height 대신 min-height 사용 */
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
     }
 
     .modal-body {
@@ -309,4 +434,23 @@ input[type="range"]::-moz-range-thumb {
     #modal-left img {
         max-height : 150px;
     }
+<<<<<<< HEAD
+=======
+
+    .checkbox-item label {
+        padding: 6px 12px;
+        font-size: 0.8em;
+        min-width: 60px;
+    }
+    
+    .checkbox-container {
+        gap: 8px;
+        padding: 12px;
+        min-width: 250px;
+    }
+
+    .sliderDiv {
+        flex-direction : column;
+    }
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
 }

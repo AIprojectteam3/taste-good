@@ -35,7 +35,12 @@ function initializeRecommender() {
         populateCheckboxes('/api/options/categories', 'categories-container', 'Category', 'Category', 'category'),
         populateCheckboxes('/api/options/needs', 'needs-container', 'NeedID', 'NeedKor', 'need'),
         populateCheckboxes('/api/options/goals', 'goals-container', 'GoalID', 'GoalKor', 'goal'),
+<<<<<<< HEAD
         populateCheckboxes('/api/options/weathers', 'weathers-container', 'WeatherID', 'WeatherKor', 'weather')
+=======
+        populateCheckboxes('/api/options/weathers', 'weathers-container', 'WeatherID', 'WeatherKor', 'weather'),
+        populateCheckboxes('/api/options/times', 'times-container', 'TimeID', 'TimeKor', 'Time')
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
     ]).catch(error => {
         console.error("체크박스 생성 중 오류 발생:", error);
         resultsContainer.innerHTML = '<div class="result-card"><h3>추천 옵션을 불러오는 데 실패했습니다. 페이지를 새로고침 해주세요.</h3></div>';
@@ -101,6 +106,7 @@ function setupRangeSlider(sliderId, valueId, unit, maxValue, defaultText) {
 }
 
 // 체크박스 옵션 생성
+<<<<<<< HEAD
 async function populateCheckboxes(url, containerId, valueKey, textKey, name) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -187,6 +193,119 @@ function addIrrelevantOption(fragment, container, name) {
     wrapper.appendChild(checkbox);
     wrapper.appendChild(label);
     fragment.appendChild(wrapper);
+=======
+async function populateCheckboxes(apiUrl, containerId, valueKey, textKey, name) {
+    try {
+        const response = await fetch(`http://localhost:5000${apiUrl}`);
+        const data = await response.json();
+        
+        const container = document.getElementById(containerId);
+        
+        // "상관없음" 옵션을 포함한 HTML 생성
+        let htmlString = `
+            <div class="checkbox-item">
+                <input type="checkbox" name="${name}" value="all" id="${name}-all">
+                <label for="${name}-all">상관없음</label>
+            </div>
+        `;
+        
+        // 데이터베이스에서 가져온 옵션들 추가
+        htmlString += data.map(item => `
+            <div class="checkbox-item">
+                <input type="checkbox" name="${name}" value="${item[valueKey]}" id="${name}-${item[valueKey]}">
+                <label for="${name}-${item[valueKey]}">${item[textKey]}</label>
+            </div>
+        `).join('');
+        
+        container.innerHTML = htmlString;
+        
+        // "상관없음" 체크박스 이벤트 리스너 추가
+        setupAllCheckboxHandler(containerId, name);
+        
+        // 버튼 클릭 애니메이션 추가
+        setupButtonAnimations(containerId);
+        
+    } catch (error) {
+        console.error(`${apiUrl} 데이터 로드 실패:`, error);
+        const container = document.getElementById(containerId);
+        container.innerHTML = '<p>데이터 로드에 실패했습니다.</p>';
+    }
+}
+
+// 버튼 클릭 애니메이션 설정
+function setupButtonAnimations(containerId) {
+    const container = document.getElementById(containerId);
+    const labels = container.querySelectorAll('label');
+    
+    labels.forEach(label => {
+        label.addEventListener('click', function(e) {
+            // 클릭 애니메이션 효과
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 150);
+        });
+    });
+}
+
+// "상관없음" 체크박스 핸들러 (기존과 동일)
+function setupAllCheckboxHandler(containerId, name) {
+    const container = document.getElementById(containerId);
+    const allCheckbox = container.querySelector(`input[value="all"]`);
+    const otherCheckboxes = container.querySelectorAll(`input[name="${name}"]:not([value="all"])`);
+    
+    // "상관없음" 체크박스 클릭 시
+    allCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // "상관없음"이 체크되면 다른 모든 체크박스 해제
+            otherCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    });
+    
+    // 다른 체크박스들 클릭 시
+    otherCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                // 다른 체크박스가 체크되면 "상관없음" 해제
+                allCheckbox.checked = false;
+            }
+        });
+    });
+}
+
+// 선택된 값들 가져오기 함수 (기존과 동일)
+function getSelectedValues(name) {
+    const checkedBoxes = document.querySelectorAll(`input[name="${name}"]:checked`);
+    return Array.from(checkedBoxes).map(cb => cb.value);
+}
+
+function setupAllCheckboxHandler(containerId, name) {
+    const container = document.getElementById(containerId);
+    const allCheckbox = container.querySelector(`input[value="all"]`);
+    const otherCheckboxes = container.querySelectorAll(`input[name="${name}"]:not([value="all"])`);
+    
+    // "상관없음" 체크박스 클릭 시
+    allCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // "상관없음"이 체크되면 다른 모든 체크박스 해제
+            otherCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    });
+    
+    // 다른 체크박스들 클릭 시
+    otherCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                // 다른 체크박스가 체크되면 "상관없음" 해제
+                allCheckbox.checked = false;
+            }
+        });
+    });
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
 }
 
 // 체크된 값들 가져오기

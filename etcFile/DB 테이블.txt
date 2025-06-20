@@ -1,0 +1,301 @@
+테이블 생성 명령어
+
+=====================- 유저 -=====================
+CREATE TABLE users (
+    id INT NOT NULL AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    sns_id VARCHAR(255) NULL,
+    provider VARCHAR(20) NOT NULL DEFAULT 'local', -- 가입 방식(local, kakao, naver) 구분
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    address VARCHAR(255) NULL,
+    detail_address VARCHAR(255) NULL,
+    profile_image_path VARCHAR(255) NULL,
+    profile_intro TEXT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_email (email)
+);
+
+=====================- 게시물 -=====================
+CREATE TABLE posts (
+    id INT NOT NULL AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    views INT NULL DEFAULT 0,
+    likes INT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_user_id (user_id),
+    CONSTRAINT fk_posts_user_id 
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+=====================- 댓글 -=====================
+CREATE TABLE comments (
+    id INT NOT NULL AUTO_INCREMENT,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    comment TEXT NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_post_id (post_id),
+    KEY idx_user_id (user_id),
+    CONSTRAINT fk_comments_post_id 
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_comments_user_id 
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+=====================- 게시물 이미지 -=====================
+CREATE TABLE files (
+    id INT NOT NULL AUTO_INCREMENT,
+    post_id INT NOT NULL,
+    file_name VARCHAR(100) NOT NULL,
+    file_path VARCHAR(200) NOT NULL,
+    file_type VARCHAR(50) NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_post_id (post_id),
+    CONSTRAINT fk_files_post_id 
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+);
+
+=====================- 좋아요 -=====================
+CREATE TABLE post_likes (
+    id INT NOT NULL AUTO_INCREMENT,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    liked_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_post_id (post_id),
+    KEY idx_user_id (user_id),
+    UNIQUE KEY uk_post_user (post_id, user_id),
+    CONSTRAINT fk_post_likes_post_id 
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_post_likes_user_id 
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+=====================- 조회수 -=====================
+CREATE TABLE post_views (
+    id INT NOT NULL AUTO_INCREMENT,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    viewed_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_post_id (post_id),
+    KEY idx_user_id (user_id),
+    CONSTRAINT fk_post_views_post_id 
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_post_views_user_id 
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+=====================- 검색기록 -=====================
+CREATE TABLE search_logs (
+    id INT NOT NULL AUTO_INCREMENT,
+    user_id INT NULL,
+    search_term VARCHAR(255) NOT NULL,
+    search_type VARCHAR(50) NULL DEFAULT 'all',
+    result_count INT NULL DEFAULT 0,
+    clicked_post_id INT NULL DEFAULT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_user_id (user_id),
+    KEY idx_search_term (search_term(250)),
+    KEY idx_created_at (created_at),
+    CONSTRAINT fk_search_logs_user_id 
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+=====================- 유저 레벨 -=====================
+CREATE TABLE user_levels (
+    id INT NOT NULL AUTO_INCREMENT,
+    user_id INT NULL,
+    level INT NULL DEFAULT 1,
+    PRIMARY KEY (id),
+    KEY idx_user_id (user_id),
+    UNIQUE KEY uk_user_level (user_id),
+    CONSTRAINT fk_user_levels_user_id 
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+=====================- 유저 포인트 -=====================
+CREATE TABLE user_points (
+    id INT NOT NULL AUTO_INCREMENT,
+    user_id INT NULL,
+    point INT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_user_id (user_id),
+    UNIQUE KEY uk_user_point (user_id),
+    CONSTRAINT fk_user_points_user_id 
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+=====================- 유저 로그인 기록 -=====================
+CREATE TABLE user_logins (
+    id INT NOT NULL AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    login_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    device_info VARCHAR(255) NULL,
+    login_status ENUM('success','failure') NULL DEFAULT 'success',
+    PRIMARY KEY (id),
+    KEY idx_user_id (user_id),
+    KEY idx_login_time (login_time),
+    CONSTRAINT fk_user_logins_user_id 
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+================================================================
+==================- AI 데이터 관련 정보 테이블 -==================
+================================================================
+
+=====================- 유저 기분 정보 테이블 -=====================
+CREATE TABLE Need (
+    NeedID INT PRIMARY KEY,
+    NeedKor VARCHAR(255) NOT NULL
+);
+
+=====================- 원하는 기분 정보 테이블 -=====================
+CREATE TABLE Goal (
+    GoalID INT PRIMARY KEY,
+    GoalKor VARCHAR(255) NOT NULL
+);
+
+=====================- 날씨 정보 테이블 -=====================
+CREATE TABLE Weather (
+    WeatherID INT PRIMARY KEY,
+    WeatherKor VARCHAR(255) NOT NULL
+);
+
+=====================- 계절 정보 테이블 -=====================
+CREATE TABLE Season (
+    SeasonID INT PRIMARY KEY,
+    SeasonKor VARCHAR(255) NOT NULL
+);
+
+=====================- 알레르기 정보 테이블 -=====================
+CREATE TABLE Allergen (
+    AllergenID INT PRIMARY KEY,
+    AllergenKor VARCHAR(255) NOT NULL
+);
+
+=====================- 메뉴 정보 테이블 -=====================
+CREATE TABLE Menu (
+    MenuID INT PRIMARY KEY,
+    MenuKor VARCHAR(255) NOT NULL,
+    Category VARCHAR(50),
+    kcal INT,
+    Price INT,
+    imagePath VARCHAR(255)
+);
+
+================================================================
+====================- AI 데이터 연결 테이블 -====================
+================================================================
+
+=====================- 메뉴 <-> 유저 기분 연결 테이블 -=====================
+CREATE TABLE MenuNeed (
+    MenuID INT,
+    NeedID INT,
+    PRIMARY KEY (MenuID, NeedID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (NeedID) REFERENCES Need(NeedID) ON DELETE CASCADE
+);
+
+=====================- 메뉴 <-> 원하는 기분 연결 테이블 -=====================
+CREATE TABLE MenuGoal (
+    MenuID INT,
+    GoalID INT,
+    PRIMARY KEY (MenuID, GoalID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (GoalID) REFERENCES Goal(GoalID) ON DELETE CASCADE
+);
+
+=====================- 메뉴 <-> 날씨 연결 테이블 -=====================
+CREATE TABLE MenuWeather (
+    MenuID INT,
+    WeatherID INT,
+    PRIMARY KEY (MenuID, WeatherID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (WeatherID) REFERENCES Weather(WeatherID) ON DELETE CASCADE
+);
+
+=====================- 메뉴 <-> 계절 연결 테이블 -=====================
+CREATE TABLE MenuSeason (
+    MenuID INT,
+    SeasonID INT,
+    PRIMARY KEY (MenuID, SeasonID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (SeasonID) REFERENCES Season(SeasonID) ON DELETE CASCADE
+);
+
+=====================- 메뉴 <-> 알레르기 연결 테이블 -=====================
+CREATE TABLE MenuAllergen (
+    MenuID INT,
+    AllergenID INT,
+    PRIMARY KEY (MenuID, AllergenID),
+    FOREIGN KEY (MenuID) REFERENCES Menu(MenuID) ON DELETE CASCADE,
+    FOREIGN KEY (AllergenID) REFERENCES Allergen(AllergenID) ON DELETE CASCADE
+);
+
+=====================- 유저 <-> 알레르기 연결 테이블 -=====================
+CREATE TABLE user_allergen (
+    user_id      INT NOT NULL,
+    allergen_id  INT NOT NULL,
+    PRIMARY KEY (user_id, allergen_id),
+    CONSTRAINT fk_user_allergen_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_allergen_allergen
+        FOREIGN KEY (allergen_id)
+        REFERENCES allergen(id) ON DELETE CASCADE
+);
+
+
+=========================================================================================
+=========================================================================================
+=========================================================================================
+
+트리거 생성 명령어
+
+!! 주의사항
+DELIMITER $$ 입력 후
+내용 입력 후
+DELIMITER ; 입력
+
+=====================- 유저 가입 시 알레르기 기본 값 자동 입력 -=====================
+DELIMITER $$
+CREATE TRIGGER after_user_insert_allergies
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+    INSERT INTO user_allergies (user_id)
+    VALUES (NEW.id);
+END$$
+DELIMITER ;
+
+=====================- 유저 가입 시 레벨 기본 값 자동 입력 -=====================
+DELIMITER $$
+CREATE TRIGGER after_user_insert_levels
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+    INSERT INTO user_levels (user_id)
+    VALUES (NEW.id);
+END$$
+DELIMITER ;
+
+=====================- 유저 가입 시 포인트 기본 값 자동 입력 -=====================
+DELIMITER $$
+CREATE TRIGGER after_user_insert_points
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+    INSERT INTO user_points (user_id)
+    VALUES (NEW.id);
+END$$
+DELIMITER ;

@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
     <title>메뉴</title>
+=======
+    <title>AI 메뉴 추천</title>
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
     <link rel = "stylesheet" href = "css/menu.css">
     <link rel = "stylesheet" href = "css/AIMenu.css">
 
@@ -104,6 +108,7 @@
                 <div class="filters">
                     <!-- 1. 카테고리 필터 -->
                     <div class="filter-group">
+<<<<<<< HEAD
                         <label>어떤 종류의 음식을 원하세요?</label>
                         <div id="categories-container" class="checkbox-container"></div>
                     </div>
@@ -133,6 +138,46 @@
                         <label for="price-slider">가격 (최대)</label>
                         <input type="range" id="price-slider" name="price" min="0" max="50000" value="50000" step="1000">
                         <span id="price-value">상관없음</span>
+=======
+                        <label for = "categories-container">어떤 종류의 음식을 원하세요?</label>
+                        <div id = "categories-container" class="checkbox-container"></div>
+                    </div>
+                    <!-- 2. 유저 기분 필터 -->
+                    <div class="filter-group">
+                        <label for = "needs-container">어떤 상황인가요?</label>
+                        <div id = "needs-container" class="checkbox-container"></div>
+                    </div>
+                    <!-- 3. 원하는 기분 필터 -->
+                    <div class="filter-group">
+                        <label for = "goals-container">무엇을 원하세요?</label>
+                        <div id = "goals-container" class="checkbox-container"></div>
+                    </div>
+                    <!-- 4. 날씨 필터 -->
+                    <div class="filter-group">
+                        <label for = "weathers-container">날씨는 어떤가요?</label>
+                        <div id = "weathers-container" class="checkbox-container"></div>
+                    </div>
+                    <!-- 시간대 필터 -->
+                    <div class="filter-group">
+                        <label for="times-container">언제 드실 건가요?</label>
+                        <div class="checkbox-container" id="times-container">
+                            <!-- 시간대 체크박스가 여기에 동적으로 생성됩니다 -->
+                        </div>
+                    </div>
+                    <div class = "sliderDiv">
+                        <!-- 5. 칼로리 필터 -->
+                        <div class="filter-group range-slider-group">
+                            <label for="kcal-slider">칼로리 (최대)</label>
+                            <input type="range" id="kcal-slider" name="kcal" min="0" max="2000" value="2000" step="50">
+                            <span id="kcal-value">상관없음</span>
+                        </div>
+                        <!-- 6. 가격 필터 -->
+                        <div class="filter-group range-slider-group">
+                            <label for="price-slider">가격 (최대)</label>
+                            <input type="range" id="price-slider" name="price" min="0" max="50000" value="50000" step="1000">
+                            <span id="price-value">상관없음</span>
+                        </div>
+>>>>>>> d2f5aa860e572f0e349f01a84aeea8bd967b016d
                     </div>
                 </div>
 
