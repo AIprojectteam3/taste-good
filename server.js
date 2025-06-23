@@ -20,11 +20,31 @@ const NAVER_CLIENT_ID = '4tm4ibvzRt4UK09un3v9';
 const NAVER_CLIENT_SECRET = 'aEIsjYJR1G';
 const cors = require('cors');
 
-const OpenAI = require("openai");
-const dotenv = require("dotenv");
-dotenv.config();
+const fs = require('fs');
+const dotenv = require('dotenv');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// 1. 기존 환경변수 완전 삭제
+delete process.env.OPENAI_API_KEY;
+
+// 2. override 옵션으로 강제 로드
+dotenv.config({ override: true });
+
+// 3. 동적 재로드 함수 실행
+const reloadEnv = () => {
+    const envConfig = dotenv.parse(fs.readFileSync('.env'))
+    for (const key in envConfig) {
+        process.env[key] = envConfig[key]
+    }
+}
+reloadEnv();
+
+// 4. 확인
+console.log('최종 로드된 키:', process.env.OPENAI_API_KEY);
+
+const { OpenAI } = require('openai');
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // 폼 데이터 처리를 위해 추가
@@ -89,8 +109,6 @@ app.use('/Uploads', express.static(path.join(__dirname, 'Uploads')));
 // ===============================================================================================================================================
 // 폴더 존재 확인 후 없을 경우 생성
 // ===============================================================================================================================================
-const fs = require('fs');
-
 // 폴더 생성 함수
 const ensureDirectoryExists = (dirPath) => {
     if (!fs.existsSync(dirPath)) {
