@@ -586,3 +586,30 @@ function searchNearbyRestaurants(map, coords) {
         radius: 1000
     });
 }
+
+function handleLogout(event) {
+    event.preventDefault();
+    
+    const userConfirmed = confirm('정말 로그아웃 하시겠습니까?');
+    if (userConfirmed) {
+        fetch('/api/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('로그아웃되었습니다.');
+                window.location.href = '/intro.html';
+            } else {
+                alert('로그아웃 중 오류가 발생했습니다.');
+            }
+        })
+        .catch(error => {
+            console.error('로그아웃 중 오류:', error);
+            alert('로그아웃 중 오류가 발생했습니다.');
+        });
+    }
+}
