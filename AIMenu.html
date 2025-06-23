@@ -174,25 +174,29 @@
 
                 <div id="recommendation-results"></div>
                 <div id="loading-spinner" class="spinner" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
 
-                <!-- 추천 결과 모달 -->
-                <div id="recommendation-modal" class="modal">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h2>AI 메뉴 추천 결과</h2>
-                            <span class="close-button">&times;</span>
-                        </div>
-                        <div class="modal-body">
-                            <!-- 왼쪽: 메뉴 정보 -->
-                            <div id="modal-left">
-                                <!-- 메뉴 정보가 동적으로 채워질 부분 -->
-                            </div>
-                            <!-- 오른쪽: 카카오 지도 -->
-                            <div id="modal-right">
-                                <div id="map" style="width:100%;height:100%;"></div>
-                            </div>
-                        </div>
+    <!-- 메뉴 상세 정보 모달 -->
+    <div id="menu-detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-menu-title">메뉴 상세 정보</h2>
+                <span class="close-button">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="modal-left">
+                    <img id="modal-menu-image" src="" alt="메뉴 이미지" style="display: none;">
+                    <div class="menu-info">
+                        <h3 id="modal-menu-name"></h3>
+                        <p><strong>카테고리:</strong> <span id="modal-menu-category"></span></p>
+                        <p><strong>칼로리:</strong> <span id="modal-menu-kcal"></span></p>
+                        <p><strong>가격:</strong> <span id="modal-menu-price"></span></p>
                     </div>
+                </div>
+                <div id="modal-right">
+                    <div id="map" style="width: 100%; height: 100%;"></div>
                 </div>
             </div>
         </div>

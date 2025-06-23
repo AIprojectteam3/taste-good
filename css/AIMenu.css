@@ -449,6 +449,45 @@ input[type="range"]::-moz-range-thumb {
     color: #333;
 }
 
+.recommended-menus {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.menu-card {
+    background: rgba(255,255,255,0.15);
+    padding: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.menu-card:hover {
+    background: rgba(255,255,255,0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.menu-card h4 {
+    margin: 0 0 10px 0;
+    color: white;
+    font-size: 1.2em;
+}
+
+.menu-card p {
+    margin: 5px 0;
+    color: rgba(255,255,255,0.9);
+    font-size: 0.9em;
+}
+
+.menu-card img {
+    border: 2px solid rgba(255,255,255,0.3);
+}
+
 @media (max-width: 768px) {
     .container {
         margin-top : 60px;
