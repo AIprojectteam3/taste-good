@@ -22,11 +22,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // 추천 시스템 초기화
-function initializeRecommender() {
+async function initializeRecommender() {
     const getBtn = document.getElementById('get-recommendation-btn');
     const resultsContainer = document.getElementById('recommendation-results');
 
-    // 모든 옵션 로드
+    // 사용자 알레르기 정보 로드
+    await loadUserAllergenInfo();
+
+    // 모든 옵션 로드 (알레르기 제외)
     Promise.all([
         populateCheckboxes('/api/options/categories', 'categories-container', 'Category', 'Category', 'category'),
         populateCheckboxes('/api/options/needs', 'needs-container', 'NeedID', 'NeedKor', 'need'),
@@ -39,11 +42,34 @@ function initializeRecommender() {
         resultsContainer.innerHTML = '<p>데이터 로드에 실패했습니다.</p>';
     });
 
-    // 추천 버튼 이벤트 리스너
     getBtn.addEventListener('click', getRecommendation);
-
-    // 슬라이더 이벤트 리스너
     setupSliders();
+}
+
+async function loadUserAllergenInfo() {
+    try {
+        const response = await fetch('/api/user/allergens');
+        const allergens = await response.json();
+        
+        const infoDiv = document.getElementById('user-allergen-info');
+        const displayDiv = document.getElementById('user-allergen-display');
+        
+        if (allergens.length > 0) {
+            if (infoDiv && displayDiv) {
+                infoDiv.style.display = 'block';
+                displayDiv.innerHTML = allergens.map(allergen => 
+                    `<span class="allergen-tag">${allergen.AllergenKor}</span>`
+                ).join('');
+            }
+            
+            // 콘솔에 로드된 알레르기 정보 출력
+            console.log('[사용자 알레르기 정보 로드됨]:', allergens.map(a => a.AllergenKor).join(', '));
+        } else {
+            console.log('[사용자 알레르기 정보]:', '등록된 알레르기 없음');
+        }
+    } catch (error) {
+        console.error('사용자 알레르기 정보 로드 중 오류:', error);
+    }
 }
 
 // 체크박스 생성 함수
@@ -246,8 +272,6 @@ function setupSliders() {
 
 
 // 추천 요청 함수
-// 추천 요청 함수
-// 추천 요청 함수
 function getRecommendation() {
     const loadingSpinner = document.getElementById('loading-spinner');
     const resultsContainer = document.getElementById('recommendation-results');
@@ -300,7 +324,7 @@ function getRecommendation() {
     }
     if (maxKcal < 2000) params.append('max_kcal', maxKcal);
     if (maxPrice < 50000) params.append('max_price', maxPrice);
-    
+
     // 인원 수와 메뉴 수 파라미터 추가
     params.append('people_count', peopleCount);
     params.append('menu_count', menuCount);
@@ -311,11 +335,7 @@ function getRecommendation() {
 
     // 추천 버튼 클릭 시 결과 영역으로 스크롤
     setTimeout(() => {
-        resultsContainer.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-            inline: 'nearest'
-        });
+        resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
     }, 100);
 
     // Node.js API 호출

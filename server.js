@@ -2395,42 +2395,77 @@ app.get('/api/recommend', async (req, res) => {
     const allergen_ids_str = req.query.allergen;
     const max_kcal_str = req.query.max_kcal;
     const max_price_str = req.query.max_price;
-    const people_count = req.query.people_count || 1; // 인원 수 추가
-    const menu_count = req.query.menu_count || 1; // 메뉴 수 추가
-
-    // 프롬프트 동적 생성
-    let prompt = `${people_count}명이 먹을 수 있는 메뉴를 ${menu_count}개 추천해줘.\n`;
+    const people_count = req.query.people_count || 1;
+    const menu_count = req.query.menu_count || 1;
     
-    if (category_str) prompt += `카테고리: ${category_str}\n`;
-    if (need_ids_str) {
-        const kor = need_ids_str.split(',').map(id => needKorMap[id] || id).join(', ');
-        prompt += `상황: ${kor}\n`;
-    }
-    if (goal_ids_str) {
-        const kor = goal_ids_str.split(',').map(id => goalKorMap[id] || id).join(', ');
-        prompt += `목표: ${kor}\n`;
-    }
-    if (weather_ids_str) {
-        const kor = weather_ids_str.split(',').map(id => weatherKorMap[id] || id).join(', ');
-        prompt += `날씨: ${kor}\n`;
-    }
-    if (time_ids_str) {
-        const kor = time_ids_str.split(',').map(id => timeKorMap[id] || id).join(', ');
-        prompt += `시간대: ${kor}\n`;
-    }
-    if (season_ids_str) {
-        const kor = season_ids_str.split(',').map(id => seasonKorMap[id] || id).join(', ');
-        prompt += `계절: ${kor}\n`;
-    }
-    if (allergen_ids_str) {
-        const kor = allergen_ids_str.split(',').map(id => allergenKorMap[id] || id).join(', ');
-        prompt += `알레르기: ${kor}\n`;
-    }
-    if (max_kcal_str) prompt += `최대 칼로리: ${max_kcal_str}\n`;
-    if (max_price_str) prompt += `인당 최대 가격: ${max_price_str}\n`; // ← 인당 가격으로 명확히!
-    prompt += "메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려줘.";
-
+    // 사용자 ID 가져오기
+    const userId = req.session.userId;
+    
     try {
+        // 사용자 알레르기 정보 조회
+        let userAllergens = [];
+        if (userId) {
+            const allergenQuery = `
+                SELECT ua.allergen_id, a.AllergenKor
+                FROM user_allergen ua
+                JOIN allergen a ON ua.allergen_id = a.AllergenID
+                WHERE ua.user_id = ?
+            `;
+            
+            userAllergens = await new Promise((resolve, reject) => {
+                db.query(allergenQuery, [userId], (err, results) => {
+                    if (err) {
+                        console.error('사용자 알레르기 정보 조회 중 오류:', err);
+                        resolve([]); // 오류 시 빈 배열 반환
+                    } else {
+                        resolve(results);
+                    }
+                });
+            });
+        }
+
+        // 프롬프트 동적 생성
+        let prompt = `${people_count}명이 먹을 수 있는 메뉴를 ${menu_count}개 추천해줘.\n`;
+        
+        if (category_str) prompt += `카테고리: ${category_str}\n`;
+        if (need_ids_str) {
+            const kor = need_ids_str.split(',').map(id => needKorMap[id] || id).join(', ');
+            prompt += `상황: ${kor}\n`;
+        }
+        if (goal_ids_str) {
+            const kor = goal_ids_str.split(',').map(id => goalKorMap[id] || id).join(', ');
+            prompt += `목표: ${kor}\n`;
+        }
+        if (weather_ids_str) {
+            const kor = weather_ids_str.split(',').map(id => weatherKorMap[id] || id).join(', ');
+            prompt += `날씨: ${kor}\n`;
+        }
+        if (time_ids_str) {
+            const kor = time_ids_str.split(',').map(id => timeKorMap[id] || id).join(', ');
+            prompt += `시간대: ${kor}\n`;
+        }
+        if (season_ids_str) {
+            const kor = season_ids_str.split(',').map(id => seasonKorMap[id] || id).join(', ');
+            prompt += `계절: ${kor}\n`;
+        }
+        
+        // 사용자 등록 알레르기 정보 추가
+        if (userAllergens.length > 0) {
+            const allergenNames = userAllergens.map(allergen => allergen.AllergenKor).join(', ');
+            prompt += `알레르기 주의사항: ${allergenNames}가 들어가는 메뉴는 절대 포함하지 말아주세요.\n`;
+        }
+        
+        // URL 파라미터로 전달된 추가 알레르기 정보 (기존 코드 유지)
+        if (allergen_ids_str) {
+            const kor = allergen_ids_str.split(',').map(id => allergenKorMap[id] || id).join(', ');
+            prompt += `추가 알레르기 주의사항: ${kor}도 피해주세요.\n`;
+        }
+        
+        if (max_kcal_str) prompt += `최대 칼로리: ${max_kcal_str}\n`;
+        if (max_price_str) prompt += `인당 최대 가격: ${max_price_str}\n`;
+        
+        prompt += "메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려주고, 알레르기 성분이 포함되지 않았는지 확인해주세요.";
+
         // OpenAI API 키 확인
         if (!process.env.OPENAI_API_KEY) {
             console.error('OPENAI_API_KEY 환경변수가 설정되지 않았습니다.');
@@ -2443,20 +2478,19 @@ app.get('/api/recommend', async (req, res) => {
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: prompt }],
-            max_tokens: 800, // 메뉴 수가 늘어날 수 있으므로 토큰 수 증가
+            max_tokens: 800,
             temperature: 0.7
         });
 
         const gptAnswer = completion.choices[0].message.content;
         console.log("===== [AI 추천 프롬프트] =====\n" + prompt);
         console.log("===== [AI 응답] =====\n" + gptAnswer);
-        
+
         res.json({ gpt: gptAnswer });
-        
+
     } catch (err) {
         console.error("GPT 응답 실패:", err.message);
         console.error("전체 오류:", err);
-        
         res.status(200).json({
             gpt: "죄송합니다. 현재 AI 추천 서비스에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
             error: "GPT 응답 실패"
