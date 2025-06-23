@@ -131,26 +131,27 @@ function setupAllCheckboxHandler(containerId, name) {
     const singleSelectCategories = ['season', 'weather', 'time'];
     const isSingleSelect = singleSelectCategories.includes(name);
 
-    // 자동 스크롤 함수
-    function scrollToNextCheckboxGroup(currentContainerId) {
+    // 개선된 부드러운 스크롤 함수
+    function smoothScrollToNextCheckboxGroup(currentContainerId) {
         const containerOrder = [
             'categories-container', 'needs-container', 'goals-container', 
             'season-container', 'weathers-container', 'times-container'
         ];
         
         const currentIndex = containerOrder.indexOf(currentContainerId);
+        let targetElement = null;
+        
         if (currentIndex >= 0 && currentIndex < containerOrder.length - 1) {
             const nextContainerId = containerOrder[currentIndex + 1];
-            const nextContainer = document.getElementById(nextContainerId);
-            if (nextContainer) {
-                nextContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            targetElement = document.getElementById(nextContainerId);
         } else if (currentIndex === containerOrder.length - 1) {
             // 마지막 그룹인 경우 추천 버튼으로 스크롤
-            const recommendButton = document.getElementById('get-recommendation-btn');
-            if (recommendButton) {
-                recommendButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            targetElement = document.getElementById('get-recommendation-btn');
+        }
+        
+        if (targetElement) {
+            // 커스텀 부드러운 스크롤 적용
+            customSmoothScroll(targetElement, 800); // 800ms 동안 스크롤
         }
     }
 
@@ -162,10 +163,10 @@ function setupAllCheckboxHandler(containerId, name) {
                 checkbox.checked = false;
             });
             
-            // 자동 스크롤
+            // 부드러운 스크롤 (지연 시간 증가)
             setTimeout(() => {
-                scrollToNextCheckboxGroup(containerId);
-            }, 300);
+                smoothScrollToNextCheckboxGroup(containerId);
+            }, 500); // 300ms → 500ms로 증가
         }
     });
 
@@ -185,13 +186,41 @@ function setupAllCheckboxHandler(containerId, name) {
                     });
                 }
                 
-                // 자동 스크롤
+                // 부드러운 스크롤 (지연 시간 증가)
                 setTimeout(() => {
-                    scrollToNextCheckboxGroup(containerId);
-                }, 300);
+                    smoothScrollToNextCheckboxGroup(containerId);
+                }, 500); // 300ms → 500ms로 증가
             }
         });
     });
+}
+
+function customSmoothScroll(targetElement, duration = 800) {
+    // 화면 중앙에 오도록 계산
+    const targetPosition = targetElement.offsetTop - (window.innerHeight / 2) + (targetElement.offsetHeight / 2);
+    const startPosition = window.pageYOffset;
+    const distance = targetPosition - startPosition;
+    let startTime = null;
+
+    function animation(currentTime) {
+        if (startTime === null) startTime = currentTime;
+        const timeElapsed = currentTime - startTime;
+        const run = easeOutCubic(timeElapsed, startPosition, distance, duration);
+        window.scrollTo(0, run);
+        
+        if (timeElapsed < duration) {
+            requestAnimationFrame(animation);
+        }
+    }
+
+    // easeOutCubic 이징 함수 (더 일정한 속도)
+    function easeOutCubic(t, b, c, d) {
+        t /= d;
+        t--;
+        return c * (t * t * t + 1) + b;
+    }
+
+    requestAnimationFrame(animation);
 }
 
 // 선택된 값들 가져오기 함수
@@ -254,7 +283,7 @@ function setupSliders() {
     menuCountSlider.dispatchEvent(new Event('input'));
 }
 
-// 추천 요청 함수 (폴백 시스템 적용)
+// 추천 요청 함수 (GPT 응답 모달 + 메뉴 카드만 표시)
 function getRecommendation() {
     const loadingSpinner = document.getElementById('loading-spinner');
     const resultsContainer = document.getElementById('recommendation-results');
@@ -271,7 +300,7 @@ function getRecommendation() {
     const peopleCount = document.getElementById('people-slider').value;
     const menuCount = document.getElementById('menu-count-slider').value;
 
-    console.log('[스마트 필터링 AI 추천 요청] 선택값:', {
+    console.log('[AI 메뉴 추천 요청] 선택값:', {
         category: selectedCategories,
         need: selectedNeeds,
         goal: selectedGoals,
@@ -327,13 +356,13 @@ function getRecommendation() {
         .then(response => response.json())
         .then(data => {
             loadingSpinner.style.display = 'none';
-            displaySmartFilteredRecommendations(data);
+            displayMenuCardsOnly(data);
         })
         .catch(error => {
             loadingSpinner.style.display = 'none';
             console.error('추천 요청 중 오류:', error);
             resultsContainer.innerHTML = `
-                <div class="ai-recommendation">
+                <div class="error-message">
                     <h3>⚠️ 오류 발생</h3>
                     <p>추천을 가져오는 중 오류가 발생했습니다.</p>
                 </div>
@@ -341,98 +370,177 @@ function getRecommendation() {
         });
 }
 
-// 스마트 필터링된 추천 결과 표시 함수 (폴백 정보 포함)
-function displaySmartFilteredRecommendations(data) {
+// 메뉴 카드만 표시하는 함수 (GPT 응답은 모달로)
+function displayMenuCardsOnly(data) {
     const resultsContainer = document.getElementById('recommendation-results');
     
     if (data.error && !data.gpt) {
         resultsContainer.innerHTML = `
-            <div class="ai-recommendation">
+            <div class="error-message">
                 <h3>⚠️ 서비스 일시 중단</h3>
                 <p>${data.error}</p>
-                <p class="ai-note">잠시 후 다시 시도해주세요.</p>
+                <p>잠시 후 다시 시도해주세요.</p>
             </div>
         `;
         return;
     }
 
-    let recommendationHTML = `
-        <div class="ai-recommendation">
-            <h3>🤖 AI 메뉴 추천</h3>
-    `;
-
-    // 폴백 레벨에 따른 안내 메시지
-    if (data.fallbackLevel && data.fallbackLevel !== 'none') {
-        let fallbackMessage = '';
-        let fallbackIcon = '';
-        
-        switch (data.fallbackLevel) {
-            case 'light':
-                fallbackIcon = '🔄';
-                fallbackMessage = '일부 조건을 완화하여 더 많은 메뉴를 찾았습니다.';
-                break;
-            case 'moderate':
-                fallbackIcon = '⚡';
-                fallbackMessage = '조건을 상당히 완화하여 추천 메뉴를 확보했습니다.';
-                break;
-            case 'heavy':
-                fallbackIcon = '🎯';
-                fallbackMessage = '핵심 조건만 적용하여 추천합니다.';
-                break;
-        }
-        
-        if (fallbackMessage) {
-            recommendationHTML += `
-                <div class="fallback-notice" style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                    <p style="margin: 0; font-size: 0.9em; opacity: 0.9;">
-                        ${fallbackIcon} ${fallbackMessage}
-                    </p>
-                </div>
-            `;
-        }
-    }
-
-    recommendationHTML += `<div class="ai-response">${data.gpt.replace(/\n/g, '<br>')}</div>`;
-
-    // 추천된 메뉴가 있는 경우 상세 정보 표시
+    // 메뉴 카드만 표시
     if (data.menus && data.menus.length > 0) {
-        recommendationHTML += '<div class="recommended-menus">';
+        let menuCardsHTML = `
+            <div class="menu-cards-section">
+                <h3>🍽️ 추천 메뉴</h3>
+                <div class="menu-cards-container">
+        `;
+        
         data.menus.forEach(menu => {
-            recommendationHTML += `
+            menuCardsHTML += `
                 <div class="menu-card" onclick="showMenuDetail(${menu.MenuID})">
-                    <h4>${menu.MenuKor}</h4>
-                    <p><strong>카테고리:</strong> ${menu.Category || '정보 없음'}</p>
-                    <p><strong>칼로리:</strong> ${menu.kcal || '정보 없음'}kcal</p>
-                    <p><strong>가격:</strong> ${menu.Price ? menu.Price.toLocaleString() + '원' : '정보 없음'}</p>
-                    ${menu.imagePath ? `<img src="${menu.imagePath}" alt="${menu.MenuKor}" style="width: 100%; max-width: 200px; border-radius: 8px; margin-top: 10px;">` : ''}
+                    <img src="${menu.imagePath || '../image/food-icon.png'}" 
+                            alt="${menu.MenuKor}" 
+                            class="menu-card-image"
+                            onerror="this.onerror=null; this.src='../image/food-icon.png';">
+                    <div class="menu-card-content">
+                        <h4>${menu.MenuKor}</h4>
+                        <p class="menu-category">${menu.Category || '정보 없음'}</p>
+                        <p class="menu-kcal">${menu.kcal || '정보 없음'}kcal</p>
+                        <p class="menu-price">${menu.Price ? menu.Price.toLocaleString() + '원' : '정보 없음'}</p>
+                    </div>
                 </div>
             `;
         });
-        recommendationHTML += '</div>';
+        
+        resultsContainer.innerHTML = menuCardsHTML;
+        
+        // 나중에 모달에서 사용할 수 있도록 데이터 저장
+        window.lastGPTData = data;
+        
+        // 고급 수평 스크롤 마우스 휠 이벤트 추가
+        setupAdvancedHorizontalMouseWheelScroll();
+
+        setTimeout(() => {
+            smoothScrollToBottom();
+        }, 200);
+    } else {
+        resultsContainer.innerHTML = `
+            <div class="no-results">
+                <h3>😅 추천 결과 없음</h3>
+                <p>조건에 맞는 메뉴를 찾을 수 없습니다. 다른 조건으로 시도해보세요.</p>
+            </div>
+        `;
+
+        setTimeout(() => {
+            smoothScrollToBottom();
+        }, 200);
+    }
+}
+
+function smoothScrollToBottom(duration = 800) {
+    const startPosition = window.pageYOffset;
+    const targetPosition = document.body.scrollHeight - window.innerHeight;
+    const distance = targetPosition - startPosition;
+    let startTime = null;
+
+    function animation(currentTime) {
+        if (startTime === null) startTime = currentTime;
+        const timeElapsed = currentTime - startTime;
+        const run = easeOutCubic(timeElapsed, startPosition, distance, duration);
+        window.scrollTo(0, run);
+        
+        if (timeElapsed < duration) {
+            requestAnimationFrame(animation);
+        }
     }
 
-    // 필터링 정보 표시
-    let filteringInfo = '';
-    if (data.totalFiltered !== undefined) {
-        filteringInfo += `총 ${data.totalFiltered}개 메뉴 중에서 추천`;
-        
-        if (data.optimizedCount && data.optimizedCount !== data.totalFiltered) {
-            filteringInfo += ` (GPT 분석: ${data.optimizedCount}개)`;
-        }
-        
-        if (data.promptLength) {
-            filteringInfo += ` | 프롬프트: ${data.promptLength}자`;
-        }
+    // easeOutCubic 이징 함수 (부드러운 감속)
+    function easeOutCubic(t, b, c, d) {
+        t /= d;
+        t--;
+        return c * (t * t * t + 1) + b;
     }
 
-    recommendationHTML += `
-            <p class="ai-note">
-                💡 ${filteringInfo || '스마트 필터링으로 최적화된 추천입니다.'}
-            </p>
-        </div>
-    `;
+    requestAnimationFrame(animation);
+}
 
-    resultsContainer.innerHTML = recommendationHTML;
+// 고급 부드러운 스크롤 (관성 효과 포함)
+let advancedScrollData = {
+    target: null,
+    velocity: 0,
+    targetPosition: 0,
+    currentPosition: 0,
+    isScrolling: false,
+    friction: 0.88, // 마찰력 (0.8~0.9 권장)
+    sensitivity: 2.0 // 민감도
+};
+
+function handleAdvancedHorizontalScroll(event) {
+    if (event.deltaY !== 0) {
+        event.preventDefault();
+        
+        const container = event.currentTarget;
+        const scrollAmount = event.deltaY * advancedScrollData.sensitivity;
+        
+        // 속도에 스크롤 양 추가 (관성 효과)
+        advancedScrollData.velocity += scrollAmount;
+        
+        // 스크롤 애니메이션 시작
+        if (!advancedScrollData.isScrolling) {
+            advancedScrollData.target = container;
+            advancedScrollData.currentPosition = container.scrollLeft;
+            advancedScrollData.isScrolling = true;
+            advancedSmoothScrollStep();
+        }
+    }
+}
+
+function advancedSmoothScrollStep() {
+    if (!advancedScrollData.target || !advancedScrollData.isScrolling) {
+        return;
+    }
+    
+    const container = advancedScrollData.target;
+    
+    // 마찰력 적용
+    advancedScrollData.velocity *= advancedScrollData.friction;
+    
+    // 속도가 충분히 작아지면 정지
+    if (Math.abs(advancedScrollData.velocity) < 0.1) {
+        advancedScrollData.isScrolling = false;
+        advancedScrollData.velocity = 0;
+        return;
+    }
+    
+    // 현재 위치 업데이트
+    advancedScrollData.currentPosition += advancedScrollData.velocity;
+    
+    // 경계 확인
+    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+    advancedScrollData.currentPosition = Math.max(0, 
+        Math.min(maxScrollLeft, advancedScrollData.currentPosition)
+    );
+    
+    // 실제 스크롤 적용
+    container.scrollLeft = advancedScrollData.currentPosition;
+    
+    // 다음 프레임 계속
+    requestAnimationFrame(advancedSmoothScrollStep);
+}
+
+// 고급 버전 사용 시 이벤트 리스너 설정
+function setupAdvancedHorizontalMouseWheelScroll() {
+    const menuCardsContainer = document.querySelector('.menu-cards-container');
+    
+    if (!menuCardsContainer) {
+        return;
+    }
+    
+    // 기존 이벤트 리스너 제거 (중복 방지)
+    menuCardsContainer.removeEventListener('wheel', handleAdvancedHorizontalScroll);
+    
+    // 새로운 이벤트 리스너 추가
+    menuCardsContainer.addEventListener('wheel', handleAdvancedHorizontalScroll, { passive: false });
+    
+    console.log('고급 부드러운 수평 스크롤 설정 완료');
 }
 
 // 지도 관련 변수들 (한 번만 초기화되도록 수정)
@@ -441,11 +549,16 @@ let kakaoMap = null;
 let userMarker = null;
 let restaurantMarkers = [];
 
-// 메뉴 상세 정보 표시 함수 (지도 로직 수정)
+// 메뉴 상세 정보 표시 함수 (안전한 요소 접근)
 function showMenuDetail(menuId) {
     console.log('메뉴 상세 정보 요청:', menuId);
     
     const modal = document.getElementById('menu-detail-modal');
+    if (!modal) {
+        console.error('모달 요소를 찾을 수 없습니다.');
+        alert('메뉴 상세 정보를 표시할 수 없습니다.');
+        return;
+    }
     
     // 메뉴 상세 정보 가져오기
     fetch(`/api/menu/${menuId}`)
@@ -456,21 +569,43 @@ function showMenuDetail(menuId) {
                 return;
             }
             
-            // 모달 내용 업데이트
-            document.getElementById('modal-menu-title').textContent = menuData.MenuKor;
-            document.getElementById('modal-menu-category').textContent = menuData.Category || '정보 없음';
-            document.getElementById('modal-menu-kcal').textContent = menuData.kcal ? `${menuData.kcal}kcal` : '정보 없음';
-            document.getElementById('modal-menu-price').textContent = menuData.Price ? `${menuData.Price.toLocaleString()}원` : '정보 없음';
+            // 안전한 요소 업데이트
+            const titleElement = document.getElementById('modal-menu-title');
+            const categoryElement = document.getElementById('modal-menu-category');
+            const kcalElement = document.getElementById('modal-menu-kcal');
+            const priceElement = document.getElementById('modal-menu-price');
+            const imageElement = document.getElementById('modal-menu-image');
+            
+            // 요소가 존재하는 경우에만 업데이트
+            if (titleElement) {
+                titleElement.textContent = menuData.MenuKor;
+            }
+            
+            if (categoryElement) {
+                categoryElement.textContent = menuData.Category || '정보 없음';
+            }
+            
+            if (kcalElement) {
+                kcalElement.textContent = menuData.kcal ? `${menuData.kcal}kcal` : '정보 없음';
+            }
+            
+            if (priceElement) {
+                priceElement.textContent = menuData.Price ? `${menuData.Price.toLocaleString()}원` : '정보 없음';
+            }
             
             // 이미지 표시
-            const modalImage = document.getElementById('modal-menu-image');
-            if (menuData.imagePath) {
-                modalImage.src = menuData.imagePath;
-                modalImage.alt = menuData.MenuKor;
-                modalImage.style.display = 'block';
-            } else {
-                modalImage.style.display = 'none';
+            if (imageElement) {
+                if (menuData.imagePath) {
+                    imageElement.src = menuData.imagePath;
+                    imageElement.alt = menuData.MenuKor;
+                    imageElement.style.display = 'block';
+                } else {
+                    imageElement.style.display = 'none';
+                }
             }
+            
+            // GPT 응답 표시 (lastGPTData가 있는 경우)
+            displayGPTResponseInModal(menuData.MenuKor);
             
             // 모달 표시
             modal.style.display = 'block';
@@ -484,6 +619,110 @@ function showMenuDetail(menuId) {
             console.error('메뉴 정보 가져오기 오류:', error);
             alert('메뉴 정보를 가져오는데 실패했습니다.');
         });
+}
+
+// 메뉴 상세 모달에 GPT 응답 표시하는 함수
+function displayGPTResponseInModal(menuName) {
+    const gptSection = document.getElementById('modal-gpt-section');
+    const gptResponseElement = document.getElementById('modal-gpt-response');
+    const fallbackInfoElement = document.getElementById('modal-fallback-info');
+    
+    if (!gptSection || !gptResponseElement) {
+        return;
+    }
+    
+    // 저장된 GPT 데이터가 있는지 확인
+    if (window.lastGPTData && window.lastGPTData.gpt) {
+        const data = window.lastGPTData;
+        
+        // 메뉴별 응답이 있는지 확인
+        if (data.menuSpecificResponses && data.menuSpecificResponses.menuResponses[menuName]) {
+            const menuResponse = data.menuSpecificResponses.menuResponses[menuName];
+            
+            // 해당 메뉴의 구체적인 응답 표시
+            let menuSpecificContent = `
+                <div class="menu-specific-response">
+                    <h5>🎯 ${menuName} 추천 이유</h5>
+                    <p><strong>추천 이유:</strong> ${menuResponse.reason}</p>
+                    <p><strong>특징:</strong> ${menuResponse.feature}</p>
+                </div>
+            `;
+            
+            gptResponseElement.innerHTML = menuSpecificContent;
+            
+        } else if (data.gpt.includes(menuName)) {
+            // 기존 방식: 전체 응답에서 해당 메뉴 언급 부분 찾기
+            const sentences = data.gpt.split(/[.!?]/);
+            const relevantSentences = sentences.filter(sentence => 
+                sentence.includes(menuName)
+            ).slice(0, 3); // 최대 3개 문장
+            
+            if (relevantSentences.length > 0) {
+                gptResponseElement.innerHTML = `
+                    <div class="menu-relevant-response">
+                        <h5>🎯 ${menuName} 관련 설명</h5>
+                        <p>${relevantSentences.join('. ').trim()}.</p>
+                    </div>
+                `;
+            } else {
+                gptResponseElement.innerHTML = `
+                    <div class="menu-default-response">
+                        <h5>🎯 ${menuName}</h5>
+                        <p>이 메뉴는 현재 선택하신 조건에 적합한 추천 메뉴입니다.</p>
+                    </div>
+                `;
+            }
+        } else {
+            // 해당 메뉴가 GPT 응답에 언급되지 않은 경우
+            gptResponseElement.innerHTML = `
+                <div class="menu-not-mentioned">
+                    <h5>🎯 ${menuName}</h5>
+                    <p style="opacity: 0.7; font-style: italic;">
+                        이 메뉴에 대한 구체적인 AI 설명이 없지만, 선택하신 조건에 부합하는 메뉴입니다.
+                    </p>
+                </div>
+            `;
+        }
+        
+        // 폴백 정보 표시 (기존 코드 유지)
+        if (data.fallbackLevel && data.fallbackLevel !== 'none' && fallbackInfoElement) {
+            let fallbackMessage = '';
+            let fallbackIcon = '';
+            
+            switch (data.fallbackLevel) {
+                case 'light':
+                    fallbackIcon = '🔄';
+                    fallbackMessage = '일부 조건을 완화하여 추천되었습니다.';
+                    break;
+                case 'moderate':
+                    fallbackIcon = '⚡';
+                    fallbackMessage = '조건을 상당히 완화하여 추천되었습니다.';
+                    break;
+                case 'heavy':
+                    fallbackIcon = '🎯';
+                    fallbackMessage = '핵심 조건만 적용하여 추천되었습니다.';
+                    break;
+            }
+            
+            if (fallbackMessage) {
+                fallbackInfoElement.innerHTML = `
+                    <p style="margin: 10px 0; font-size: 0.9em; opacity: 0.8;">
+                        ${fallbackIcon} ${fallbackMessage}
+                    </p>
+                `;
+                fallbackInfoElement.style.display = 'block';
+            } else {
+                fallbackInfoElement.style.display = 'none';
+            }
+        } else if (fallbackInfoElement) {
+            fallbackInfoElement.style.display = 'none';
+        }
+        
+        gptSection.style.display = 'block';
+    } else {
+        // GPT 데이터가 없는 경우
+        gptSection.style.display = 'none';
+    }
 }
 
 // 지도 초기화 함수 (한 번만 실행되도록 수정)

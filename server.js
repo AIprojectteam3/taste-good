@@ -2549,7 +2549,7 @@ app.get('/api/recommend-filtered', async (req, res) => {
         // 스마트 필터링 적용
         const filterResult = await getFilteredMenusWithFallback({
             category, need, goal, season, weather, time,
-            max_kcal, max_price, userId
+            max_kcal, max_price, userId, menu_count
         });
         
         const { menus: filteredMenus, fallbackLevel } = filterResult;
@@ -2563,76 +2563,114 @@ app.get('/api/recommend-filtered', async (req, res) => {
             });
         }
         
+        // 사용자 알레르기 정보 조회
+        let userAllergens = [];
+        if (userId) {
+            const allergenQuery = `
+                SELECT ua.allergen_id, a.AllergenKor
+                FROM user_allergen ua
+                JOIN allergen a ON ua.allergen_id = a.AllergenID
+                WHERE ua.user_id = ?
+            `;
+            userAllergens = await new Promise((resolve, reject) => {
+                db.query(allergenQuery, [userId], (err, results) => {
+                    if (err) {
+                        console.error('알레르기 정보 조회 오류:', err);
+                        resolve([]);
+                    } else {
+                        resolve(results);
+                    }
+                });
+            });
+        }
+        
         // GPT 전달용 메뉴 최적화
         const optimizedMenus = optimizeMenusForGPT(filteredMenus, parseInt(menu_count));
         
-        // 간결한 프롬프트 생성
+        // 사용자 조건 상세 정보 구성
+        const userConditions = buildUserConditionsText({
+            category, need, goal, season, weather, time,
+            max_kcal, max_price, people_count, menu_count,
+            userAllergens
+        });
+        
+        // 메뉴 목록 생성
         const menuList = optimizedMenus.map(menu => 
             `${menu.MenuKor}(${menu.Category}, ${menu.kcal}kcal, ${menu.Price}원)`
         ).join(', ');
 
-        let prompt = `다음 메뉴 목록에서 ${people_count}명이 먹을 수 있는 메뉴를 ${menu_count}개 추천해주세요.\n\n`;
+        // 향상된 프롬프트 생성
+        let prompt = `다음은 사용자가 요청한 메뉴 추천 조건입니다:\n\n`;
+        prompt += `${userConditions}\n\n`;
+        prompt += `위 조건을 바탕으로 다음 메뉴 목록에서 ${people_count}명이 먹을 수 있는 메뉴를 ${menu_count}개 추천해주세요:\n\n`;
         prompt += `**메뉴 목록:** ${menuList}\n\n`;
         
         // 폴백 레벨에 따른 안내 메시지 추가
         if (fallbackLevel !== 'none') {
-            prompt += `**참고:** 일부 조건을 완화하여 추천합니다.\n\n`;
+            prompt += `**참고:** 일부 조건을 완화하여 메뉴를 선별했습니다.\n\n`;
         }
         
-        // 조건 정보 간결하게 추가
-        const activeConditions = [];
-        if (need && need !== 'all') {
-            const needNames = need.split(',').map(id => needKorMap[id] || id).join(', ');
-            activeConditions.push(`상황: ${needNames}`);
-        }
-        if (goal && goal !== 'all') {
-            const goalNames = goal.split(',').map(id => goalKorMap[id] || id).join(', ');
-            activeConditions.push(`목표: ${goalNames}`);
-        }
-        if (weather && weather !== 'all') {
-            const weatherNames = weather.split(',').map(id => weatherKorMap[id] || id).join(', ');
-            activeConditions.push(`날씨: ${weatherNames}`);
-        }
-        if (time && time !== 'all') {
-            const timeNames = time.split(',').map(id => timeKorMap[id] || id).join(', ');
-            activeConditions.push(`시간: ${timeNames}`);
-        }
-        if (season && season !== 'all') {
-            const seasonNames = season.split(',').map(id => seasonKorMap[id] || id).join(', ');
-            activeConditions.push(`계절: ${seasonNames}`);
-        }
+        prompt += `**응답 형식:**\n`;
+        prompt += `다음 형식으로 각 메뉴별로 구분하여 답변해주세요:\n\n`;
+        prompt += `=== [메뉴명] ===\n`;
+        prompt += `추천 이유: (해당 메뉴만의 구체적인 추천 이유)\n`;
+        prompt += `특징: (해당 메뉴의 특징)\n`;
+        prompt += `===\n\n`;
         
-        if (activeConditions.length > 0) {
-            prompt += `**고려사항:** ${activeConditions.join(', ')}\n\n`;
-        }
+        prompt += `**추천 요청사항:**\n`;
+        prompt += `- 위 메뉴 목록에 있는 정확한 메뉴명을 사용해주세요\n`;
+        prompt += `- 각 메뉴별로 구분된 설명을 제공해주세요\n`;
+        prompt += `- 사용자의 조건을 고려하여 개별 메뉴의 적합성을 설명해주세요\n`;
         
-        prompt += `위 목록에서만 선택하여 추천해주세요.`;
+        if (userAllergens.length > 0) {
+            prompt += `- 알레르기 정보를 반드시 확인하여 안전한 메뉴만 추천해주세요\n`;
+        }
         
         console.log(`GPT 전달 메뉴 수: ${optimizedMenus.length}/${filteredMenus.length}`);
         console.log(`프롬프트 길이: ${prompt.length}자`);
+        // console.log('=== 생성된 프롬프트 ===');
+        // console.log(prompt);
+        // console.log('========================');
+
+        const requestStartTime = Date.now();
         
         // GPT API 호출
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: prompt }],
-            max_tokens: 400,
+            max_tokens: 500, // 더 상세한 응답을 위해 토큰 수 증가
             temperature: 0.7
         });
 
+        const responseTime = Date.now() - requestStartTime;
         const gptResponse = completion.choices[0].message.content;
+
+        console.log(`응답 길이: ${gptResponse.length}자`);
         
         // 추천된 메뉴 추출
-        const recommendedMenus = filteredMenus.filter(menu => 
-            gptResponse.includes(menu.MenuKor)
-        ).slice(0, parseInt(menu_count));
+        const recommendedMenus = extractRecommendedMenus(gptResponse, filteredMenus, parseInt(menu_count));
+        
+        const parsedResponse = parseGPTResponseByMenu(gptResponse, recommendedMenus);
+
+        console.log(`GPT 추천 완료: ${recommendedMenus.length}개 메뉴 추출`);
+        console.log('추출된 메뉴:', recommendedMenus.map(m => m.MenuKor));
 
         res.json({
             gpt: gptResponse,
             menus: recommendedMenus,
+            menuSpecificResponses: parsedResponse, // 메뉴별 응답 추가
             totalFiltered: filteredMenus.length,
             optimizedCount: optimizedMenus.length,
             fallbackLevel: fallbackLevel,
-            promptLength: prompt.length
+            promptLength: prompt.length,
+            responseLength: gptResponse.length,
+            responseTime: responseTime,
+            tokenUsage: completion.usage || null,
+            extractionInfo: {
+                requestedCount: parseInt(menu_count),
+                extractedCount: recommendedMenus.length,
+                availableCount: filteredMenus.length
+            }
         });
 
     } catch (error) {
@@ -2646,7 +2684,6 @@ app.get('/api/recommend-filtered', async (req, res) => {
     }
 });
 
-
 // ==================================================================================================================
 // 서버 시작
 // ==================================================================================================================
@@ -2654,7 +2691,90 @@ app.listen(PORT, () => {
     console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
 });
 
-
+function buildUserConditionsText(conditions) {
+    const {
+        category, need, goal, season, weather, time,
+        max_kcal, max_price, people_count, menu_count,
+        userAllergens
+    } = conditions;
+    
+    let conditionsText = `**사용자 요청 조건:**\n`;
+    
+    // 기본 정보
+    conditionsText += `- 인원수: ${people_count}명\n`;
+    conditionsText += `- 추천받을 메뉴 수: ${menu_count}개\n`;
+    
+    // 카테고리
+    if (category && category !== 'all') {
+        conditionsText += `- 음식 카테고리: ${category}\n`;
+    } else {
+        conditionsText += `- 음식 카테고리: 상관없음\n`;
+    }
+    
+    // 상황
+    if (need && need !== 'all') {
+        const needNames = need.split(',').map(id => needKorMap[id] || id).join(', ');
+        conditionsText += `- 현재 상황: ${needNames}\n`;
+    } else {
+        conditionsText += `- 현재 상황: 상관없음\n`;
+    }
+    
+    // 목표
+    if (goal && goal !== 'all') {
+        const goalNames = goal.split(',').map(id => goalKorMap[id] || id).join(', ');
+        conditionsText += `- 원하는 목표: ${goalNames}\n`;
+    } else {
+        conditionsText += `- 원하는 목표: 상관없음\n`;
+    }
+    
+    // 계절
+    if (season && season !== 'all') {
+        const seasonNames = season.split(',').map(id => seasonKorMap[id] || id).join(', ');
+        conditionsText += `- 계절: ${seasonNames}\n`;
+    } else {
+        conditionsText += `- 계절: 상관없음\n`;
+    }
+    
+    // 날씨
+    if (weather && weather !== 'all') {
+        const weatherNames = weather.split(',').map(id => weatherKorMap[id] || id).join(', ');
+        conditionsText += `- 날씨: ${weatherNames}\n`;
+    } else {
+        conditionsText += `- 날씨: 상관없음\n`;
+    }
+    
+    // 시간대
+    if (time && time !== 'all') {
+        const timeNames = time.split(',').map(id => timeKorMap[id] || id).join(', ');
+        conditionsText += `- 식사 시간: ${timeNames}\n`;
+    } else {
+        conditionsText += `- 식사 시간: 상관없음\n`;
+    }
+    
+    // 칼로리 제한
+    if (max_kcal && max_kcal < 2000) {
+        conditionsText += `- 칼로리 제한: ${max_kcal}kcal 이하\n`;
+    } else {
+        conditionsText += `- 칼로리 제한: 없음\n`;
+    }
+    
+    // 가격 제한
+    if (max_price && max_price < 50000) {
+        conditionsText += `- 가격 제한: ${parseInt(max_price).toLocaleString()}원 이하\n`;
+    } else {
+        conditionsText += `- 가격 제한: 없음\n`;
+    }
+    
+    // 알레르기 정보
+    if (userAllergens && userAllergens.length > 0) {
+        const allergenNames = userAllergens.map(a => a.AllergenKor).join(', ');
+        conditionsText += `- 알레르기 주의사항: ${allergenNames} (절대 포함하지 말 것)\n`;
+    } else {
+        conditionsText += `- 알레르기 주의사항: 없음\n`;
+    }
+    
+    return conditionsText;
+}
 
 async function getFilteredMenusWithFallback(filterParams) {
     const { category, need, goal, season, weather, time, max_kcal, max_price, userId } = filterParams;
@@ -2674,9 +2794,9 @@ async function getFilteredMenusWithFallback(filterParams) {
     let filteredMenus = await applyAllFilters(filterParams);
     console.log(`1단계 결과: ${filteredMenus.length}개 메뉴`);
     
-    // 2단계: 결과가 부족하면 점진적 완화
-    if (filteredMenus.length < 2) {
-        console.log('필터 완화 시작...');
+    const requestedMenuCount = parseInt(filterParams.menu_count || 3);
+    if (filteredMenus.length < requestedMenuCount) {
+        console.log(`필터 완화 시작... (현재 ${filteredMenus.length}개 < 요청 ${requestedMenuCount}개)`);
         
         // 우선순위가 낮은 조건부터 제거
         for (let i = filterPriority.length - 1; i >= 0; i--) {
@@ -2690,12 +2810,12 @@ async function getFilteredMenusWithFallback(filterParams) {
             filteredMenus = await applyAllFilters(relaxedParams);
             console.log(`${filterToRemove.name} 제거 후: ${filteredMenus.length}개 메뉴`);
             
-            if (filteredMenus.length >= 10) break; // 충분한 메뉴 확보 시 중단
+            if (filteredMenus.length >= requestedMenuCount) break; // 요청 수 이상 확보 시 중단
         }
     }
     
     // 3단계: 여전히 부족하면 핵심 조건만 유지
-    if (filteredMenus.length < 5) {
+    if (filteredMenus.length < requestedMenuCount) {
         console.log('핵심 조건만 적용...');
         const coreParams = {
             category: filterParams.category,
@@ -2707,16 +2827,33 @@ async function getFilteredMenusWithFallback(filterParams) {
         filteredMenus = await applyAllFilters(coreParams);
     }
     
-    // 4단계: 최종 안전망 - 상위 인기 메뉴
-    if (filteredMenus.length < 3) {
-        console.log('인기 메뉴 폴백 적용...');
-        filteredMenus = await getPopularMenus(20); // 인기 메뉴 20개
+    // 5단계: 10개 이상일 경우 랜덤으로 10개만 선택 (그대로 유지)
+    if (filteredMenus.length > 10) {
+        console.log(`메뉴가 ${filteredMenus.length}개로 많아서 랜덤으로 10개 선택`);
+        filteredMenus = getRandomMenus(filteredMenus, 10);
     }
     
     return {
         menus: filteredMenus,
-        fallbackLevel: getFallbackLevel(filteredMenus.length)
+        fallbackLevel: getFallbackLevel(filteredMenus.length, requestedMenuCount)
     };
+}
+
+// 랜덤으로 메뉴 선택하는 함수 (새로 추가)
+function getRandomMenus(menus, count) {
+    if (menus.length <= count) {
+        return menus;
+    }
+    
+    // Fisher-Yates 셔플 알고리즘 사용
+    const shuffled = [...menus]; // 원본 배열 복사
+    
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const randomIndex = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[i]];
+    }
+    
+    return shuffled.slice(0, count);
 }
 
 // 모든 필터 적용 함수
@@ -2843,14 +2980,15 @@ async function applyAllFilters(filterParams) {
 
 // 토큰 사용량 최적화 함수
 function optimizeMenusForGPT(menus, requestedCount) {
-    const maxMenusForGPT = 30; // GPT에 전달할 최대 메뉴 수
+    const maxMenusForGPT = 10; // 최대 메뉴 수를 10개로 줄임
     
     if (menus.length <= maxMenusForGPT) {
         return menus; // 그대로 전달
     }
     
-    // 메뉴가 너무 많으면 스마트 샘플링
-    return smartSampleMenus(menus, maxMenusForGPT, requestedCount);
+    // 10개 이상이면 랜덤으로 10개 선택
+    console.log(`GPT 최적화: ${menus.length}개 메뉴 중 ${maxMenusForGPT}개 랜덤 선택`);
+    return getRandomMenus(menus, maxMenusForGPT);
 }
 
 // 스마트 샘플링 함수
@@ -2881,32 +3019,107 @@ function smartSampleMenus(menus, maxCount, requestedCount) {
     return sampledMenus;
 }
 
-// 인기 메뉴 폴백 함수
-async function getPopularMenus(limit = 20) {
-    const query = `
-        SELECT m.MenuID, m.MenuKor, m.Category, m.kcal, m.Price, m.imagePath
-        FROM menu m
-        ORDER BY 
-            CASE 
-                WHEN m.Category IN ('한식', '중식', '일식', '양식') THEN 1
-                ELSE 2
-            END,
-            m.Price ASC
-        LIMIT ?
-    `;
+function extractRecommendedMenus(gptResponse, filteredMenus, menuCount) {
+    const recommendedMenus = [];
     
-    return new Promise((resolve, reject) => {
-        db.query(query, [limit], (err, results) => {
-            if (err) reject(err);
-            else resolve(results);
-        });
+    // 1차: 정확한 메뉴명 매칭
+    filteredMenus.forEach(menu => {
+        if (gptResponse.includes(menu.MenuKor)) {
+            recommendedMenus.push(menu);
+        }
     });
+    
+    // 2차: 부분 매칭 (1차에서 충분하지 않은 경우)
+    if (recommendedMenus.length < menuCount) {
+        filteredMenus.forEach(menu => {
+            if (recommendedMenus.find(r => r.MenuID === menu.MenuID)) return; // 이미 추가된 메뉴 제외
+            
+            // 메뉴명의 핵심 키워드로 매칭
+            const menuKeywords = menu.MenuKor.split(/[\s\-\_]/); // 공백, 하이픈, 언더스코어로 분리
+            const hasKeywordMatch = menuKeywords.some(keyword => 
+                keyword.length > 1 && gptResponse.includes(keyword)
+            );
+            
+            if (hasKeywordMatch) {
+                recommendedMenus.push(menu);
+            }
+        });
+    }
+    
+    // 3차: 여전히 부족하면 필터링된 메뉴에서 순서대로 선택
+    if (recommendedMenus.length < menuCount) {
+        console.log(`GPT 응답에서 메뉴 추출 부족 (${recommendedMenus.length}/${menuCount}), 필터링된 메뉴에서 보충`);
+        
+        filteredMenus.forEach(menu => {
+            if (recommendedMenus.length >= menuCount) return;
+            if (recommendedMenus.find(r => r.MenuID === menu.MenuID)) return;
+            
+            recommendedMenus.push(menu);
+        });
+    }
+    
+    return recommendedMenus.slice(0, parseInt(menuCount));
 }
 
 // 폴백 레벨 판정 함수
 function getFallbackLevel(menuCount) {
-    if (menuCount >= 20) return 'none';
-    if (menuCount >= 10) return 'light';
-    if (menuCount >= 5) return 'moderate';
-    return 'heavy';
+    if (menuCount >= 10) return 'none';      // 10개 이상: 완화 없음
+    if (menuCount >= 5) return 'light';      // 5-9개: 가벼운 완화
+    if (menuCount >= 2) return 'moderate';   // 2-4개: 보통 완화
+    return 'heavy';                          // 1개 이하: 심한 완화
+}
+
+function parseGPTResponseByMenu(gptResponse, recommendedMenus) {
+    const menuResponses = {};
+    
+    // 전체 총평 추출
+    const totalSummaryMatch = gptResponse.match(/\*\*전체 총평:\*\*\s*([\s\S]*?)(?=\n\n|$)/);
+    const totalSummary = totalSummaryMatch ? totalSummaryMatch[1].trim() : '';
+    
+    // 각 메뉴별 응답 파싱
+    recommendedMenus.forEach(menu => {
+        const menuName = menu.MenuKor;
+        
+        // 메뉴별 섹션 찾기 (=== [메뉴명] === 형식)
+        const menuSectionRegex = new RegExp(`===\\s*\\[?${escapeRegExp(menuName)}\\]?\\s*===\\s*([\\s\\S]*?)(?====|\\*\\*전체 총평|$)`, 'i');
+        const menuSectionMatch = gptResponse.match(menuSectionRegex);
+        
+        if (menuSectionMatch) {
+            const menuSection = menuSectionMatch[1].trim();
+            
+            // 추천 이유 추출
+            const reasonMatch = menuSection.match(/추천 이유:\s*(.*?)(?=\n특징:|$)/s);
+            const reason = reasonMatch ? reasonMatch[1].trim() : '';
+            
+            // 특징 추출
+            const featureMatch = menuSection.match(/특징:\s*(.*?)(?=\n|$)/s);
+            const feature = featureMatch ? featureMatch[1].trim() : '';
+            
+            menuResponses[menuName] = {
+                reason: reason || '이 메뉴는 현재 상황과 조건에 적합한 선택입니다.',
+                feature: feature || '맛있고 영양가 있는 메뉴입니다.',
+                fullSection: menuSection
+            };
+        } else {
+            // 구조화된 응답을 찾지 못한 경우, 메뉴명이 언급된 부분 찾기
+            const mentionRegex = new RegExp(`([^.]*${escapeRegExp(menuName)}[^.]*\\.?)`, 'gi');
+            const mentions = gptResponse.match(mentionRegex) || [];
+            
+            menuResponses[menuName] = {
+                reason: mentions.length > 0 ? mentions[0] : `${menuName}은(는) 현재 조건에 적합한 메뉴입니다.`,
+                feature: '선택하신 조건에 맞는 훌륭한 메뉴입니다.',
+                fullSection: mentions.join(' ')
+            };
+        }
+    });
+    
+    return {
+        menuResponses: menuResponses,
+        totalSummary: totalSummary || gptResponse
+    };
+}
+
+// 정규식 이스케이프 함수
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
