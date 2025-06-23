@@ -126,7 +126,6 @@ function displaySearchRankings(rankings) {
     if (!chartSection) return;
     
     chartSection.innerHTML = '';
-
     const previousRankings = [...currentRankings];
     
     rankings.forEach((item, index) => {
@@ -134,7 +133,6 @@ function displaySearchRankings(rankings) {
         li.className = `rank-item rank-${item.rank_change}`;
         
         const previousItem = previousRankings.find(prev => prev.search_term === item.search_term);
-        
         if (!previousItem) {
             li.classList.add('rank-new-animation');
             li.classList.add('new-entry');
@@ -143,64 +141,83 @@ function displaySearchRankings(rankings) {
         } else if (previousItem.rank < item.rank) {
             li.classList.add('rank-down-animation');
         }
-
+        
         let iconHtml = '';
         const now = new Date();
-
         const isChangeExpired = item.change_expires_at && new Date(item.change_expires_at) <= now;
         
         if (isChangeExpired || item.rank_change === 'same') {
-            iconHtml = '<img src="image/no-change-icon.png" alt="변동없음" title="변동없음">';
+            iconHtml = '';
         } else {
             switch (item.rank_change) {
                 case 'new':
-                    iconHtml = '<span class="new-badge" title="신규 진입">NEW</span>';
+                    iconHtml = 'NEW';
                     li.classList.add('new-entry');
                     break;
                 case 'up':
-                    iconHtml = '<img src="image/rank-up-icon.png" alt="상승" title="순위 상승">';
+                    iconHtml = '↑';
                     break;
                 case 'down':
-                    iconHtml = '<img src="image/rank-down-icon.png" alt="하락" title="순위 하락">';
+                    iconHtml = '↓';
                     break;
                 default:
-                    iconHtml = '<img src="image/no-change-icon.png" alt="변동없음" title="변동없음">';
+                    iconHtml = '';
             }
         }
         
         li.innerHTML = `
             <span class="rank-number">${item.rank}.</span>
-            <span class="search-term" onclick="searchPopularTerm('${item.search_term}')">${item.search_term}</span>
-            <div class="rank-info">
-                ${iconHtml}
-                <span class="search-count">${item.search_count}회</span>
-            </div>
+            <span class="search-term" data-search-term="${item.search_term}">${item.search_term}</span>
+            <span class="rank-change">${iconHtml}</span>
         `;
-
-        li.addEventListener('animationend', function() {
-            li.classList.remove('rank-up-animation', 'rank-down-animation', 'rank-new-animation');
+        
+        // 클릭 이벤트 추가
+        const searchTermElement = li.querySelector('.search-term');
+        searchTermElement.addEventListener('click', function() {
+            handleRankingClick(item.search_term);
         });
         
-        if (item.change_expires_at && !isChangeExpired) {
-            const timeUntilExpiry = new Date(item.change_expires_at) - now;
-            if (timeUntilExpiry > 0) {
-                setTimeout(() => {
-                    const rankInfo = li.querySelector('.rank-info');
-                    if (rankInfo) {
-                        const searchCount = li.querySelector('.search-count')?.textContent || '0회';
-                        rankInfo.innerHTML = `
-                            <img src="image/no-change-icon.png" alt="변동없음" title="변동없음">
-                            <span class="search-count">${searchCount}</span>
-                        `;
-                        li.className = 'rank-item rank-same';
-                        li.classList.remove('new-entry');
-                    }
-                }, timeUntilExpiry);
-            }
-        }
+        // 스타일 추가 (클릭 가능하다는 것을 표시)
+        searchTermElement.style.cursor = 'pointer';
+        searchTermElement.style.textDecoration = 'none';
+        
+        // 호버 효과
+        searchTermElement.addEventListener('mouseenter', function() {
+            this.style.textDecoration = 'underline';
+        });
+        
+        searchTermElement.addEventListener('mouseleave', function() {
+            this.style.textDecoration = 'none';
+        });
         
         chartSection.appendChild(li);
     });
+}
+
+function handleRankingClick(searchTerm) {
+    const currentPage = window.location.pathname;
+    
+    if (currentPage.includes('index.html') || currentPage === '/') {
+        // index.html에서는 직접 검색 실행
+        if (typeof performAdvancedSearch === 'function') {
+            const filters = {
+                query: searchTerm,
+                searchType: 'all',
+                sortBy: 'date',
+                dateFrom: '',
+                dateTo: '',
+                minViews: '',
+                maxViews: '',
+                page: 1,
+                limit: 10
+            };
+            performAdvancedSearch(filters);
+        }
+    } else {
+        // 다른 페이지에서는 index.html로 리다이렉트하면서 검색어 전달
+        const encodedSearchTerm = encodeURIComponent(searchTerm);
+        window.location.href = `/index.html?search=${encodedSearchTerm}`;
+    }
 }
 
 // 실시간 업데이트 시작

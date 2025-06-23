@@ -834,6 +834,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     await renderCards();
     await loadPosts();
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchParam = urlParams.get('search');
+    
+    if (searchParam) {
+        // URL에서 검색 파라미터 제거
+        const url = new URL(window.location);
+        url.searchParams.delete('search');
+        window.history.replaceState({}, document.title, url.pathname);
+        
+        // 검색 실행
+        const filters = {
+            query: decodeURIComponent(searchParam),
+            searchType: 'all',
+            sortBy: 'date',
+            dateFrom: '',
+            dateTo: '',
+            minViews: '',
+            maxViews: '',
+            page: 1,
+            limit: 10
+        };
+        
+        // 페이지 로드 완료 후 검색 실행
+        setTimeout(() => {
+            performAdvancedSearch(filters);
+        }, 500);
+    }
+
     // URL에 postId 파라미터가 있으면 해당 게시물로 스크롤
     const postId = getPostIdFromURL();
     if (postId) {
