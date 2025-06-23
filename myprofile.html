@@ -14,7 +14,6 @@
     <script src = "js/createPostModal.js"></script>
     <script src = "js/myprofile.js"></script>
     <script src = "js/Back/menu.js"></script>
-    <script src = "js/Back/checkAuth.js"></script>
 
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -293,47 +292,83 @@
     <!-- ===================================================================================== -->
     <!-- 프로필 편집 모달 -->
     <!-- ===================================================================================== -->
-    <div class = "modal-overlay" id = "profileEditModal">
-        <div class = "modal-content">
-            <div class = "modal-header-profile">
-                <span class = "close-btn">&times;</span>
+    <div id="profileEditModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header-profile">
                 <h2>프로필 편집</h2>
+                <span class="close-btn">&times;</span>
             </div>
-            <div class = "modal-body">
-                <form class="profile-edit-form" enctype="multipart/form-data">
-                    <div class = "modal-body-top">
-                        <div class = "profile-image-container">
-                            <div class="profile-image-wrapper">
-                                <img class = "profile-image-preview" src = "image/profile-icon.png" alt = "프로필 사진 미리보기">
-                                <div class="change-photo-overlay">
-                                    <span>사진 변경</span>
+            <div class="modal-body">
+                <form class="profile-edit-form">
+                    <div class="modal-body-container">
+                        <!-- 왼쪽: 유저 정보 수정 -->
+                        <div class="modal-left-section">
+                            <h3 class="section-title">기본 정보</h3>
+                            
+                            <!-- 프로필 이미지 -->
+                            <div class="profile-image-container">
+                                <label>프로필 사진</label>
+                                <div class="profile-image-wrapper">
+                                    <img src="image/profile-icon.png" alt="프로필 이미지" class="profile-image-preview">
+                                    <div class="change-photo-overlay">사진 변경</div>
+                                    <input type="file" id="profileImageUpload" accept="image/*">
                                 </div>
-                                <input type="file" id="profileImageUpload" accept="image/*">
+                            </div>
+                            
+                            <!-- 기본 정보 입력 -->
+                            <div class="user-info-inputs">
+                                <div class="input-profilegroup">
+                                    <label>닉네임</label>
+                                    <input type="text" class="username_input" placeholder="닉네임">
+                                </div>
+                                <div class="input-profilegroup">
+                                    <label>비밀번호</label>
+                                    <input type="password" class="password_input" placeholder="새 비밀번호 (변경시에만 입력)">
+                                </div>
+                                <div class="input-profilegroup">
+                                    <label>비밀번호 확인</label>
+                                    <input type="password" class="password_confirm_input" placeholder="비밀번호 확인">
+                                </div>
+                            </div>
+                            
+                            <!-- 주소 정보 -->
+                            <div class="address-section">
+                                <label>주소 정보</label>
+                                <div class="address-input-profilegroup">
+                                    <input type="text" class="address_input" placeholder="주소를 검색해주세요" readonly>
+                                    <button type="button" class="address-search-btn">주소 검색</button>
+                                </div>
+                                <input type="text" class="detail_address_input" placeholder="상세주소를 입력해주세요">
+                            </div>
+                            
+                            <!-- 프로필 설명 -->
+                            <div class="profile-description-section">
+                                <label>프로필 설명</label>
+                                <textarea class="shortInfo" placeholder="자신을 소개해보세요!" rows="4"></textarea>
                             </div>
                         </div>
-                        <div class = "user_data_input">
-                            <div>
-                                <label for = "username">닉네임</label>
-                                <input type = "text" class = "username_input" name = "username" id = "username" autocomplete = "off" maxlength="8" required>
+                        
+                        <!-- 오른쪽: 알레르기 정보 수정 -->
+                        <div class="modal-right-section">
+                            <h3 class="section-title">알레르기 정보</h3>
+                            <p class="section-description">해당하는 알레르기 항목을 선택해주세요.</p>
+                            
+                            <div class="allergen-checkboxes" id="allergenCheckboxes">
+                                <!-- JavaScript로 동적 생성 -->
                             </div>
-                            <div>
-                                <label for = "password">비밀번호</label>
-                                <input type = "password" class = "password_input" name = "password" id = "password" placeholder = "새 비밀번호 (변경시에만 입력)">
-                            </div>
-                            <div>
-                                <label for = "passwordcheck">비밀번호 확인</label>
-                                <input type = "password" class = "password_confirm_input" name = "password" id = "passwordcheck" placeholder = "비밀번호 확인">
+                            
+                            <div class="allergen-info">
+                                <p class="info-text">
+                                    <i class="info-icon">ℹ️</i>
+                                    선택한 알레르기 정보는 메뉴 추천 시 제외됩니다.
+                                </p>
                             </div>
                         </div>
                     </div>
-                    <div class = "modal-body-bottom">
-                        <div>
-                            <label for = "shortInfo">프로필 설명</label>
-                            <textarea class = "shortInfo" name = "shortInfo" id = "shortInfo" rows="4"></textarea>
-                        </div>
-                    </div>
-                    <div class = "submitBtnContainer">
-                        <button class = "submitBtn" type = "submit">수정</button>
+                    
+                    <!-- 하단 버튼 -->
+                    <div class="modal-footer">
+                        <button type="submit" class="submitBtn">수정 완료</button>
                     </div>
                 </form>
             </div>

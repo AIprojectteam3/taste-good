@@ -82,7 +82,7 @@ async function loadProfileData() {
             return;
         }
 
-        // HTML 요소에 DB 데이터 채우기
+        // 기존 프로필 정보 로드 코드...
         const usernameEl = profileDiv.querySelector('.username_span');
         const levelEl = profileDiv.querySelector('.level_value');
         const postEl = profileDiv.querySelector('.post_span');
@@ -104,7 +104,7 @@ async function loadProfileData() {
             if (userData.profile_image_path && userData.profile_image_path.trim() !== '') {
                 profileImageEl.src = userData.profile_image_path;
             } else {
-                profileImageEl.src = 'image/profile-icon.png'; // 기본 프로필 이미지
+                profileImageEl.src = 'image/profile-icon.png';
             }
             profileImageEl.alt = userData.username + '의 프로필 이미지';
         }
@@ -124,18 +124,38 @@ async function loadProfileData() {
         const profileImagePreview = document.querySelector('.profile-image-preview');
         const passwordInput = document.querySelector('.password_input');
         const passwordConfirmInput = document.querySelector('.password_confirm_input');
-        const passwordContainer = passwordInput?.closest('div');
-        const passwordConfirmContainer = passwordConfirmInput?.closest('div');
+        const addressInput = document.querySelector('.address_input');
+        const detailAddressInput = document.querySelector('.detail_address_input');
 
         if (profileNicknameInput && userData.username !== undefined) {
             profileNicknameInput.value = userData.username;
         }
-
         if (profileDescriptionInput) {
             if (userData && userData.profile_intro && userData.profile_intro.trim() !== "") {
                 profileDescriptionInput.value = userData.profile_intro;
             } else {
-                profileDescriptionInput.value = "프로필 설명이 없습니다. 여기에 자신을 소개해보세요!";
+                profileDescriptionInput.value = "";
+            }
+        }
+        
+        // 주소 정보 설정 (수정된 부분)
+        if (addressInput) {
+            if (userData.address && userData.address.trim() !== '') {
+                addressInput.value = userData.address;
+                console.log('주소 설정됨:', userData.address); // 디버깅용
+            } else {
+                addressInput.value = '';
+                console.log('주소 정보 없음'); // 디버깅용
+            }
+        }
+        
+        if (detailAddressInput) {
+            if (userData.detail_address && userData.detail_address.trim() !== '') {
+                detailAddressInput.value = userData.detail_address;
+                console.log('상세주소 설정됨:', userData.detail_address); // 디버깅용
+            } else {
+                detailAddressInput.value = '';
+                console.log('상세주소 정보 없음'); // 디버깅용
             }
         }
 
@@ -144,19 +164,18 @@ async function loadProfileData() {
             if (userData.profile_image_path && userData.profile_image_path.trim() !== '') {
                 profileImagePreview.src = userData.profile_image_path;
             } else {
-                profileImagePreview.src = 'image/profile-icon.png'; // 기본 프로필 이미지
+                profileImagePreview.src = 'image/profile-icon.png';
             }
         }
 
+        // 소셜 로그인 사용자 비밀번호 필드 처리
         if (userData.sns_id && userData.sns_id.trim() !== '') {
-            // 소셜 로그인 사용자인 경우
             if (passwordInput) {
                 passwordInput.disabled = true;
                 passwordInput.placeholder = "소셜 로그인은 비밀번호를 변경할 수 없습니다";
                 passwordInput.style.backgroundColor = '#f5f5f5';
                 passwordInput.style.color = '#666';
             }
-
             if (passwordConfirmInput) {
                 passwordConfirmInput.disabled = true;
                 passwordConfirmInput.placeholder = "소셜 로그인은 비밀번호를 변경할 수 없습니다";
@@ -164,14 +183,12 @@ async function loadProfileData() {
                 passwordConfirmInput.style.color = '#666';
             }
         } else {
-            // 일반 로그인 사용자인 경우
             if (passwordInput) {
                 passwordInput.disabled = false;
                 passwordInput.placeholder = "새 비밀번호 (변경시에만 입력)";
                 passwordInput.style.backgroundColor = '';
                 passwordInput.style.color = '';
             }
-
             if (passwordConfirmInput) {
                 passwordConfirmInput.disabled = false;
                 passwordConfirmInput.placeholder = "비밀번호 확인";
@@ -180,13 +197,11 @@ async function loadProfileData() {
             }
         }
 
+        // 알레르기 정보 로드
+        await loadUserAllergens();
+
     } catch (error) {
         console.error("프로필 정보를 불러오는 중 예외 발생:", error);
-        const profileDiv = document.querySelector('.myprofile');
-        if (profileDiv) {
-            const usernameEl = profileDiv.querySelector('.username_span');
-            if (usernameEl) usernameEl.textContent = "정보 로드 실패";
-        }
     }
 }
 
@@ -447,13 +462,15 @@ document.querySelectorAll('.card').forEach(card => {
 // 프로필 수정 처리 함수
 async function handleProfileUpdate(event) {
     event.preventDefault();
-
     const formData = new FormData();
+    
     const usernameInput = document.querySelector('.username_input');
     const profileDescInput = document.querySelector('.shortInfo');
     const passwordInput = document.querySelector('.password_input');
     const passwordConfirmInput = document.querySelector('.password_confirm_input');
     const profileImageInput = document.getElementById('profileImageUpload');
+    const addressInput = document.querySelector('.address_input');
+    const detailAddressInput = document.querySelector('.detail_address_input');
 
     // 닉네임 유효성 검사 추가
     if (usernameInput && usernameInput.value.trim()) {
@@ -470,17 +487,14 @@ async function handleProfileUpdate(event) {
         const password = passwordInput.value.trim();
         const passwordConfirm = passwordConfirmInput.value.trim();
         
-        // 비밀번호 유효성 검사
         if (!validatePassword(password)) {
             alert('비밀번호는 8-20자리여야하며, 영문자와 숫자가 모두 포함되어야 합니다.');
             return;
         }
-        
         if (password !== passwordConfirm) {
             alert('비밀번호가 일치하지 않습니다.');
             return;
         }
-
         formData.append('password', password);
         formData.append('passwordConfirm', passwordConfirm);
     }
@@ -493,6 +507,22 @@ async function handleProfileUpdate(event) {
         formData.append('profileImage', profileImageInput.files[0]);
     }
 
+    // 주소 정보 추가
+    if (addressInput && addressInput.value.trim()) {
+        formData.append('address', addressInput.value.trim());
+    }
+    if (detailAddressInput && detailAddressInput.value.trim()) {
+        formData.append('detailAddress', detailAddressInput.value.trim());
+    }
+
+    // 알레르기 정보 추가
+    const checkedAllergens = [];
+    const allergenCheckboxes = document.querySelectorAll('input[name="allergens"]:checked');
+    allergenCheckboxes.forEach(checkbox => {
+        checkedAllergens.push(checkbox.value);
+    });
+    formData.append('allergens', checkedAllergens.join(','));
+
     try {
         const response = await fetch('/api/user/profile', {
             method: 'PUT',
@@ -500,15 +530,12 @@ async function handleProfileUpdate(event) {
         });
 
         const result = await response.json();
-
         if (result.success) {
             alert('프로필이 성공적으로 수정되었습니다.');
-            // 모달 닫기
             const modal = document.querySelector('.modal-overlay');
             if (modal) {
                 modal.style.display = 'none';
             }
-            // 페이지 새로고침하여 변경사항 반영
             window.location.reload();
         } else {
             alert(result.message || '프로필 수정에 실패했습니다.');
@@ -519,9 +546,132 @@ async function handleProfileUpdate(event) {
     }
 }
 
+// 다음 주소 API 초기화
+function initDaumPostcode() {
+    const addressSearchBtn = document.querySelector('.address-search-btn');
+    if (addressSearchBtn) {
+        addressSearchBtn.addEventListener('click', function() {
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    const addressInput = document.querySelector('.address_input');
+                    const detailAddressInput = document.querySelector('.detail_address_input');
+                    
+                    // 주소 정보를 해당 필드에 넣기
+                    addressInput.value = data.address;
+                    detailAddressInput.focus(); // 상세주소 입력란으로 포커스 이동
+                }
+            }).open();
+        });
+    }
+}
+
+// 알레르기 옵션 로드
+async function loadAllergenOptions() {
+    try {
+        const response = await fetch('/api/options/allergens');
+        if (!response.ok) {
+            console.error('알레르기 옵션 로드 실패:', response.status);
+            return;
+        }
+        
+        const allergens = await response.json();
+        const container = document.getElementById('allergenCheckboxes');
+        
+        if (container) {
+            container.innerHTML = '';
+            allergens.forEach(allergen => {
+                const item = document.createElement('div');
+                item.className = 'allergen-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `allergen_${allergen.AllergenID}`;
+                checkbox.value = allergen.AllergenID;
+                checkbox.name = 'allergens';
+                
+                const label = document.createElement('label');
+                label.htmlFor = `allergen_${allergen.AllergenID}`;
+                label.textContent = allergen.AllergenKor;
+                
+                item.appendChild(checkbox);
+                item.appendChild(label);
+                container.appendChild(item);
+            });
+            
+            console.log('알레르기 옵션 로드 완료'); // 디버깅용
+            
+            // 알레르기 옵션이 모두 로드된 후에 사용자 알레르기 정보 로드
+            await loadUserAllergens();
+        }
+    } catch (error) {
+        console.error('알레르기 옵션 로드 중 오류:', error);
+    }
+}
+
+async function refreshAllergenInfo() {
+    console.log('알레르기 정보 새로고침 시작');
+    
+    // 기존 체크 상태 초기화
+    const checkboxes = document.querySelectorAll('input[name="allergens"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // 사용자 알레르기 정보 다시 로드
+    await loadUserAllergens();
+}
+
+// 사용자 알레르기 정보 로드
+async function loadUserAllergens() {
+    try {
+        const response = await fetch('/api/user/allergens');
+        if (!response.ok) {
+            console.error('사용자 알레르기 정보 로드 실패:', response.status);
+            return;
+        }
+        
+        const userAllergens = await response.json();
+        const allergenIds = userAllergens.map(item => item.allergen_id);
+        
+        console.log('사용자 알레르기 정보:', allergenIds); // 디버깅용
+        
+        // 체크박스 상태 업데이트
+        allergenIds.forEach(id => {
+            const checkbox = document.getElementById(`allergen_${id}`);
+            if (checkbox) {
+                checkbox.checked = true;
+                console.log(`알레르기 ${id} 체크됨`); // 디버깅용
+            } else {
+                console.warn(`알레르기 체크박스를 찾을 수 없음: allergen_${id}`);
+            }
+        });
+    } catch (error) {
+        console.error('사용자 알레르기 정보 로드 중 오류:', error);
+    }
+}
+
 // 초기 렌더링 및 이벤트 등록
 document.addEventListener("DOMContentLoaded", async () => {
+    try {
+        const response = await fetch('/api/check-session');
+        const data = await response.json();
+        
+        if (!data.loggedIn) {
+            // AIMenu.js와 동일한 방식 사용
+            alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
+            window.location.href = '/intro.html';
+            return;
+        }
+    } catch (error) {
+        console.error('세션 확인 중 오류:', error);
+        alert('서버와 통신할 수 없습니다. 로그인 페이지로 이동합니다.');
+        window.location.href = '/intro.html';
+        return;
+    }
+
     await loadProfileData();
+    await loadAllergenOptions();
+    initDaumPostcode();
 
     // 사용자 게시물 로드 (첫 번째 탭이므로 바로 로드)
     const userPosts = await fetchUserPosts();
@@ -547,15 +697,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             tabContents.forEach((content) => {
                 content.classList.add("hidden");
-                // 빈 상태 관련 클래스와 스타일 제거
                 content.classList.remove('empty-state-container');
-                content.innerHTML = ''; // 기존 내용 초기화
+                content.innerHTML = '';
             });
 
             const target = document.getElementById(tab.dataset.tab);
             target.classList.remove("hidden");
 
-            // 탭 변경 시 해당 데이터 로드
             if (tab.dataset.tab === 'my-posts') {
                 const userPosts = await fetchUserPosts();
                 if (userPosts.length === 0) {
@@ -582,6 +730,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     const editBtnM = document.querySelector('.edit_icon');
     const closeBtn = document.querySelector('.close-btn');
     const modal = document.getElementById('profileEditModal');
+
+    if (editBtn && modal) {
+        editBtn.addEventListener('click', async () => {
+            modal.style.display = 'flex';
+            await refreshAllergenInfo(); // 모달 열 때마다 알레르기 정보 새로고침
+        });
+    }
+
+    if (editBtnM && modal) {
+        editBtnM.addEventListener('click', async () => {
+            modal.style.display = 'flex';
+            await refreshAllergenInfo(); // 모달 열 때마다 알레르기 정보 새로고침
+        });
+    }
+
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+    }
+
+    if (modal) {
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+
     const profileImageWrapper = document.querySelector('.profile-image-wrapper');
     const profileImagePreview = document.querySelector('.profile-image-preview');
     const profileImageUploadInput = document.getElementById('profileImageUpload');
@@ -606,29 +783,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 alert('이미지 파일만 업로드할 수 있습니다.');
                 // 파일 입력 초기화
                 this.value = null;
-            }
-        });
-    }
-
-    if ((editBtn && modal) || (editBtnM && modal) || (closeBtn && modal)) {
-        editBtn.addEventListener('click', () => {
-            modal.style.display = 'flex';
-        });
-
-        editBtnM.addEventListener('click', () => {
-            modal.style.display = 'flex';
-        });
-
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-    }
-
-    // 모달 외부 클릭 시 닫기
-    if (modal) {
-        modal.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                modal.style.display = 'none';
             }
         });
     }

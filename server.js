@@ -39,7 +39,7 @@ const reloadEnv = () => {
 reloadEnv();
 
 // 4. 확인
-console.log('최종 로드된 키:', process.env.OPENAI_API_KEY);
+// console.log('최종 로드된 키:', process.env.OPENAI_API_KEY);
 
 const { OpenAI } = require('openai');
 const openai = new OpenAI({
@@ -587,6 +587,7 @@ app.get('/api/user', (req, res) => {
             u.username,
             u.email,
             u.address,
+            u.detail_address,
             u.profile_intro,
             u.profile_image_path,
             ul.level,
@@ -624,6 +625,45 @@ app.get('/api/user', (req, res) => {
             console.warn('[WARN] /api/user - User not found in DB for session userId:', userId);
             return res.json(null);
         }
+    });
+});
+
+// ==================================================================================================================
+// 알레르기 정보 조회 API
+// ==================================================================================================================
+app.get('/api/options/allergens', (req, res) => {
+    const query = "SELECT AllergenID, AllergenKor FROM allergen ORDER BY AllergenID";
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('알레르기 옵션 조회 중 오류:', err);
+            return res.status(500).json({ message: '알레르기 데이터를 조회하는 중 오류가 발생했습니다.' });
+        }
+        res.json(results);
+    });
+});
+
+// ==================================================================================================================
+// 알레르기 정보 조회 API
+// ==================================================================================================================
+app.get('/api/user/allergens', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) {
+        return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
+    const query = `
+        SELECT ua.allergen_id, a.AllergenKor 
+        FROM user_allergen ua
+        JOIN allergen a ON ua.allergen_id = a.AllergenID
+        WHERE ua.user_id = ?
+    `;
+    
+    db.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('사용자 알레르기 정보 조회 중 오류:', err);
+            return res.status(500).json({ message: '알레르기 정보를 조회하는 중 오류가 발생했습니다.' });
+        }
+        res.json(results);
     });
 });
 
@@ -1523,7 +1563,7 @@ app.put('/api/user/profile', upload.single('profileImage'), async (req, res) => 
         return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
     }
 
-    const { username, profileDescription, password, passwordConfirm } = req.body;
+    const { username, profileDescription, password, passwordConfirm, address, detailAddress, allergens } = req.body;
     const profileImageFile = req.file;
 
     // 닉네임 변경 시 유효성 검사
@@ -1541,7 +1581,6 @@ app.put('/api/user/profile', upload.single('profileImage'), async (req, res) => 
                     else resolve(results.length > 0);
                 });
             });
-
             if (usernameExists) {
                 return res.status(409).json({ success: false, message: '이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해주세요.' });
             }
@@ -1556,58 +1595,80 @@ app.put('/api/user/profile', upload.single('profileImage'), async (req, res) => 
         if (!validatePassword(password)) {
             return res.status(400).json({ success: false, message: '비밀번호는 8-20자리이며, 영문자와 숫자가 모두 포함되어야 합니다.' });
         }
-        
         if (password !== passwordConfirm) {
             return res.status(400).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
         }
     }
 
-    // 업데이트할 필드들 준비
-    let updateFields = [];
-    let updateValues = [];
+    // 트랜잭션 시작
+    db.beginTransaction(async (txErr) => {
+        if (txErr) {
+            console.error('프로필 수정 트랜잭션 시작 오류:', txErr);
+            return res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+        }
 
-    if (username) {
-        updateFields.push('username = ?');
-        updateValues.push(username.trim());
-    }
-
-    if (profileDescription) {
-        updateFields.push('profile_intro = ?');
-        updateValues.push(profileDescription);
-    }
-
-    if (password) {
         try {
-            // 비밀번호 해시화
-            const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
-            updateFields.push('password = ?');
-            updateValues.push(hashedPassword);
-        } catch (hashError) {
-            console.error('비밀번호 해시화 중 오류:', hashError);
-            return res.status(500).json({ success: false, message: '비밀번호 처리 중 오류가 발생했습니다.' });
+            // 업데이트할 필드들 준비
+            let updateFields = [];
+            let updateValues = [];
+
+            if (username) {
+                updateFields.push('username = ?');
+                updateValues.push(username.trim());
+            }
+            if (profileDescription) {
+                updateFields.push('profile_intro = ?');
+                updateValues.push(profileDescription);
+            }
+            if (address) {
+                updateFields.push('address = ?');
+                updateValues.push(address);
+            }
+            if (detailAddress) {
+                updateFields.push('detail_address = ?');
+                updateValues.push(detailAddress);
+            }
+            if (password) {
+                const saltRounds = 10;
+                const hashedPassword = await bcrypt.hash(password, saltRounds);
+                updateFields.push('password = ?');
+                updateValues.push(hashedPassword);
+            }
+            if (profileImageFile) {
+                updateFields.push('profile_image_path = ?');
+                updateValues.push(profileImageFile.path);
+            }
+
+            // 사용자 정보 업데이트
+            if (updateFields.length > 0) {
+                updateValues.push(userId);
+                const updateQuery = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+                await db.promise().query(updateQuery, updateValues);
+            }
+
+            // 알레르기 정보 업데이트
+            if (allergens !== undefined) {
+                // 기존 알레르기 정보 삭제
+                await db.promise().query('DELETE FROM user_allergen WHERE user_id = ?', [userId]);
+                
+                // 새로운 알레르기 정보 추가
+                if (allergens && allergens.length > 0) {
+                    const allergenList = Array.isArray(allergens) ? allergens : allergens.split(',');
+                    const insertPromises = allergenList.map(allergenId => {
+                        return db.promise().query('INSERT INTO user_allergen (user_id, allergen_id) VALUES (?, ?)', [userId, parseInt(allergenId)]);
+                    });
+                    await Promise.all(insertPromises);
+                }
+            }
+
+            await db.promise().commit();
+            res.json({ success: true, message: '프로필이 성공적으로 수정되었습니다.' });
+
+        } catch (error) {
+            await db.promise().rollback();
+            console.error('프로필 수정 중 오류:', error);
+            res.status(500).json({ success: false, message: '프로필 수정에 실패했습니다.' });
         }
-    }
-
-    if (profileImageFile) {
-        updateFields.push('profile_image_path = ?');
-        updateValues.push(profileImageFile.path);
-    }
-
-    if (updateFields.length === 0) {
-        return res.status(400).json({ success: false, message: '수정할 정보가 없습니다.' });
-    }
-
-    updateValues.push(userId);
-    const updateQuery = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
-
-    db.query(updateQuery, updateValues, (err, result) => {
-        if (err) {
-            console.error('프로필 수정 중 오류:', err);
-            return res.status(500).json({ success: false, message: '프로필 수정에 실패했습니다.' });
-        }
-
-        res.json({ success: true, message: '프로필이 성공적으로 수정되었습니다.' });
     });
 });
 

@@ -780,6 +780,27 @@ async function logSearchClick(searchTerm, clickedPostId) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+    try {
+        const response = await fetch('/api/check-session');
+        const data = await response.json();
+        
+        if (!data.loggedIn) {
+            // confirm을 사용하여 사용자가 확인 버튼을 클릭하도록 함
+            const userConfirmed = confirm('로그인이 필요한 서비스입니다. 로그인 페이지로 이동하시겠습니까?');
+            if (userConfirmed) {
+                window.location.href = '/intro.html';
+            }
+            return;
+        }
+    } catch (error) {
+        console.error('세션 확인 중 오류:', error);
+        const userConfirmed = confirm('서버와 통신할 수 없습니다. 로그인 페이지로 이동하시겠습니까?');
+        if (userConfirmed) {
+            window.location.href = '/intro.html';
+        }
+        return;
+    }
+
     await loadUserLikedPosts();
     await renderCards();
     await loadPosts();
