@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Kakao SDK 초기화
     if (window.Kakao) {
         window.Kakao.init("0ad0234b4cdaf5ff61c8c89276f01dcf");
-        console.log("Kakao SDK 초기화 완료");
+        // console.log("Kakao SDK 초기화 완료");
     } else {
         console.error("Kakao SDK 로드 실패");
     }

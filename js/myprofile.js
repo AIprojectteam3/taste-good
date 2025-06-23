@@ -198,7 +198,7 @@ async function loadProfileData() {
         }
 
         // 알레르기 정보 로드
-        await loadUserAllergens();
+        await loadUserAllergens(false);
 
     } catch (error) {
         console.error("프로필 정보를 불러오는 중 예외 발생:", error);
@@ -573,10 +573,9 @@ async function loadAllergenOptions() {
             console.error('알레르기 옵션 로드 실패:', response.status);
             return;
         }
-        
+
         const allergens = await response.json();
         const container = document.getElementById('allergenCheckboxes');
-        
         if (container) {
             container.innerHTML = '';
             allergens.forEach(allergen => {
@@ -598,10 +597,9 @@ async function loadAllergenOptions() {
                 container.appendChild(item);
             });
             
-            console.log('알레르기 옵션 로드 완료'); // 디버깅용
-            
-            // 알레르기 옵션이 모두 로드된 후에 사용자 알레르기 정보 로드
-            await loadUserAllergens();
+            console.log('알레르기 옵션 로드 완료');
+            // 페이지 로드 시에는 로그 표시 안함
+            await loadUserAllergens(false);
         }
     } catch (error) {
         console.error('알레르기 옵션 로드 중 오류:', error);
@@ -610,39 +608,46 @@ async function loadAllergenOptions() {
 
 async function refreshAllergenInfo() {
     console.log('알레르기 정보 새로고침 시작');
-    
     // 기존 체크 상태 초기화
     const checkboxes = document.querySelectorAll('input[name="allergens"]');
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
     
-    // 사용자 알레르기 정보 다시 로드
-    await loadUserAllergens();
+    // 모달에서 호출할 때는 로그 표시 (true 전달)
+    await loadUserAllergens(true);
 }
 
 // 사용자 알레르기 정보 로드
-async function loadUserAllergens() {
+async function loadUserAllergens(showLogs = false) {
     try {
         const response = await fetch('/api/user/allergens');
         if (!response.ok) {
             console.error('사용자 알레르기 정보 로드 실패:', response.status);
             return;
         }
-        
+
         const userAllergens = await response.json();
         const allergenIds = userAllergens.map(item => item.allergen_id);
         
-        console.log('사용자 알레르기 정보:', allergenIds); // 디버깅용
-        
+        // showLogs가 true일 때만 로그 표시
+        if (showLogs) {
+            console.log('사용자 알레르기 정보:', allergenIds);
+        }
+
         // 체크박스 상태 업데이트
         allergenIds.forEach(id => {
             const checkbox = document.getElementById(`allergen_${id}`);
             if (checkbox) {
                 checkbox.checked = true;
-                console.log(`알레르기 ${id} 체크됨`); // 디버깅용
+                // 모달에서만 개별 체크박스 로그 표시
+                if (showLogs) {
+                    console.log(`알레르기 ${id} 체크됨`);
+                }
             } else {
-                console.warn(`알레르기 체크박스를 찾을 수 없음: allergen_${id}`);
+                if (showLogs) {
+                    console.warn(`알레르기 체크박스를 찾을 수 없음: allergen_${id}`);
+                }
             }
         });
     } catch (error) {

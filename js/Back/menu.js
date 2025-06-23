@@ -126,6 +126,7 @@ function displaySearchRankings(rankings) {
     if (!chartSection) return;
     
     chartSection.innerHTML = '';
+
     const previousRankings = [...currentRankings];
     
     rankings.forEach((item, index) => {
@@ -133,6 +134,7 @@ function displaySearchRankings(rankings) {
         li.className = `rank-item rank-${item.rank_change}`;
         
         const previousItem = previousRankings.find(prev => prev.search_term === item.search_term);
+        
         if (!previousItem) {
             li.classList.add('rank-new-animation');
             li.classList.add('new-entry');
@@ -141,54 +143,66 @@ function displaySearchRankings(rankings) {
         } else if (previousItem.rank < item.rank) {
             li.classList.add('rank-down-animation');
         }
-        
+
         let iconHtml = '';
         const now = new Date();
+
         const isChangeExpired = item.change_expires_at && new Date(item.change_expires_at) <= now;
         
         if (isChangeExpired || item.rank_change === 'same') {
-            iconHtml = '';
+            iconHtml = '<img src="image/no-change-icon.png" alt="변동없음" title="변동없음">';
         } else {
             switch (item.rank_change) {
                 case 'new':
-                    iconHtml = 'NEW';
+                    iconHtml = '<span class="new-badge" title="신규 진입">NEW</span>';
                     li.classList.add('new-entry');
                     break;
                 case 'up':
-                    iconHtml = '↑';
+                    iconHtml = '<img src="image/rank-up-icon.png" alt="상승" title="순위 상승">';
                     break;
                 case 'down':
-                    iconHtml = '↓';
+                    iconHtml = '<img src="image/rank-down-icon.png" alt="하락" title="순위 하락">';
                     break;
                 default:
-                    iconHtml = '';
+                    iconHtml = '<img src="image/no-change-icon.png" alt="변동없음" title="변동없음">';
             }
         }
         
         li.innerHTML = `
             <span class="rank-number">${item.rank}.</span>
-            <span class="search-term" data-search-term="${item.search_term}">${item.search_term}</span>
-            <span class="rank-change">${iconHtml}</span>
+            <span class="search-term" data-search-term="${item.search_term}")">${item.search_term}</span>
+            <div class="rank-info">
+                ${iconHtml}
+                <span class="search-count">${item.search_count}회</span>
+            </div>
         `;
-        
-        // 클릭 이벤트 추가
+
         const searchTermElement = li.querySelector('.search-term');
         searchTermElement.addEventListener('click', function() {
             handleRankingClick(item.search_term);
         });
-        
-        // 스타일 추가 (클릭 가능하다는 것을 표시)
-        searchTermElement.style.cursor = 'pointer';
-        searchTermElement.style.textDecoration = 'none';
-        
-        // 호버 효과
-        searchTermElement.addEventListener('mouseenter', function() {
-            this.style.textDecoration = 'underline';
+
+        li.addEventListener('animationend', function() {
+            li.classList.remove('rank-up-animation', 'rank-down-animation', 'rank-new-animation');
         });
         
-        searchTermElement.addEventListener('mouseleave', function() {
-            this.style.textDecoration = 'none';
-        });
+        if (item.change_expires_at && !isChangeExpired) {
+            const timeUntilExpiry = new Date(item.change_expires_at) - now;
+            if (timeUntilExpiry > 0) {
+                setTimeout(() => {
+                    const rankInfo = li.querySelector('.rank-info');
+                    if (rankInfo) {
+                        const searchCount = li.querySelector('.search-count')?.textContent || '0회';
+                        rankInfo.innerHTML = `
+                            <img src="image/no-change-icon.png" alt="변동없음" title="변동없음">
+                            <span class="search-count">${searchCount}</span>
+                        `;
+                        li.className = 'rank-item rank-same';
+                        li.classList.remove('new-entry');
+                    }
+                }, timeUntilExpiry);
+            }
+        }
         
         chartSection.appendChild(li);
     });

@@ -63,7 +63,7 @@ async function loadUserAllergenInfo() {
             }
             
             // 콘솔에 로드된 알레르기 정보 출력
-            console.log('[사용자 알레르기 정보 로드됨]:', allergens.map(a => a.AllergenKor).join(', '));
+            // console.log('[사용자 알레르기 정보 로드됨]:', allergens.map(a => a.AllergenKor).join(', '));
         } else {
             console.log('[사용자 알레르기 정보]:', '등록된 알레르기 없음');
         }
