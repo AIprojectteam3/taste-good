@@ -575,6 +575,7 @@ function showMenuDetail(menuId) {
             // 안전한 요소 업데이트
             const titleElement = document.getElementById('modal-menu-title');
             const categoryElement = document.getElementById('modal-menu-category');
+
             const kcalElement = document.getElementById('modal-menu-kcal');
             const priceElement = document.getElementById('modal-menu-price');
             const imageElement = document.getElementById('modal-menu-image');
@@ -610,6 +611,29 @@ function showMenuDetail(menuId) {
                     imageElement.style.display = 'none';
                 }
             }
+
+            fetch(`/api/menu/${menuId}/allergens`)
+                .then(response => response.json())
+                .then(allergens => {
+                    const allergenContainer = document.getElementById('modal-menu-allergens');
+                    
+                    if (allergenContainer) {
+                        if (allergens.length > 0) {
+                            allergenContainer.innerHTML = allergens.map(allergen => 
+                                `<span class="allergen-tag">${allergen.AllergenKor}</span>`
+                            ).join('');
+                        } else {
+                            allergenContainer.innerHTML = '<span class="no-allergen">알레르기 정보 없음</span>';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('알레르기 정보 조회 오류:', error);
+                    const allergenContainer = document.getElementById('modal-menu-allergens');
+                    if (allergenContainer) {
+                        allergenContainer.innerHTML = '<span class="no-allergen">알레르기 정보 조회 실패</span>';
+                    }
+                });
             
             // GPT 응답 표시 (lastGPTData가 있는 경우)
             displayGPTResponseInModal(menuData.MenuKor);

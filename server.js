@@ -643,7 +643,7 @@ app.get('/api/options/allergens', (req, res) => {
 });
 
 // ==================================================================================================================
-// 알레르기 정보 조회 API
+// 유저 알레르기 정보 조회 API
 // ==================================================================================================================
 app.get('/api/user/allergens', (req, res) => {
     const userId = req.session.userId;
@@ -663,6 +663,34 @@ app.get('/api/user/allergens', (req, res) => {
             console.error('사용자 알레르기 정보 조회 중 오류:', err);
             return res.status(500).json({ message: '알레르기 정보를 조회하는 중 오류가 발생했습니다.' });
         }
+        res.json(results);
+    });
+});
+
+// ==================================================================================================================
+// 메뉴 알레르기 정보 조회 API
+// ==================================================================================================================
+app.get('/api/menu/:menuId/allergens', (req, res) => {
+    const menuId = req.params.menuId;
+    
+    if (!menuId || isNaN(parseInt(menuId))) {
+        return res.status(400).json({ error: '유효한 메뉴 ID가 필요합니다.' });
+    }
+
+    const query = `
+        SELECT a.AllergenID, a.AllergenKor
+        FROM menuallergen ma
+        JOIN allergen a ON ma.AllergenID = a.AllergenID
+        WHERE ma.MenuID = ?
+        ORDER BY a.AllergenID
+    `;
+
+    db.query(query, [menuId], (err, results) => {
+        if (err) {
+            console.error('메뉴 알레르기 정보 조회 중 오류:', err);
+            return res.status(500).json({ error: '알레르기 정보를 조회하는 중 오류가 발생했습니다.' });
+        }
+
         res.json(results);
     });
 });
