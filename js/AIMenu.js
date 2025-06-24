@@ -300,18 +300,18 @@ function getRecommendation() {
     const peopleCount = document.getElementById('people-slider').value;
     const menuCount = document.getElementById('menu-count-slider').value;
 
-    console.log('[AI 메뉴 추천 요청] 선택값:', {
-        category: selectedCategories,
-        need: selectedNeeds,
-        goal: selectedGoals,
-        season: selectedSeason,
-        weather: selectedWeathers,
-        time: selectedTimes,
-        maxKcal,
-        maxPrice,
-        peopleCount,
-        menuCount
-    });
+    // console.log('[AI 메뉴 추천 요청] 선택값:', {
+    //     category: selectedCategories,
+    //     need: selectedNeeds,
+    //     goal: selectedGoals,
+    //     season: selectedSeason,
+    //     weather: selectedWeathers,
+    //     time: selectedTimes,
+    //     maxKcal,
+    //     maxPrice,
+    //     peopleCount,
+    //     menuCount
+    // });
 
     // API 요청 파라미터 구성
     const params = new URLSearchParams();
@@ -548,6 +548,7 @@ let mapInitialized = false;
 let kakaoMap = null;
 let userMarker = null;
 let restaurantMarkers = [];
+let restaurantOverlays = [];
 
 // 메뉴 상세 정보 표시 함수 (안전한 요소 접근)
 function showMenuDetail(menuId) {
@@ -559,6 +560,8 @@ function showMenuDetail(menuId) {
         alert('메뉴 상세 정보를 표시할 수 없습니다.');
         return;
     }
+    
+    displayUserAddressInfo();
     
     // 메뉴 상세 정보 가져오기
     fetch(`/api/menu/${menuId}`)
@@ -597,6 +600,10 @@ function showMenuDetail(menuId) {
             if (imageElement) {
                 if (menuData.imagePath) {
                     imageElement.src = menuData.imagePath;
+                    imageElement.onerror = function() {
+                        this.onerror = null; // 무한 루프 방지
+                        this.src = '../image/food-icon.png'; // 기본 이미지 경로
+                    };
                     imageElement.alt = menuData.MenuKor;
                     imageElement.style.display = 'block';
                 } else {
@@ -726,7 +733,7 @@ function displayGPTResponseInModal(menuName) {
 }
 
 // 지도 초기화 함수 (한 번만 실행되도록 수정)
-function initializeMapOnce(menuName) {
+async function initializeMapOnce(menuName) {
     // 이미 초기화되었다면 기존 마커만 정리하고 새로운 검색 실행
     if (mapInitialized && kakaoMap) {
         clearRestaurantMarkers();
@@ -745,45 +752,128 @@ function initializeMapOnce(menuName) {
         return;
     }
     
-    // 사용자 위치 가져오기
+    try {
+        // 사용자 정보 가져오기
+        const userResponse = await fetch('/api/user');
+        const userData = await userResponse.json();
+        
+        if (userData && userData.address) {
+            // 사용자 주소가 있는 경우 주소를 좌표로 변환
+            const fullAddress = userData.address;
+            
+            console.log('[INFO] 사용자 주소로 지도 초기화:', fullAddress);
+            initializeMapWithAddress(fullAddress, menuName);
+        } else {
+            // 사용자 주소가 없는 경우 현재 위치 사용
+            console.log('[INFO] 사용자 주소 없음, 현재 위치로 지도 초기화');
+            initializeMapWithCurrentLocation(menuName);
+        }
+    } catch (error) {
+        console.error('사용자 정보 가져오기 실패:', error);
+        // 오류 발생 시 현재 위치로 대체
+        initializeMapWithCurrentLocation(menuName);
+    }
+}
+
+function initializeMapWithAddress(address, menuName) {
+    console.log('주소 기반 지도 초기화 시작:', address);
+    
+    kakao.maps.load(() => {
+        // services 라이브러리 로드 확인
+        if (!kakao.maps.services) {
+            console.error('카카오 지도 services 라이브러리가 로드되지 않았습니다.');
+            // services 라이브러리가 없으면 현재 위치로 대체
+            initializeMapWithCurrentLocation(menuName);
+            return;
+        }
+        
+        const geocoder = new kakao.maps.services.Geocoder();
+        
+        // 주소 전처리 (괄호 제거 등)
+        const cleanedAddress = address.replace(/\([^)]*\)/g, '').trim();
+        console.log('정제된 주소:', cleanedAddress);
+        
+        geocoder.addressSearch(cleanedAddress, function(result, status) {
+            console.log('Geocoder 결과:', result, 'Status:', status);
+            
+            if (status === kakao.maps.services.Status.OK) {
+                const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                console.log('변환된 좌표:', coords);
+                
+                // 지도 옵션 설정
+                const mapOption = {
+                    center: coords,
+                    level: 6
+                };
+                
+                // 지도 생성
+                const mapContainer = document.getElementById('map');
+                kakaoMap = new kakao.maps.Map(mapContainer, mapOption);
+                mapInitialized = true;
+                
+                console.log('지도 생성 완료');
+                
+                // 사용자 주소 마커 생성
+                createAddressMarker(coords, address);
+                
+                // 주변 식당 검색
+                searchNearbyRestaurants(menuName);
+                
+                console.log('주소 기반 지도 초기화 완료:', address);
+            } else {
+                console.error('주소 검색 실패:', cleanedAddress, 'Status:', status);
+                // 주소 검색 실패 시 현재 위치로 대체
+                initializeMapWithCurrentLocation(menuName);
+            }
+        });
+    });
+}
+
+function initializeMapWithCurrentLocation(menuName) {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
                 
-                // 지도 옵션 설정
-                const mapOption = {
-                    center: new kakao.maps.LatLng(lat, lng),
-                    level: 3
-                };
-                
-                // 지도 생성
-                kakaoMap = new kakao.maps.Map(mapContainer, mapOption);
-                mapInitialized = true;
-                
-                // 사용자 위치 마커 생성
-                createUserLocationMarker(lat, lng);
-                
-                // 주변 식당 검색 (처음 한 번만)
-                searchNearbyRestaurants(menuName);
-                
-                console.log('지도 초기화 완료 및 주변 식당 검색 실행');
+                kakao.maps.load(() => {
+                    // 지도 옵션 설정
+                    const mapOption = {
+                        center: new kakao.maps.LatLng(lat, lng),
+                        level: 6
+                    };
+                    
+                    // 지도 생성
+                    const mapContainer = document.getElementById('map');
+                    kakaoMap = new kakao.maps.Map(mapContainer, mapOption);
+                    mapInitialized = true;
+                    
+                    // 사용자 위치 마커 생성
+                    createUserLocationMarker(lat, lng);
+                    
+                    // 주변 식당 검색
+                    searchNearbyRestaurants(menuName);
+                    
+                    console.log('현재 위치 기반 지도 초기화 완료');
+                });
             },
             (error) => {
                 console.error('위치 정보를 가져올 수 없습니다:', error);
                 
                 // 기본 위치로 지도 생성 (서울 시청)
-                const defaultMapOption = {
-                    center: new kakao.maps.LatLng(37.5665, 126.9780),
-                    level: 3
-                };
-                
-                kakaoMap = new kakao.maps.Map(mapContainer, defaultMapOption);
-                mapInitialized = true;
-                
-                // 기본 위치에서 식당 검색
-                searchNearbyRestaurants(menuName);
+                kakao.maps.load(() => {
+                    // 기본 위치로 지도 생성
+                    const defaultMapOption = {
+                        center: new kakao.maps.LatLng(37.5665, 126.9780),
+                        level: 6
+                    };
+                    
+                    const mapContainer = document.getElementById('map');
+                    kakaoMap = new kakao.maps.Map(mapContainer, defaultMapOption);
+                    mapInitialized = true;
+                    
+                    searchNearbyRestaurants(menuName);
+                });
             }
         );
     } else {
@@ -792,9 +882,10 @@ function initializeMapOnce(menuName) {
         // 기본 위치로 지도 생성
         const defaultMapOption = {
             center: new kakao.maps.LatLng(37.5665, 126.9780),
-            level: 3
+            level: 6
         };
         
+        const mapContainer = document.getElementById('map');
         kakaoMap = new kakao.maps.Map(mapContainer, defaultMapOption);
         mapInitialized = true;
         
@@ -802,38 +893,108 @@ function initializeMapOnce(menuName) {
     }
 }
 
-// 사용자 위치 마커 생성
-function createUserLocationMarker(lat, lng) {
-    if (!kakaoMap) return;
+function createAddressMarker(coords, address) {
+    console.log('주소 마커 생성 시작:', coords, address);
     
-    const userPosition = new kakao.maps.LatLng(lat, lng);
+    if (!kakaoMap) {
+        console.error('지도가 초기화되지 않았습니다.');
+        return;
+    }
     
     // 기존 사용자 마커 제거
     if (userMarker) {
         userMarker.setMap(null);
+        console.log('기존 마커 제거됨');
     }
     
-    // 사용자 위치 마커 생성
+    // 사용자 주소 마커 생성
     userMarker = new kakao.maps.Marker({
-        position: userPosition,
+        position: coords,
         map: kakaoMap
     });
     
-    // 사용자 위치 정보창
-    const userInfoWindow = new kakao.maps.InfoWindow({
-        content: '<div class="myLocDiv"><div class="myLoc">내 위치</div><div class="myLocAddress">현재 위치</div></div>',
-        removable: false
+    console.log('새 마커 생성됨:', userMarker);
+    
+    const addressOverlay = new kakao.maps.CustomOverlay({
+        position: coords,
+        content: `
+            <div class="myLocDiv" style="
+                background: white;
+                border: 2px solid #007bff;
+                border-radius: 8px;
+                padding: 8px 12px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                text-align: center;
+                font-size: 12px;
+                min-width: 120px;
+                position: relative;
+                bottom: 50px;
+            ">
+                <div class="myLoc" style="
+                    font-weight: bold;
+                    color: #007bff;
+                    margin-bottom: 2px;
+                ">내 주소</div>
+                <div class="myLocAddress" style="
+                    color: #666;
+                    font-size: 11px;
+                ">${address}</div>
+            </div>
+        `,
+        yAnchor: 1,
+        xAnchor: 0.5
     });
     
-    userInfoWindow.open(kakaoMap, userMarker);
+    addressOverlay.setMap(kakaoMap);
+    
+    // 지도 중심을 사용자 주소로 설정
+    kakaoMap.setCenter(coords);
+    console.log('지도 중심 설정 완료:', coords);
+}
+
+// 사용자 위치 마커 생성
+function createUserLocationMarker(lat, lng) {
+    if (!kakaoMap) return;
+    
+    kakao.maps.load(() => {
+        // 기존 사용자 마커 제거
+        if (userMarker) {
+            userMarker.setMap(null);
+        }
+        
+        // 사용자 위치 마커 생성
+        const position = new kakao.maps.LatLng(lat, lng);
+        userMarker = new kakao.maps.Marker({
+            position: position,
+            map: kakaoMap
+        });
+        
+        // 위치 정보창
+        const locationInfoWindow = new kakao.maps.InfoWindow({
+            content: '<div class="myLocDiv"><div class="myLoc">현재 위치</div></div>',
+            removable: false
+        });
+        
+        locationInfoWindow.open(kakaoMap, userMarker);
+        
+        // 지도 중심을 현재 위치로 설정
+        kakaoMap.setCenter(position);
+    });
 }
 
 // 식당 마커들 정리 함수
 function clearRestaurantMarkers() {
+    // 기존 식당 마커들 제거
     restaurantMarkers.forEach(marker => {
         marker.setMap(null);
     });
     restaurantMarkers = [];
+    
+    // 식당 오버레이들도 제거
+    restaurantOverlays.forEach(overlay => {
+        overlay.setMap(null);
+    });
+    restaurantOverlays = [];
 }
 
 // 주변 식당 검색 함수 (처음 한 번만 실행)
@@ -843,90 +1004,164 @@ function searchNearbyRestaurants(menuName) {
         return;
     }
     
-    // 기존 식당 마커들 제거
-    clearRestaurantMarkers();
-    
-    const ps = new kakao.maps.services.Places();
-    const center = kakaoMap.getCenter();
-    
-    // 검색 옵션 설정
-    const searchOptions = {
-        location: center,
-        radius: 2000, // 2km 반경
-        sort: kakao.maps.services.SortBy.DISTANCE
-    };
-    
-    // 메뉴명으로 식당 검색
-    ps.keywordSearch(`${menuName} 맛집`, (data, status) => {
-        if (status === kakao.maps.services.Status.OK) {
-            console.log(`"${menuName}" 관련 식당 ${data.length}개 발견`);
-            
-            // 최대 10개 식당만 표시
-            const limitedData = data.slice(0, 10);
-            
-            limitedData.forEach((place, index) => {
-                const marker = new kakao.maps.Marker({
-                    position: new kakao.maps.LatLng(place.y, place.x),
-                    map: kakaoMap
-                });
+    kakao.maps.load(() => {
+        // services 라이브러리 확인
+        if (!kakao.maps.services) {
+            console.error('카카오 지도 services 라이브러리가 로드되지 않았습니다.');
+            return;
+        }
+        
+        // 기존 식당 마커들 제거
+        clearRestaurantMarkers();
+        
+        const ps = new kakao.maps.services.Places();
+        const center = kakaoMap.getCenter();
+        
+        // 검색 옵션 설정
+        const searchOptions = {
+            location: center,
+            radius: 2000, // 2km 반경
+            sort: kakao.maps.services.SortBy.DISTANCE
+        };
+        
+        // 메뉴명으로 식당 검색
+        ps.keywordSearch(`${menuName} 맛집`, (data, status) => {
+            if (status === kakao.maps.services.Status.OK) {
+                console.log(`"${menuName}" 관련 식당 ${data.length}개 발견`);
                 
-                const infoWindow = new kakao.maps.InfoWindow({
+                // 최대 10개 식당만 표시
+                const limitedData = data.slice(0, 10);
+                
+                limitedData.forEach((place, index) => {
+                    const marker = new kakao.maps.Marker({
+                        position: new kakao.maps.LatLng(place.y, place.x),
+                        map: kakaoMap
+                    });
+                    
+                    // CustomOverlay로 식당 정보 표시 (내 주소와 동일한 디자인)
+                    const restaurantOverlay = new kakao.maps.CustomOverlay({
+                        position: new kakao.maps.LatLng(place.y, place.x),
+                        content: `
+                            <div class="restaurant-info-div" style="
+                                background: white;
+                                border: 2px solid #ff6b6b;
+                                border-radius: 8px;
+                                padding: 8px 12px;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                                text-align: center;
+                                font-size: 12px;
+                                min-width: 200px;
+                                position: relative;
+                                bottom: 50px;
+                            ">
+                                <div class="restaurant-name" style="
+                                    font-weight: bold;
+                                    color: #ff6b6b;
+                                    margin-bottom: 4px;
+                                    font-size: 13px;
+                                ">${place.place_name}</div>
+                                <div class="restaurant-category" style="
+                                    color: #666;
+                                    font-size: 11px;
+                                    margin-bottom: 2px;
+                                ">${place.category_name}</div>
+                                <div class="restaurant-address" style="
+                                    color: #666;
+                                    font-size: 11px;
+                                    margin-bottom: 2px;
+                                ">${place.road_address_name || place.address_name}</div>
+                                <div class="restaurant-phone" style="
+                                    color: #666;
+                                    font-size: 11px;
+                                ">${place.phone || '전화번호 없음'}</div>
+                                <button class="close-overlay-btn" onclick="closeRestaurantOverlay(${index})" style="
+                                    position: absolute;
+                                    top: 5px;
+                                    right: 8px;
+                                    background: none;
+                                    border: none;
+                                    color: #ff6b6b;
+                                    font-size: 16px;
+                                    cursor: pointer;
+                                    line-height: 1;
+                                ">×</button>
+                            </div>
+                        `,
+                        yAnchor: 1,
+                        xAnchor: 0.5
+                    });
+                    
+                    // 마커 클릭 이벤트로 오버레이 토글
+                    kakao.maps.event.addListener(marker, 'click', () => {
+                        // 다른 식당 오버레이들 숨기기
+                        restaurantOverlays.forEach((overlay, idx) => {
+                            if (idx !== index) {
+                                overlay.setMap(null);
+                            }
+                        });
+                        
+                        // 현재 오버레이 토글
+                        if (restaurantOverlay.getMap()) {
+                            restaurantOverlay.setMap(null);
+                        } else {
+                            restaurantOverlay.setMap(kakaoMap);
+                        }
+                    });
+                    
+                    restaurantMarkers.push(marker);
+                    restaurantOverlays.push(restaurantOverlay);
+                });
+            } else {
+                console.log(`"${menuName}" 관련 식당을 찾을 수 없습니다.`);
+                
+                // 지도 중앙에 "주변에 관련 식당이 없습니다" 텍스트 표시
+                const customOverlay = new kakao.maps.CustomOverlay({
+                    position: center,
                     content: `
-                        <div style="padding:8px; min-width:200px;">
-                            <div style="font-weight:bold; margin-bottom:4px;">${place.place_name}</div>
-                            <div style="font-size:12px; color:#666; margin-bottom:2px;">${place.category_name}</div>
-                            <div style="font-size:12px; color:#666; margin-bottom:2px;">${place.road_address_name || place.address_name}</div>
-                            <div style="font-size:12px; color:#666;">${place.phone || '전화번호 없음'}</div>
+                        <div class="customoverlay" id="no-restaurant-overlay" style="
+                            background: white;
+                            border: 2px solid #ff6b6b;
+                            border-radius: 8px;
+                            padding: 12px 16px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                            text-align: center;
+                            font-size: 14px;
+                            font-weight: bold;
+                            color: #ff6b6b;
+                            min-width: 200px;
+                            transition: opacity 0.5s ease;
+                            opacity: 1;
+                        ">
+                            주변에 "${menuName}" 관련 식당이 없습니다
                         </div>
                     `,
-                    removable: true
+                    yAnchor: 0.5,
+                    xAnchor: 0.5
                 });
                 
-                // 마커 클릭 이벤트
-                kakao.maps.event.addListener(marker, 'click', () => {
-                    infoWindow.open(kakaoMap, marker);
-                });
+                customOverlay.setMap(kakaoMap);
                 
-                restaurantMarkers.push(marker);
-            });
-        } else {
-            console.log(`"${menuName}" 관련 식당을 찾을 수 없습니다.`);
-            
-            // 일반 식당 검색으로 대체
-            ps.keywordSearch('맛집', (data, status) => {
-                if (status === kakao.maps.services.Status.OK) {
-                    console.log(`일반 맛집 ${data.length}개 발견`);
-                    
-                    const limitedData = data.slice(0, 10);
-                    
-                    limitedData.forEach((place) => {
-                        const marker = new kakao.maps.Marker({
-                            position: new kakao.maps.LatLng(place.y, place.x),
-                            map: kakaoMap
-                        });
-                        
-                        const infoWindow = new kakao.maps.InfoWindow({
-                            content: `
-                                <div style="padding:8px; min-width:200px;">
-                                    <div style="font-weight:bold; margin-bottom:4px;">${place.place_name}</div>
-                                    <div style="font-size:12px; color:#666; margin-bottom:2px;">${place.category_name}</div>
-                                    <div style="font-size:12px; color:#666; margin-bottom:2px;">${place.road_address_name || place.address_name}</div>
-                                    <div style="font-size:12px; color:#666;">${place.phone || '전화번호 없음'}</div>
-                                </div>
-                            `,
-                            removable: true
-                        });
-                        
-                        kakao.maps.event.addListener(marker, 'click', () => {
-                            infoWindow.open(kakaoMap, marker);
-                        });
-                        
-                        restaurantMarkers.push(marker);
-                    });
-                }
-            }, searchOptions);
-        }
-    }, searchOptions);
+                // 간단한 페이드 아웃 처리
+                setTimeout(() => {
+                    const overlayDiv = document.getElementById('no-restaurant-overlay');
+                    if (overlayDiv) {
+                        overlayDiv.style.opacity = '0';
+                        setTimeout(() => {
+                            customOverlay.setMap(null);
+                        }, 500);
+                    } else {
+                        customOverlay.setMap(null);
+                    }
+                }, 2500);
+            }
+        }, searchOptions);
+    });
+}
+
+function closeRestaurantOverlay(index) {
+    if (restaurantOverlays[index]) {
+        restaurantOverlays[index].setMap(null);
+    }
 }
 
 // 모달 설정 함수
@@ -947,4 +1182,28 @@ function setupModal() {
             // 지도는 초기화 상태를 유지, 마커들도 그대로 유지
         }
     });
+}
+
+// 사용자 주소 정보 표시 함수
+async function displayUserAddressInfo() {
+    try {
+        const userResponse = await fetch('/api/user');
+        const userData = await userResponse.json();
+        
+        const addressInfoElement = document.getElementById('user-address-info');
+        if (addressInfoElement && userData && userData.address) {
+            const fullAddress = userData.detail_address 
+                ? `${userData.address} ${userData.detail_address}` 
+                : userData.address;
+            
+            addressInfoElement.innerHTML = `
+                <div style="margin-bottom: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; font-size: 12px;">
+                    📍 설정된 주소: ${fullAddress}
+                </div>
+            `;
+            addressInfoElement.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('사용자 주소 정보 표시 실패:', error);
+    }
 }
