@@ -377,14 +377,13 @@ function displayMenuCardsOnly(data) {
     if (data.error && !data.gpt) {
         resultsContainer.innerHTML = `
             <div class="error-message">
-                <h3>⚠️ 서비스 일시 중단</h3>
+                <h3>⚠️ 오류 발생</h3>
                 <p>${data.error}</p>
-                <p>잠시 후 다시 시도해주세요.</p>
             </div>
         `;
         return;
     }
-
+    
     // 메뉴 카드만 표시
     if (data.menus && data.menus.length > 0) {
         let menuCardsHTML = `
@@ -394,17 +393,23 @@ function displayMenuCardsOnly(data) {
         `;
         
         data.menus.forEach(menu => {
+            const imageHTML = menu.imagePath 
+                ? `<img src="${menu.imagePath}" alt="${menu.MenuKor}" class="menu-card-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+                : '';
+            
+            const placeholderHTML = menu.imagePath 
+                ? `<div class="menu-card-placeholder" style="display: none;">🍽️</div>`
+                : `<div class="menu-card-placeholder">🍽️</div>`;
+            
             menuCardsHTML += `
                 <div class="menu-card" onclick="showMenuDetail(${menu.MenuID})">
-                    <img src="${menu.imagePath || '../image/food-icon.png'}" 
-                            alt="${menu.MenuKor}" 
-                            class="menu-card-image"
-                            onerror="this.onerror=null; this.src='../image/food-icon.png';">
+                    ${imageHTML}
+                    ${placeholderHTML}
                     <div class="menu-card-content">
                         <h4>${menu.MenuKor}</h4>
-                        <p class="menu-category">${menu.Category || '정보 없음'}</p>
-                        <p class="menu-kcal">${menu.kcal || '정보 없음'}kcal</p>
-                        <p class="menu-price">${menu.Price ? menu.Price.toLocaleString() + '원' : '정보 없음'}</p>
+                        <p class="menu-category">${menu.Category}</p>
+                        <p class="menu-kcal">🔥 ${menu.kcal}kcal</p>
+                        <p class="menu-price">💰 ${menu.Price.toLocaleString()}원</p>
                     </div>
                 </div>
             `;
@@ -412,26 +417,27 @@ function displayMenuCardsOnly(data) {
         
         resultsContainer.innerHTML = menuCardsHTML;
         
-        // 나중에 모달에서 사용할 수 있도록 데이터 저장
-        window.lastGPTData = data;
+        // GPT 응답 저장 (모달용)
+        window.lastGPTData = {
+            gpt: data.gpt,
+            menuSpecificResponses: data.menuSpecificResponses,
+            fallbackLevel: data.fallbackLevel,
+            totalFiltered: data.totalFiltered
+        };
         
-        // 고급 수평 스크롤 마우스 휠 이벤트 추가
-        setupAdvancedHorizontalMouseWheelScroll();
-
+        // 메뉴 카드 표시 후 스크롤 기능 설정
         setTimeout(() => {
-            smoothScrollToBottom();
-        }, 200);
+            setupHorizontalWheelScroll();
+            setupTouchSwipe();
+        }, 100);
+        
     } else {
         resultsContainer.innerHTML = `
             <div class="no-results">
-                <h3>😅 추천 결과 없음</h3>
-                <p>조건에 맞는 메뉴를 찾을 수 없습니다. 다른 조건으로 시도해보세요.</p>
+                <h3>😅 추천 메뉴가 없습니다</h3>
+                <p>조건을 조정해서 다시 시도해보세요.</p>
             </div>
         `;
-
-        setTimeout(() => {
-            smoothScrollToBottom();
-        }, 200);
     }
 }
 
@@ -524,23 +530,6 @@ function advancedSmoothScrollStep() {
     
     // 다음 프레임 계속
     requestAnimationFrame(advancedSmoothScrollStep);
-}
-
-// 고급 버전 사용 시 이벤트 리스너 설정
-function setupAdvancedHorizontalMouseWheelScroll() {
-    const menuCardsContainer = document.querySelector('.menu-cards-container');
-    
-    if (!menuCardsContainer) {
-        return;
-    }
-    
-    // 기존 이벤트 리스너 제거 (중복 방지)
-    menuCardsContainer.removeEventListener('wheel', handleAdvancedHorizontalScroll);
-    
-    // 새로운 이벤트 리스너 추가
-    menuCardsContainer.addEventListener('wheel', handleAdvancedHorizontalScroll, { passive: false });
-    
-    console.log('고급 부드러운 수평 스크롤 설정 완료');
 }
 
 // 지도 관련 변수들 (한 번만 초기화되도록 수정)
@@ -1249,4 +1238,131 @@ async function displayUserAddressInfo() {
     } catch (error) {
         console.error('사용자 주소 정보 표시 실패:', error);
     }
+}
+
+// 메뉴 카드 컨테이너에 마우스 휠 스크롤 기능 추가
+function setupHorizontalWheelScroll() {
+    const menuCardsContainer = document.querySelector('.menu-cards-container');
+    
+    if (!menuCardsContainer) return;
+    
+    // 카드 너비 + gap 계산
+    const getCardWidth = () => {
+        const card = menuCardsContainer.querySelector('.menu-card');
+        if (!card) return 295; // 기본값: 280px(카드) + 15px(gap)
+        
+        const cardStyle = window.getComputedStyle(card);
+        const cardWidth = parseFloat(cardStyle.width);
+        const gap = parseFloat(window.getComputedStyle(menuCardsContainer).gap) || 15;
+        
+        return cardWidth + gap;
+    };
+    
+    // 휠 이벤트 리스너 추가
+    menuCardsContainer.addEventListener('wheel', (e) => {
+        e.preventDefault(); // 기본 세로 스크롤 방지
+        
+        const cardWidth = getCardWidth();
+        const scrollDirection = e.deltaY > 0 ? 1 : -1; // 휠 방향 감지
+        
+        // 현재 스크롤 위치에서 카드 하나만큼 이동
+        menuCardsContainer.scrollBy({
+            left: cardWidth * scrollDirection,
+            behavior: 'smooth'
+        });
+    }, { passive: false });
+    
+    console.log('메뉴 카드 마우스 휠 스크롤 설정 완료');
+}
+
+// 터치 스와이프 지원 (모바일용)
+function setupTouchSwipe() {
+    const menuCardsContainer = document.querySelector('.menu-cards-container');
+    
+    if (!menuCardsContainer) return;
+    
+    let startX = 0;
+    let scrollLeft = 0;
+    let isDown = false;
+    let startTime = 0;
+    
+    menuCardsContainer.addEventListener('touchstart', (e) => {
+        isDown = true;
+        startTime = Date.now();
+        startX = e.touches[0].pageX - menuCardsContainer.offsetLeft;
+        scrollLeft = menuCardsContainer.scrollLeft;
+        
+        // 스크롤 애니메이션 중단
+        menuCardsContainer.style.scrollBehavior = 'auto';
+    }, { passive: false });
+    
+    menuCardsContainer.addEventListener('touchmove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        
+        const x = e.touches[0].pageX - menuCardsContainer.offsetLeft;
+        const walk = (x - startX) * 1.5; // 스크롤 속도 조절
+        menuCardsContainer.scrollLeft = scrollLeft - walk;
+    }, { passive: false });
+    
+    menuCardsContainer.addEventListener('touchend', (e) => {
+        if (!isDown) return;
+        isDown = false;
+        
+        const endTime = Date.now();
+        const touchDuration = endTime - startTime;
+        const endX = e.changedTouches[0].pageX - menuCardsContainer.offsetLeft;
+        const distance = Math.abs(endX - startX);
+        
+        // 부드러운 스크롤 다시 활성화
+        menuCardsContainer.style.scrollBehavior = 'smooth';
+        
+        // 빠른 스와이프인지 판단 (플릭 제스처)
+        const isFlick = touchDuration < 300 && distance > 50;
+        
+        if (isFlick) {
+            // 플릭 방향에 따라 다음/이전 카드로 이동
+            const direction = endX > startX ? -1 : 1;
+            scrollToAdjacentCard(direction);
+        } else {
+            // 일반 스와이프는 가장 가까운 카드로 스냅
+            snapToNearestCard();
+        }
+    }, { passive: false });
+}
+
+// 가장 가까운 카드로 스냅하는 함수 구현
+function snapToNearestCard() {
+    const menuCardsContainer = document.querySelector('.menu-cards-container');
+    if (!menuCardsContainer) return;
+    
+    const cardWidth = 280 + 15; // 카드 너비 + gap
+    const currentScroll = menuCardsContainer.scrollLeft;
+    const nearestCardIndex = Math.round(currentScroll / cardWidth);
+    const targetScroll = nearestCardIndex * cardWidth;
+    
+    menuCardsContainer.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+    });
+}
+
+function scrollToAdjacentCard(direction) {
+    const menuCardsContainer = document.querySelector('.menu-cards-container');
+    if (!menuCardsContainer) return;
+    
+    const cardWidth = 280 + 15; // 카드 너비 + gap
+    const currentScroll = menuCardsContainer.scrollLeft;
+    const currentCardIndex = Math.round(currentScroll / cardWidth);
+    const targetCardIndex = Math.max(0, currentCardIndex + direction);
+    const targetScroll = targetCardIndex * cardWidth;
+    
+    // 스크롤 범위 체크
+    const maxScroll = menuCardsContainer.scrollWidth - menuCardsContainer.clientWidth;
+    const finalScroll = Math.min(Math.max(0, targetScroll), maxScroll);
+    
+    menuCardsContainer.scrollTo({
+        left: finalScroll,
+        behavior: 'smooth'
+    });
 }
