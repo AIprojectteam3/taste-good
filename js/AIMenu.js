@@ -913,8 +913,6 @@ function createAddressMarker(coords, address) {
         map: kakaoMap
     });
     
-    console.log('새 마커 생성됨:', userMarker);
-    
     const addressOverlay = new kakao.maps.CustomOverlay({
         position: coords,
         content: `
@@ -961,12 +959,22 @@ function createUserLocationMarker(lat, lng) {
         if (userMarker) {
             userMarker.setMap(null);
         }
+
+        const imageSrc = '../image/myloc-icon.png'; // 마커 이미지 경로
+        const imageSize = new kakao.maps.Size(40, 40); // 마커 이미지 크기 (적절히 조정)
+        const imageOption = {
+            offset: new kakao.maps.Point(20, 20) // 마커의 중심점 설정 (이미지 크기의 절반)
+        };
+        
+        // 마커 이미지 객체 생성
+        const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
         
         // 사용자 위치 마커 생성
         const position = new kakao.maps.LatLng(lat, lng);
         userMarker = new kakao.maps.Marker({
             position: position,
-            map: kakaoMap
+            map: kakaoMap,
+            image: markerImage // 커스텀 이미지 적용
         });
         
         // 위치 정보창
@@ -1033,9 +1041,20 @@ function searchNearbyRestaurants(menuName) {
                 const limitedData = data.slice(0, 10);
                 
                 limitedData.forEach((place, index) => {
+                    const imageSrc = '../image/rest-icon.png'; // 마커 이미지 경로
+                    const imageSize = new kakao.maps.Size(40, 40); // 마커 이미지 크기 (적절히 조정)
+                    const imageOption = {
+                        offset: new kakao.maps.Point(20, 20) // 마커의 중심점 설정 (이미지 크기의 절반)
+                    };
+
+                    // 마커 이미지 객체 생성
+                    const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+
+                    // 커스텀 이미지를 사용한 마커 생성
                     const marker = new kakao.maps.Marker({
                         position: new kakao.maps.LatLng(place.y, place.x),
-                        map: kakaoMap
+                        map: kakaoMap,
+                        image: markerImage // 커스텀 이미지 적용
                     });
                     
                     // CustomOverlay로 식당 정보 표시 (내 주소와 동일한 디자인)
