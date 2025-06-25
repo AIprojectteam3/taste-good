@@ -541,7 +541,7 @@ let restaurantOverlays = [];
 
 // 메뉴 상세 정보 표시 함수 (안전한 요소 접근)
 function showMenuDetail(menuId) {
-    console.log('메뉴 상세 정보 요청:', menuId);
+    // console.log('메뉴 상세 정보 요청:', menuId);
     
     const modal = document.getElementById('menu-detail-modal');
     if (!modal) {
@@ -774,7 +774,7 @@ async function initializeMapOnce(menuName) {
             // 사용자 주소가 있는 경우 주소를 좌표로 변환
             const fullAddress = userData.address;
             
-            console.log('[INFO] 사용자 주소로 지도 초기화:', fullAddress);
+            // console.log('[INFO] 사용자 주소로 지도 초기화:', fullAddress);
             initializeMapWithAddress(fullAddress, menuName);
         } else {
             // 사용자 주소가 없는 경우 현재 위치 사용
@@ -789,7 +789,7 @@ async function initializeMapOnce(menuName) {
 }
 
 function initializeMapWithAddress(address, menuName) {
-    console.log('주소 기반 지도 초기화 시작:', address);
+    // console.log('주소 기반 지도 초기화 시작:', address);
     
     kakao.maps.load(() => {
         // services 라이브러리 로드 확인
@@ -804,14 +804,14 @@ function initializeMapWithAddress(address, menuName) {
         
         // 주소 전처리 (괄호 제거 등)
         const cleanedAddress = address.replace(/\([^)]*\)/g, '').trim();
-        console.log('정제된 주소:', cleanedAddress);
+        // console.log('정제된 주소:', cleanedAddress);
         
         geocoder.addressSearch(cleanedAddress, function(result, status) {
-            console.log('Geocoder 결과:', result, 'Status:', status);
+            // console.log('Geocoder 결과:', result, 'Status:', status);
             
             if (status === kakao.maps.services.Status.OK) {
                 const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                console.log('변환된 좌표:', coords);
+                // console.log('변환된 좌표:', coords);
                 
                 // 지도 옵션 설정
                 const mapOption = {
@@ -824,7 +824,7 @@ function initializeMapWithAddress(address, menuName) {
                 kakaoMap = new kakao.maps.Map(mapContainer, mapOption);
                 mapInitialized = true;
                 
-                console.log('지도 생성 완료');
+                // console.log('지도 생성 완료');
                 
                 // 사용자 주소 마커 생성
                 createAddressMarker(coords, address);
@@ -832,7 +832,7 @@ function initializeMapWithAddress(address, menuName) {
                 // 주변 식당 검색
                 searchNearbyRestaurants(menuName);
                 
-                console.log('주소 기반 지도 초기화 완료:', address);
+                // console.log('주소 기반 지도 초기화 완료:', address);
             } else {
                 console.error('주소 검색 실패:', cleanedAddress, 'Status:', status);
                 // 주소 검색 실패 시 현재 위치로 대체
@@ -907,7 +907,7 @@ function initializeMapWithCurrentLocation(menuName) {
 }
 
 function createAddressMarker(coords, address) {
-    console.log('주소 마커 생성 시작:', coords, address);
+    // console.log('주소 마커 생성 시작:', coords, address);
     
     if (!kakaoMap) {
         console.error('지도가 초기화되지 않았습니다.');
@@ -969,7 +969,7 @@ function createAddressMarker(coords, address) {
     
     // 지도 중심을 사용자 주소로 설정
     kakaoMap.setCenter(coords);
-    console.log('지도 중심 설정 완료:', coords);
+    // console.log('지도 중심 설정 완료:', coords);
 }
 
 // 사용자 위치 마커 생성
@@ -1057,7 +1057,7 @@ function searchNearbyRestaurants(menuName) {
         // 메뉴명으로 식당 검색
         ps.keywordSearch(`${menuName} 맛집`, (data, status) => {
             if (status === kakao.maps.services.Status.OK) {
-                console.log(`"${menuName}" 관련 식당 ${data.length}개 발견`);
+                // console.log(`"${menuName}" 관련 식당 ${data.length}개 발견`);
                 
                 // 최대 10개 식당만 표시
                 const limitedData = data.slice(0, 10);
@@ -1281,7 +1281,7 @@ function setupHorizontalWheelScroll() {
         });
     }, { passive: false });
     
-    console.log('메뉴 카드 마우스 휠 스크롤 설정 완료');
+    // console.log('메뉴 카드 마우스 휠 스크롤 설정 완료');
 }
 
 // 터치 스와이프 지원 (모바일용)
