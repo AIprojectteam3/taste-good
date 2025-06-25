@@ -142,7 +142,7 @@ async function loadProfileData() {
         if (addressInput) {
             if (userData.address && userData.address.trim() !== '') {
                 addressInput.value = userData.address;
-                console.log('주소 설정됨:', userData.address); // 디버깅용
+                // console.log('주소 설정됨:', userData.address); // 디버깅용
             } else {
                 addressInput.value = '';
                 console.log('주소 정보 없음'); // 디버깅용
@@ -152,7 +152,7 @@ async function loadProfileData() {
         if (detailAddressInput) {
             if (userData.detail_address && userData.detail_address.trim() !== '') {
                 detailAddressInput.value = userData.detail_address;
-                console.log('상세주소 설정됨:', userData.detail_address); // 디버깅용
+                // console.log('상세주소 설정됨:', userData.detail_address); // 디버깅용
             } else {
                 detailAddressInput.value = '';
                 console.log('상세주소 정보 없음'); // 디버깅용
@@ -597,7 +597,7 @@ async function loadAllergenOptions() {
                 container.appendChild(item);
             });
             
-            console.log('알레르기 옵션 로드 완료');
+            // console.log('알레르기 옵션 로드 완료');
             // 페이지 로드 시에는 로그 표시 안함
             await loadUserAllergens(false);
         }
@@ -607,7 +607,7 @@ async function loadAllergenOptions() {
 }
 
 async function refreshAllergenInfo() {
-    console.log('알레르기 정보 새로고침 시작');
+    // console.log('알레르기 정보 새로고침 시작');
     // 기존 체크 상태 초기화
     const checkboxes = document.querySelectorAll('input[name="allergens"]');
     checkboxes.forEach(checkbox => {
@@ -632,7 +632,7 @@ async function loadUserAllergens(showLogs = false) {
         
         // showLogs가 true일 때만 로그 표시
         if (showLogs) {
-            console.log('사용자 알레르기 정보:', allergenIds);
+            // console.log('사용자 알레르기 정보:', allergenIds);
         }
 
         // 체크박스 상태 업데이트
@@ -642,7 +642,7 @@ async function loadUserAllergens(showLogs = false) {
                 checkbox.checked = true;
                 // 모달에서만 개별 체크박스 로그 표시
                 if (showLogs) {
-                    console.log(`알레르기 ${id} 체크됨`);
+                    // console.log(`알레르기 ${id} 체크됨`);
                 }
             } else {
                 if (showLogs) {
