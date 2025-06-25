@@ -920,10 +920,19 @@ function createAddressMarker(coords, address) {
         console.log('기존 마커 제거됨');
     }
     
-    // 사용자 주소 마커 생성
+    const imageSrc = '../image/myloc-icon.png'; // 마커 이미지 경로
+    const imageSize = new kakao.maps.Size(40, 40); // 마커 이미지 크기 (적절히 조정)
+    const imageOption = {
+        offset: new kakao.maps.Point(20, 20) // 마커의 중심점 설정 (이미지 크기의 절반)
+    };
+    
+    // 마커 이미지 객체 생성
+    const markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+    
     userMarker = new kakao.maps.Marker({
         position: coords,
-        map: kakaoMap
+        map: kakaoMap,
+        image: markerImage // 커스텀 이미지 적용
     });
     
     const addressOverlay = new kakao.maps.CustomOverlay({
@@ -939,7 +948,7 @@ function createAddressMarker(coords, address) {
                 font-size: 12px;
                 min-width: 120px;
                 position: relative;
-                bottom: 50px;
+                bottom: 20px;
             ">
                 <div class="myLoc" style="
                     font-weight: bold;
@@ -1084,7 +1093,7 @@ function searchNearbyRestaurants(menuName) {
                                 font-size: 12px;
                                 min-width: 200px;
                                 position: relative;
-                                bottom: 50px;
+                                bottom: 20px;
                             ">
                                 <div class="restaurant-name" style="
                                     font-weight: bold;
