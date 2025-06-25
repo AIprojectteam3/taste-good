@@ -340,12 +340,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (!isMobile()) {
-        // 모달 열기/닫기 로직
+        // 모달이 열릴 때 드래그 앤 드롭 초기화
         if (openCreatePostModalBtn) {
             openCreatePostModalBtn.addEventListener('click', async function() {
-
+                const isLoggedIn = await checkLoginStatus();
+                if (!isLoggedIn) {
+                    alert('로그인해야만 글 작성이 가능합니다.');
+                    window.location.href = '/';
+                    return;
+                }
+                
+                openCreatePostModalBtn.classList.toggle('active');
+                if (openCreatePostModalBtn.classList.contains('active')) {
+                    if (createPostModal) {
+                        createPostModal.style.display = 'flex';
+                        resetCreatePostModal();
+                        initializeDragAndDrop(); // 드래그 앤 드롭 초기화
+                    }
+                } else {
+                    if (createPostModal) {
+                        createPostModal.style.display = 'none';
+                    }
+                }
+            });
+        }
+    } else {
+        if (openCreatePostModalBtn) {
+            openCreatePostModalBtn.addEventListener('click', async function() {
+                console.log('버튼 클릭됨'); // 클릭 확인
+                
                 // 로그인 상태 확인
                 const isLoggedIn = await checkLoginStatus();
+                console.log('로그인 상태:', isLoggedIn); // 로그인 상태 확인
 
                 if (!isLoggedIn) {
                     alert('로그인해야만 글 작성이 가능합니다.');
@@ -353,43 +379,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     return; // 함수 실행 중단
                 }
 
-                openCreatePostModalBtn.classList.toggle('active');
-                if (openCreatePostModalBtn.classList.contains('active')) {
-                    if (createPostModal) {
-                        createPostModal.style.display = 'flex';
-                        resetCreatePostModal(); // 모달 열 때마다 초기화
-                    }
-                } else {
-                    if (createPostModal) {
-                        createPostModal.style.display = 'none';
-                        // 모달이 닫힐 때도 Blob URL 해제가 필요하면 여기에 추가
-                        // 하지만 resetCreatePostModal에서 이미 처리하므로, 여기서는 중복될 수 있음
-                        // 만약 resetCreatePostModal 호출 없이 닫는 경우가 있다면 필요
-                    }
-                }
+                console.log('페이지 이동 시도'); // 이동 시도 확인
+                // 모바일용 페이지로 이동
+                window.location.href = '/createPost_mobile.html';
             });
-        } 
-    } else {
-            if (openCreatePostModalBtn) {
-                openCreatePostModalBtn.addEventListener('click', async function() {
-                    console.log('버튼 클릭됨'); // 클릭 확인
-                    
-                    // 로그인 상태 확인
-                    const isLoggedIn = await checkLoginStatus();
-                    console.log('로그인 상태:', isLoggedIn); // 로그인 상태 확인
-
-                    if (!isLoggedIn) {
-                        alert('로그인해야만 글 작성이 가능합니다.');
-                        window.location.href = '/';
-                        return; // 함수 실행 중단
-                    }
-
-                    console.log('페이지 이동 시도'); // 이동 시도 확인
-                    // 모바일용 페이지로 이동
-                    window.location.href = '/createPost_mobile.html';
-                });
-            }
         }
+    }
 
     const createPostThumbnailsContainer = document.querySelector('.create-post-thumbnails-container');
     if (createPostThumbnailsContainer) {
@@ -613,6 +608,103 @@ document.addEventListener('DOMContentLoaded', function() {
         const hasContent = createPostContentInput.value.trim().length > 0;
         
         submitCreatePostBtn.disabled = !(hasTitle && hasContent);
+    }
+
+    // 드래그 앤 드롭 기능 추가
+    function initializeDragAndDrop() {
+        const dropZone = document.querySelector('.add-icon-div'); // 드롭 존을 add-icon-div로 제한
+        
+        if (!dropZone) {
+            console.error('.add-icon-div 요소를 찾을 수 없습니다.');
+            return;
+        }
+        
+        // 드래그 앤 드롭 이벤트 방지 (기본 브라우저 동작 방지)
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        // 드래그 상태 시각적 피드백
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        // 파일 드롭 처리
+        dropZone.addEventListener('drop', handleFileDrop, false);
+    }
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function highlight(e) {
+        const addIconDiv = document.querySelector('.add-icon-div');
+        if (addIconDiv) {
+            addIconDiv.classList.add('drag-over');
+        }
+    }
+
+    function unhighlight(e) {
+        const addIconDiv = document.querySelector('.add-icon-div');
+        if (addIconDiv) {
+            addIconDiv.classList.remove('drag-over');
+        }
+    }
+
+    // 기존 handleDrop 함수명을 handleFileDrop으로 변경하여 충돌 방지
+    function handleFileDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        // 모달이 열려있을 때만 처리
+        const modal = document.getElementById('createPostFormModal');
+        if (modal && modal.style.display === 'flex') {
+            handleDroppedFiles(files);
+        }
+    }
+
+    function handleDroppedFiles(files) {
+        const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+        
+        if (imageFiles.length === 0) {
+            alert('이미지 파일만 업로드할 수 있습니다.');
+            return;
+        }
+        
+        const currentFileCount = uploadedFilesForCreatePost.length;
+        const remainingSlots = MAX_FILES_ALLOWED - currentFileCount;
+        
+        if (remainingSlots <= 0) {
+            alert(`최대 ${MAX_FILES_ALLOWED}개의 이미지만 업로드할 수 있습니다.`);
+            return;
+        }
+        
+        let filesToProcess = imageFiles;
+        if (imageFiles.length > remainingSlots) {
+            alert(`최대 ${MAX_FILES_ALLOWED}개까지 이미지를 추가할 수 있습니다. 선택하신 파일 중 처음 ${remainingSlots}개만 추가됩니다.`);
+            filesToProcess = imageFiles.slice(0, remainingSlots);
+        }
+        
+        const newlyAddedFilesStartIndex = currentFileCount;
+        
+        filesToProcess.forEach(file => {
+            uploadedFilesForCreatePost.push({
+                file: file,
+                blobUrl: URL.createObjectURL(file)
+            });
+        });
+        
+        if (filesToProcess.length > 0) {
+            currentCreatePostSlideIndex = newlyAddedFilesStartIndex;
+        }
+        
+        updateCreatePostSliderView();
     }
 
     window.openEditModal = openEditModal;

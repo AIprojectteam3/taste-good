@@ -295,3 +295,29 @@
 .create-post-thumbnail-item-container:hover .delete-thumbnail-button {
     display: flex;
 }
+
+.add-icon-div.drag-over {
+    background-color: rgba(255, 107, 107, 0.1);
+    border: 3px dashed #FF6B6B !important;
+    transform: scale(1.05);
+    transition: all 0.2s ease;
+}
+
+/* 드래그 오버 시 메시지 표시 */
+.add-icon-div.drag-over::before {
+    content: "이미지를 여기에 드롭하세요";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 107, 107, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    z-index: 2020;
+    pointer-events: none;
+    white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+    min-width: max-content; /* 내용에 맞는 최소 너비 설정 */
+}
