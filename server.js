@@ -2643,6 +2643,7 @@ app.get('/api/recommend-filtered', async (req, res) => {
         prompt += `=== [메뉴명] ===\n`;
         prompt += `추천 이유: (해당 메뉴만의 구체적인 추천 이유)\n`;
         prompt += `특징: (해당 메뉴의 특징)\n`;
+        prompt += `어울리는 조합: (이 메뉴와 함께 먹으면 좋은 사이드메뉴, 음료, 디저트 등을 3-4가지 추천)\n`;
         prompt += `===\n\n`;
         
         prompt += `**추천 요청사항:**\n`;
@@ -2666,7 +2667,7 @@ app.get('/api/recommend-filtered', async (req, res) => {
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: prompt }],
-            max_tokens: 500, // 더 상세한 응답을 위해 토큰 수 증가
+            max_tokens: 800, // 더 상세한 응답을 위해 토큰 수 증가
             temperature: 0.7
         });
 
@@ -3122,10 +3123,15 @@ function parseGPTResponseByMenu(gptResponse, recommendedMenus) {
             // 특징 추출
             const featureMatch = menuSection.match(/특징:\s*(.*?)(?=\n|$)/s);
             const feature = featureMatch ? featureMatch[1].trim() : '';
+
+            // 어울리는 조합 추출
+            const pairingMatch = menuSection.match(/어울리는 조합:\s*(.*?)(?=\n|$)/s);
+            const pairing = pairingMatch ? pairingMatch[1].trim() : '';
             
             menuResponses[menuName] = {
                 reason: reason || '이 메뉴는 현재 상황과 조건에 적합한 선택입니다.',
                 feature: feature || '맛있고 영양가 있는 메뉴입니다.',
+                pairing: pairing || '다양한 사이드메뉴와 잘 어울립니다.',
                 fullSection: menuSection
             };
         } else {

@@ -641,7 +641,12 @@ input[type="range"]::-moz-range-thumb {
     font-size: 0.85em;
 }
 
+#modal-pair-response {
+    margin-top : 8px;
+}
+
 .menu-specific-response h5,
+.menu-pairings-response h5,
 .menu-relevant-response h5,
 .menu-default-response h5,
 .menu-not-mentioned h5 {
@@ -651,6 +656,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .menu-specific-response p,
+.menu-pairings-response p,
 .menu-relevant-response p,
 .menu-default-response p,
 .menu-not-mentioned p {
@@ -658,7 +664,7 @@ input[type="range"]::-moz-range-thumb {
     line-height: 1.4;
 }
 
-.menu-specific-response strong {
+.menu-specific-response strong, .menu-pairings-response strong {
     color: #FFE5B4;
 }
 

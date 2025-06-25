@@ -424,12 +424,15 @@ function displayMenuCardsOnly(data) {
             fallbackLevel: data.fallbackLevel,
             totalFiltered: data.totalFiltered
         };
-        
-        // 메뉴 카드 표시 후 스크롤 기능 설정
+
         setTimeout(() => {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
             setupHorizontalWheelScroll();
             setupTouchSwipe();
-        }, 100);
+        }, 300);
         
     } else {
         resultsContainer.innerHTML = `
@@ -645,6 +648,7 @@ function showMenuDetail(menuId) {
 function displayGPTResponseInModal(menuName) {
     const gptSection = document.getElementById('modal-gpt-section');
     const gptResponseElement = document.getElementById('modal-gpt-response');
+    const pairResponseElement = document.getElementById('modal-pair-response');
     const fallbackInfoElement = document.getElementById('modal-fallback-info');
     
     if (!gptSection || !gptResponseElement) {
@@ -669,6 +673,16 @@ function displayGPTResponseInModal(menuName) {
             `;
             
             gptResponseElement.innerHTML = menuSpecificContent;
+
+            
+            let menuPairingsContent = `
+                <div class = "menu-pairings-response">
+                    <h5>🍽️ ${menuName} 와(과) 어울리는 조합</h5>
+                    <p><strong>추천 조합:</strong> ${menuResponse.pairing}</p>
+                </div>
+            `
+
+            pairResponseElement.innerHTML = menuPairingsContent;
             
         } else if (data.gpt.includes(menuName)) {
             // 기존 방식: 전체 응답에서 해당 메뉴 언급 부분 찾기
