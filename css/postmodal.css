@@ -239,7 +239,7 @@
     display : flex;
     align-items : center;
     justify-content : center;
-    margin-top : 5px;
+    margin-top : 4px;
     margin-left : 5px;
     font-size : 0.8rem;
     color : #888;
@@ -378,17 +378,24 @@
     flex-shrink: 0;
 }
 
+.comment-user-info {
+    display : flex;
+}
+
 #index-modal .comment-user-nickname {
     display: flex;
-    margin-right: 8px;
-    width : 100%;
-    min-width: 70px;   /* 닉네임 영역 고정 */
-    max-width: 110px;
+    margin-right: 5px;
     overflow: hidden;
     white-space: nowrap;
     font-weight: bold;
     text-overflow: ellipsis;
     flex-shrink: 0;
+}
+
+#index-modal .comment-user-level {
+    margin-top : 4px;
+    font-size: 0.8rem;
+    color: #888;
 }
 
 .comment-content {

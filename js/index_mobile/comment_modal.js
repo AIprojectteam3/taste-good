@@ -65,6 +65,7 @@ async function openCommentOnlyModal(postId) {
                         <div class="comment-main">
                             <div class="comment-top">
                                 <span class="comment-user-nickname">${comment.author_username || '익명'}</span>
+                                <span class="comment-user-level">Lv. ${comment.author_level || 1}</span>
                                 <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
                             </div>
                             <div class="comment-bottom">

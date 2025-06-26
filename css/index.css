@@ -998,7 +998,6 @@ body {
         display : flex;
         align-items : center;
         justify-content : flex-end;
-        padding-right : 10px;
         width : 50%;
         flex : 1;
         font-size : 0.7rem;
@@ -1047,10 +1046,10 @@ body {
         border: none;
         font-size: 12px;
         cursor: pointer;
-        margin-right: 5px;
     }
 
     .comment-edit-btn {
+        margin-right: 5px;
         color : #3b82f6;
     }
 
@@ -1255,5 +1254,12 @@ body {
 
     .post-action-buttons {
         margin-left : auto;
+    }
+
+    .comment-user-level {
+        margin-top : 4px;
+        margin-left : 5px;
+        font-size: 0.8rem;
+        color: #888;
     }
 }

@@ -1023,12 +1023,14 @@ app.get('/api/post/:postId', (req, res) => {
 
             // 댓글 정보 가져오기
             const getCommentsQuery = `
-                SELECT 
+                SELECT
                     c.id, c.user_id, c.comment, c.created_at,
                     u.username AS author_username,
-                    u.profile_image_path AS author_profile_path
+                    u.profile_image_path AS author_profile_path,
+                    COALESCE(ul.level, 1) AS author_level
                 FROM comments c
                 JOIN users u ON c.user_id = u.id
+                LEFT JOIN user_levels ul ON u.id = ul.user_id
                 WHERE c.post_id = ?
                 ORDER BY c.created_at ASC;
             `;
@@ -1592,32 +1594,34 @@ setInterval(() => {
 // ==================================================================================================================
 app.get('/api/post/:postId/comments', (req, res) => {
     const postId = req.params.postId;
-
     if (!postId || isNaN(parseInt(postId))) {
         return res.status(400).json({ message: '유효한 게시물 ID가 필요합니다.' });
     }
 
-    // 댓글 작성자 정보(닉네임, 프로필 이미지)도 함께 가져오기 위해 users 테이블과 JOIN
-    // comments 테이블의 created_at을 기준으로 오름차순 정렬 (오래된 댓글부터)
+    // user_levels 테이블과 LEFT JOIN하여 레벨 정보 포함
     const getCommentsQuery = `
-        SELECT 
-            c.id, 
-            c.post_id, 
-            c.user_id, 
-            c.comment, 
+        SELECT
+            c.id,
+            c.post_id,
+            c.user_id,
+            c.comment,
             c.created_at,
             u.username AS author_username,
-            u.profile_image_path AS author_profile_path 
+            u.profile_image_path AS author_profile_path,
+            COALESCE(ul.level, 1) AS author_level
         FROM comments c
         JOIN users u ON c.user_id = u.id
+        LEFT JOIN user_levels ul ON u.id = ul.user_id
         WHERE c.post_id = ?
-        ORDER BY c.created_at ASC; 
+        ORDER BY c.created_at ASC;
     `;
+
     db.query(getCommentsQuery, [postId], (err, comments) => {
         if (err) {
             console.error(`[ERROR] 댓글 목록 가져오기 중 DB 오류 (post_id: ${postId}):`, err);
             return res.status(500).json({ message: '댓글 목록을 가져오는 데 실패했습니다.' });
         }
+
         res.json(comments);
     });
 });

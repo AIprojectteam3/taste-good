@@ -281,7 +281,10 @@ async function displayPostModal(postId) {
                                 <img src="${profileImgPath}" alt="${comment.author_username} 프로필">
                             </div>
                             <div class="comment-main">
-                                <span class="comment-user-nickname">${comment.author_username}</span>
+                                <div class = "comment-user-info">
+                                    <span class="comment-user-nickname">${comment.author_username}</span>
+                                    <span class="comment-user-level">Lv. ${comment.author_level || '1'}</span>
+                                </div>
                                 <p class="comment-content">${commentTextHtml}</p>
                             </div>
                         </div>
