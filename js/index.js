@@ -123,15 +123,22 @@ function createCard(item, isPlaceholder = false, currentUserId = null) {
     profileImg.className = 'user-profile-img';
 
     const nicknameSpan = document.createElement('span');
-    nicknameSpan.className = 'user-nickname';
+    nicknameSpan.className = 'user_nickname';
     if (!isPlaceholder) {
         nicknameSpan.textContent = item.author_username;
     } else {
         nicknameSpan.textContent = '사용자';
     }
 
+    const levelSpan = document.createElement('span');
+    levelSpan.className = 'user_level';
+    if (!isPlaceholder) {
+        levelSpan.textContent = item.author_level ? `Lv. ${item.author_level}` : 'Lv. 1';
+    }
+
     postUserDiv.appendChild(profileImg);
     postUserDiv.appendChild(nicknameSpan);
+    postUserDiv.appendChild(levelSpan);
 
     // 모바일에서만 게시물이 로그인된 유저일 경우 수정/삭제 버튼 추가
     if (isMobile() && !isPlaceholder && currentUserId && currentUserId === item.user_id) {

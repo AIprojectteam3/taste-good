@@ -40,6 +40,7 @@ async function displayPostModal(postId) {
         const slideThumbnailsDiv = slideContainerDiv.querySelector('.slide-thumbnails');
         const userProfileImg = modalOverlay.querySelector('.post-user .user-profile-img img');
         const userNicknameSpan = modalOverlay.querySelector('.post-user .user-nickname > span:first-child');
+        const userLevelSpan = modalOverlay.querySelector('.user_level');
         const postTitleH3 = modalOverlay.querySelector('.post-title');
         const postContentDiv = modalOverlay.querySelector('.post-content');
         const postContentSpan = modalOverlay.querySelector('.post-content-text');
@@ -155,6 +156,12 @@ async function displayPostModal(postId) {
         userProfileImg.src = postDetail.author_profile_path || 'image/profile-icon.png';
         userProfileImg.alt = (postDetail.author_username || "사용자") + " 프로필 사진";
         userNicknameSpan.textContent = postDetail.author_username || "알 수 없는 사용자";
+
+        if (userLevelSpan && postDetail.author_level) {
+            userLevelSpan.textContent = `${postDetail.author_level}`;
+        } else if (userLevelSpan) {
+            userLevelSpan.textContent = '1'; // 기본값
+        }
 
         // 기존 메뉴 제거
         const postMenuContainer = modalOverlay.querySelector('.user-nickname');

@@ -940,14 +940,23 @@ app.get('/api/post/:postId', (req, res) => {
 
         // 게시물 상세 정보 조회 쿼리
         const postDetailQuery = `
-            SELECT
-                p.id, p.title, p.content, p.created_at, p.views, p.likes,
-                u.id AS user_id, u.username AS author_username, u.profile_image_path AS author_profile_path,
-                (SELECT REPLACE(file_path, '\\\\', '/') FROM files WHERE post_id = p.id ORDER BY id ASC LIMIT 1) AS thumbnail_path,
-                COALESCE((SELECT JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/')) FROM files WHERE post_id = p.id ORDER BY id ASC), '[]') AS images
-            FROM posts p
-            JOIN users u ON p.user_id = u.id
-            WHERE p.id = ?;
+        SELECT
+            p.id, 
+            p.title, 
+            p.content, 
+            p.created_at, 
+            p.views, 
+            p.likes,
+            u.id AS user_id, 
+            u.username AS author_username, 
+            u.profile_image_path AS author_profile_path,
+            COALESCE(ul.level, 1) AS author_level,  -- 레벨 정보 추가
+            (SELECT REPLACE(file_path, '\\\\', '/') FROM files WHERE post_id = p.id ORDER BY id ASC LIMIT 1) AS thumbnail_path,
+            COALESCE((SELECT JSON_ARRAYAGG(REPLACE(file_path, '\\\\', '/')) FROM files WHERE post_id = p.id ORDER BY id ASC), '[]') AS images
+        FROM posts p
+        JOIN users u ON p.user_id = u.id
+        LEFT JOIN user_levels ul ON u.id = ul.user_id  -- user_levels 테이블 조인
+        WHERE p.id = ?;
         `;
 
         db.query(postDetailQuery, [postId], (err, postResults) => {
@@ -1453,7 +1462,11 @@ app.get('/api/post/:postId/comments', (req, res) => {
     // comments 테이블의 created_at을 기준으로 오름차순 정렬 (오래된 댓글부터)
     const getCommentsQuery = `
         SELECT 
-            c.id, c.post_id, c.user_id, c.comment, c.created_at,
+            c.id, 
+            c.post_id, 
+            c.user_id, 
+            c.comment, 
+            c.created_at,
             u.username AS author_username,
             u.profile_image_path AS author_profile_path 
         FROM comments c

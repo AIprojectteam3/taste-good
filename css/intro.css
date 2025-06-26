@@ -887,6 +887,11 @@ body {
         width : 80%;
     }
 
+    .form input:focus {
+        outline: none;
+        border : 2px solid #ff6f61;
+    }
+
     .toggle-link {
         font-size: 1rem;
         text-align: center;

@@ -25,9 +25,8 @@ async function openCommentOnlyModal(postId) {
 
     // 댓글 데이터를 HTML로 렌더링하는 함수 (사용자 요청 구조 반영)
     async function renderComments(commentsData) {
-        commentListDiv.innerHTML = ''; // 기존 댓글 내용 초기화
+        commentListDiv.innerHTML = '';
         
-        // 현재 로그인한 사용자 정보 가져오기
         let currentUser = null;
         try {
             const userResponse = await fetch('/api/user');
@@ -37,16 +36,18 @@ async function openCommentOnlyModal(postId) {
         } catch (error) {
             console.error('사용자 정보 가져오기 실패:', error);
         }
-        
+
         if (commentsData && commentsData.length > 0) {
             commentsData.forEach(comment => {
                 const commentWrapperDiv = document.createElement('div');
                 commentWrapperDiv.classList.add('comment-user');
                 
-                const commentTextHtml = comment.comment.replace(/\n/g, '<br>'); // 줄바꿈 처리
+                const commentTextHtml = comment.comment.replace(/\n/g, '<br>');
                 
-                // 수정/삭제 버튼 HTML 생성 (작성자와 로그인 유저가 같을 때만)
+                // 액션 버튼 HTML (현재 사용자만 수정/삭제 가능)
                 let actionButtonsHtml = '';
+                // console.log('현재 사용자 정보:', currentUser); // 디버깅용
+                // console.log(currentUser.id, comment.user_id); // 디버깅용
                 if (currentUser && currentUser.id === comment.user_id) {
                     actionButtonsHtml = `
                         <div class="comment-action-buttons">
@@ -57,17 +58,19 @@ async function openCommentOnlyModal(postId) {
                 }
                 
                 commentWrapperDiv.innerHTML = `
-                    <div class = "comment-div">
+                    <div class="comment-div">
                         <div class="comment-profile-img">
                             <img src="${comment.author_profile_path || 'image/profile-icon.png'}" alt="${comment.author_username || '사용자'} 프로필">
                         </div>
                         <div class="comment-main">
-                            <div class="comment-user-div">
+                            <div class="comment-top">
                                 <span class="comment-user-nickname">${comment.author_username || '익명'}</span>
-								${actionButtonsHtml}
                                 <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
                             </div>
-                            <p class="comment-content">${commentTextHtml}</p> <!-- CSS 클래스명 일치 확인 -->
+                            <div class="comment-bottom">
+                                <span class="comment_content" data-comment-id="${comment.id}">${commentTextHtml}</span>
+                                ${actionButtonsHtml}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -75,105 +78,226 @@ async function openCommentOnlyModal(postId) {
                 commentListDiv.appendChild(commentWrapperDiv);
             });
             
-            // 수정/삭제 버튼 이벤트 리스너 추가
             addCommentActionListeners();
         } else {
-            commentListDiv.innerHTML = '<p style="text-align: center; color: #999;">아직 댓글이 없습니다.</p>';
+            commentListDiv.innerHTML = '<div class="no-comment">아직 댓글이 없습니다.</div>';
         }
     }
 
     function addCommentActionListeners() {
-        // 수정 버튼 이벤트
+        // 기존 이벤트 리스너 제거 (중복 방지)
+        document.querySelectorAll('.comment-edit-btn').forEach(btn => {
+            btn.removeEventListener('click', handleCommentEdit);
+        });
+        document.querySelectorAll('.comment-delete-btn').forEach(btn => {
+            btn.removeEventListener('click', handleCommentDelete);
+        });
+        
+        // 새로운 이벤트 리스너 추가
         document.querySelectorAll('.comment-edit-btn').forEach(btn => {
             btn.addEventListener('click', handleCommentEdit);
         });
-        
-        // 삭제 버튼 이벤트
         document.querySelectorAll('.comment-delete-btn').forEach(btn => {
             btn.addEventListener('click', handleCommentDelete);
         });
     }
 
+    let currentEditingComment = null;
+
     // 댓글 수정 처리 함수
     async function handleCommentEdit(event) {
+        // console.log('수정 버튼 클릭됨:', event.target); // 디버깅용
+        
         const commentId = event.target.getAttribute('data-comment-id');
-        const commentElement = event.target.closest('.comment-user');
-        const commentTextElement = commentElement.querySelector('.comment-content');
-        const currentText = commentTextElement.innerHTML.replace(/<br>/g, '\n');
-
+        // console.log('추출된 댓글 ID:', commentId); // 디버깅용
+        
         if (!commentId) {
             console.error('댓글 ID를 찾을 수 없습니다.');
+            alert('댓글 ID를 찾을 수 없습니다.');
             return;
         }
-
-        // null 체크 추가
+        
+        const commentElement = event.target.closest('.comment-user');
+        
         if (!commentElement) {
             console.error('댓글 요소를 찾을 수 없습니다.');
             return;
         }
-
-        // null 체크 추가
+        
+        // 이미 다른 댓글이 수정 중이면 취소
+        if (currentEditingComment && currentEditingComment !== commentElement) {
+            cancelCurrentEdit();
+        }
+        
+        // 현재 수정 중인 댓글 설정
+        currentEditingComment = commentElement;
+        
+        // 편집 모드 클래스 추가
+        commentElement.classList.add('editing');
+        
+        const commentTextElement = commentElement.querySelector('.comment_content');
+        const actionButtons = commentElement.querySelector('.comment-action-buttons');
+        
         if (!commentTextElement) {
             console.error('댓글 텍스트 요소를 찾을 수 없습니다.');
+            commentElement.classList.remove('editing');
+            currentEditingComment = null;
             return;
         }
         
-        // 수정 모드로 전환
-        const originalHtml = commentTextElement.innerHTML;
-        commentTextElement.innerHTML = `
-            <textarea class="comment-edit-textarea">${currentText}</textarea>
-            <div class = "comment-edit-btn-div">
-                <button class="comment-save-btn" data-comment-id="${commentId}">저장</button>
-                <button class="comment-cancel-btn">취소</button>
-            </div>
-        `;
-
-        const saveBtn = commentTextElement.querySelector('.comment-save-btn');
-        const cancelBtn = commentTextElement.querySelector('.comment-cancel-btn');
-        
-        if (saveBtn) {
-            saveBtn.addEventListener('click', async function() {
-                const textarea = commentTextElement.querySelector('.comment-edit-textarea');
-                if (!textarea) return;
-                
-                const newText = textarea.value.trim();
-                if (!newText) {
-                    alert('댓글 내용을 입력해주세요.');
-                    return;
-                }
-                
-                try {
-                    const response = await fetch(`/api/comment/${commentId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ comment: newText }),
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || '댓글 수정에 실패했습니다.');
-                    }
-                    
-                    const result = await response.json();
-                    if (result.success) {
-                        await fetchAndRenderComments(); // 댓글 목록 새로고침
-                    } else {
-                        alert(result.message || '댓글 수정에 실패했습니다.');
-                    }
-                } catch (error) {
-                    console.error('댓글 수정 중 오류:', error);
-                    alert(`댓글 수정 중 오류: ${error.message}`);
-                }
-            });
+        // 기존 수정/삭제 버튼 숨기기
+        if (actionButtons) {
+            actionButtons.style.display = 'none';
         }
         
-        // 취소 버튼 이벤트
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', function() {
-                commentTextElement.innerHTML = originalHtml;
+        const currentText = commentTextElement.innerHTML.replace(/<br>/g, '\n');
+        
+        // 수정 UI 생성
+        commentTextElement.innerHTML = `
+            <textarea class="comment_edit_textarea" rows="4">${currentText}</textarea>
+            <div class="comment-edit-btn-div">
+                <button class="comment_save_btn" data-comment-id="${commentId}">저장</button>
+                <button class="comment_cancel_btn">취소</button>
+            </div>
+        `;
+        
+        // DOM 업데이트 후 이벤트 리스너 바인딩
+        setTimeout(() => {
+            const saveBtn = commentTextElement.querySelector('.comment_save_btn');
+            const cancelBtn = commentTextElement.querySelector('.comment_cancel_btn');
+            const textarea = commentTextElement.querySelector('.comment_edit_textarea');
+            
+            if (saveBtn && cancelBtn && textarea) {
+                textarea.focus();
+                
+                // 저장 버튼 이벤트
+                saveBtn.addEventListener('click', async () => {
+                    const finalCommentId = saveBtn.getAttribute('data-comment-id');
+                    // console.log('저장 버튼 클릭, 댓글 ID:', finalCommentId); // 디버깅용
+                    await saveCommentEdit(finalCommentId, textarea.value, commentTextElement, commentElement, currentText);
+                });
+                
+                // 취소 버튼 이벤트
+                cancelBtn.addEventListener('click', () => {
+                    cancelCommentEdit(currentText, commentTextElement, commentElement);
+                });
+            } else {
+                console.error('수정 UI 요소를 찾을 수 없습니다:', {
+                    saveBtn: !!saveBtn,
+                    cancelBtn: !!cancelBtn,
+                    textarea: !!textarea
+                });
+            }
+        }, 0);
+    }
+
+    function cancelCurrentEdit() {
+        if (currentEditingComment) {
+            const textElement = currentEditingComment.querySelector('.comment_content');
+            const actionButtons = currentEditingComment.querySelector('.comment-action-buttons');
+            
+            // 원래 텍스트 복원 (저장된 원본 텍스트가 있다면)
+            if (textElement && textElement.dataset.originalText) {
+                textElement.innerHTML = textElement.dataset.originalText;
+            }
+            
+            // 수정/삭제 버튼 다시 보이기
+            if (actionButtons) {
+                actionButtons.style.display = 'flex';
+            }
+            
+            // 편집 모드 해제
+            currentEditingComment.classList.remove('editing');
+            currentEditingComment = null;
+        }
+    }
+
+    async function saveCommentEdit(commentId, newText, commentTextElement, commentElement, originalText) {
+        try {
+            // 댓글 내용 유효성 검사
+            if (!newText || newText.trim() === '') {
+                alert('댓글 내용을 입력해주세요.');
+                return;
+            }
+
+            // 댓글 ID 유효성 검사
+            if (!commentId || isNaN(parseInt(commentId))) {
+                alert('유효하지 않은 댓글입니다.');
+                return;
+            }
+
+            const response = await fetch(`/api/comment/${commentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    comment: newText.trim()
+                })
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            // 성공 시 편집 모드 해제
+            commentElement.classList.remove('editing');
+            currentEditingComment = null;
+            
+            // ✅ UI 업데이트 - 새로운 텍스트와 액션 버튼 함께 추가
+            commentTextElement.innerHTML = newText.replace(/\n/g, '<br>');
+            
+            // ✅ 수정/삭제 버튼 다시 추가
+            const actionButtonsHtml = `
+                <div class="comment-action-buttons">
+                    <button class="comment-edit-btn" data-comment-id="${commentId}">수정</button>
+                    <button class="comment-delete-btn" data-comment-id="${commentId}">삭제</button>
+                </div>
+            `;
+            
+            // ✅ 댓글 텍스트 다음에 액션 버튼 추가
+            commentTextElement.insertAdjacentHTML('afterend', actionButtonsHtml);
+            
+            // ✅ 이벤트 리스너 다시 바인딩
+            addCommentActionListeners();
+            
+            // console.log('댓글이 성공적으로 수정되었습니다.');
+            
+        } catch (error) {
+            console.error('댓글 수정 실패:', error);
+            alert(`댓글 수정에 실패했습니다: ${error.message}`);
+            
+            // 실패 시 원래 상태로 복원
+            if (originalText && commentTextElement && commentElement) {
+                cancelCommentEdit(originalText, commentTextElement, commentElement);
+            }
+        }
+    }
+
+    // 취소 시 편집 모드 해제
+    function cancelCommentEdit(originalText, textElement, commentElement) {
+        // 편집 모드 해제
+        commentElement.classList.remove('editing');
+        currentEditingComment = null;
+        
+        // 원래 텍스트로 복원
+        textElement.innerHTML = originalText;
+        
+        // ✅ 수정/삭제 버튼 다시 추가
+        const commentId = textElement.getAttribute('data-comment-id') || 
+                        commentElement.querySelector('[data-comment-id]')?.getAttribute('data-comment-id');
+        
+        if (commentId) {
+            const actionButtonsHtml = `
+                <div class="comment-action-buttons">
+                    <button class="comment-edit-btn" data-comment-id="${commentId}">수정</button>
+                    <button class="comment-delete-btn" data-comment-id="${commentId}">삭제</button>
+                </div>
+            `;
+            textElement.insertAdjacentHTML('afterend', actionButtonsHtml);
+            addCommentActionListeners();
         }
     }
 
