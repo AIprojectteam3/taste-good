@@ -3043,43 +3043,49 @@ app.get('/api/user/point-logs', (req, res) => {
 // ==================================================================================================================
 app.get('/api/user/point-stats', (req, res) => {
     const userId = req.session.userId;
-    
     if (!userId) {
         return res.status(401).json({ message: '로그인이 필요합니다.' });
     }
 
-    const statsQuery = `
+    // 모든 정보를 한 번에 조회하는 쿼리
+    const combinedQuery = `
         SELECT 
+            (SELECT point FROM user_points WHERE user_id = ?) as current_points,
+            (SELECT SUM(points) FROM point_logs WHERE user_id = ?) as total_earned,
             action_type,
             COUNT(*) as count,
             SUM(points) as total_points
-        FROM point_logs 
+        FROM point_logs
         WHERE user_id = ?
         GROUP BY action_type
         ORDER BY total_points DESC
     `;
 
-    db.query(statsQuery, [userId], (err, results) => {
+    db.query(combinedQuery, [userId, userId, userId], (err, results) => {
         if (err) {
             console.error('포인트 통계 조회 중 오류:', err);
             return res.status(500).json({ message: '포인트 통계를 가져오는 데 실패했습니다.' });
         }
 
-        // 전체 포인트 조회
-        const totalQuery = 'SELECT point FROM user_points WHERE user_id = ?';
-        db.query(totalQuery, [userId], (totalErr, totalResults) => {
-            if (totalErr) {
-                console.error('총 포인트 조회 중 오류:', totalErr);
-                return res.status(500).json({ message: '총 포인트 조회에 실패했습니다.' });
-            }
-
-            const currentPoints = totalResults.length > 0 ? totalResults[0].point : 0;
-            
-            res.json({
-                currentPoints: currentPoints,
-                statistics: results,
-                totalEarned: results.reduce((sum, stat) => sum + stat.total_points, 0)
+        if (results.length === 0) {
+            return res.json({
+                currentPoints: 0,
+                totalEarned: 0,
+                statistics: []
             });
+        }
+
+        const currentPoints = results[0].current_points || 0;
+        const totalEarned = results[0].total_earned || 0;
+
+        res.json({
+            currentPoints: currentPoints,
+            totalEarned: totalEarned,
+            statistics: results.map(row => ({
+                action_type: row.action_type,
+                count: row.count,
+                total_points: row.total_points
+            }))
         });
     });
 });

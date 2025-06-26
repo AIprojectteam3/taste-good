@@ -7,6 +7,7 @@ class PointLogModal {
         this.options = {
             modalId: options.modalId || 'pointLogModal',
             triggerId: options.triggerId || 'pointLogBtn',
+            triggerClass: options.triggerClass || 'point-log-trigger',
             apiBaseUrl: options.apiBaseUrl || '/api',
             itemsPerPage: options.itemsPerPage || 20,
             ...options
@@ -14,10 +15,15 @@ class PointLogModal {
         
         this.currentPage = 1;
         this.currentFilter = 'all';
+        this.currentPointTypeFilter = 'all'; // 새로 추가: 적립/차감 필터
         this.totalPages = 0;
         this.isLoading = false;
         
-        this.init();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            this.init();
+        }
     }
 
     /**
@@ -32,6 +38,11 @@ class PointLogModal {
      * 모달창 HTML 생성
      */
     createModalHTML() {
+        if (!document.body) {
+            console.error('document.body가 아직 로드되지 않았습니다.');
+            return;
+        }
+
         const modalHTML = `
             <div id="${this.options.modalId}" class="point-modal" style="display: none;">
                 <div class="point-modal-overlay">
@@ -59,12 +70,24 @@ class PointLogModal {
 
                             <!-- 필터 섹션 -->
                             <div class="point-filter-section">
-                                <label for="actionTypeFilter">활동 유형:</label>
-                                <select id="actionTypeFilter">
-                                    <option value="all">전체</option>
-                                    <option value="POST_CREATE">게시물 작성</option>
-                                    <option value="COMMENT_CREATE">댓글 작성</option>
-                                </select>
+                                <div class="filter-row">
+                                    <div class="filter-group">
+                                        <label for="pointTypeFilter">포인트 유형:</label>
+                                        <select id="pointTypeFilter">
+                                            <option value="all">전체</option>
+                                            <option value="earned">적립</option>
+                                            <option value="spent">차감</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label for="actionTypeFilter">활동 유형:</label>
+                                        <select id="actionTypeFilter">
+                                            <option value="all">전체</option>
+                                            <option value="POST_CREATE">게시물 작성</option>
+                                            <option value="COMMENT_CREATE">댓글 작성</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- 로그 목록 섹션 -->
@@ -89,16 +112,12 @@ class PointLogModal {
             </div>
         `;
 
-        // 기존 모달이 있으면 제거
         const existingModal = document.getElementById(this.options.modalId);
         if (existingModal) {
             existingModal.remove();
         }
 
-        // 새 모달 추가
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        // CSS 스타일 추가
         this.addStyles();
     }
 
@@ -188,7 +207,7 @@ class PointLogModal {
                 }
 
                 .point-stats-section {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(135deg, #ff6f61 0%, #e65a50 100%);
                     color: white;
                     padding: 20px;
                     border-radius: 8px;
@@ -219,16 +238,33 @@ class PointLogModal {
 
                 .point-filter-section {
                     margin-bottom: 20px;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
                 }
 
-                .point-filter-section select {
-                    padding: 8px 12px;
+                .filter-row {
+                    display: flex;
+                    gap: 20px;
+                    flex-wrap: wrap;
+                }
+
+                .filter-group {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .filter-group label {
+                    font-weight: 500;
+                    color: #333;
+                    white-space: nowrap;
+                }
+
+                .filter-group select {
+                    padding: 4px;
                     border: 1px solid #ddd;
                     border-radius: 4px;
                     background: white;
+                    font-size: 14px;
+                    min-width: 120px;
                 }
 
                 .point-logs-section {
@@ -257,6 +293,14 @@ class PointLogModal {
                     border-color: #ddd;
                 }
 
+                .point-log-item.earned {
+                    border-left: 4px solid #28a745;
+                }
+
+                .point-log-item.spent {
+                    border-left: 4px solid #dc3545;
+                }
+
                 .point-log-info {
                     flex: 1;
                 }
@@ -281,8 +325,15 @@ class PointLogModal {
                 .point-log-points {
                     font-size: 1.2rem;
                     font-weight: bold;
-                    color: #28a745;
                     text-align: right;
+                }
+
+                .point-log-points.earned {
+                    color: #28a745;
+                }
+
+                .point-log-points.spent {
+                    color: #dc3545;
                 }
 
                 .point-pagination {
@@ -352,6 +403,11 @@ class PointLogModal {
                         gap: 15px;
                     }
                     
+                    .filter-row {
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+                    
                     .point-log-item {
                         flex-direction: column;
                         align-items: flex-start;
@@ -373,23 +429,31 @@ class PointLogModal {
      */
     bindEvents() {
         const modal = document.getElementById(this.options.modalId);
-        const trigger = document.getElementById(this.options.triggerId);
+        if (!modal) {
+            console.error('모달 요소를 찾을 수 없습니다.');
+            return;
+        }
+
+        // 트리거 이벤트 바인딩
+        this.bindTriggerEvents();
+
         const closeBtn = modal.querySelector('.point-modal-close');
         const overlay = modal.querySelector('.point-modal-overlay');
-        const filterSelect = modal.querySelector('#actionTypeFilter');
+        const pointTypeFilter = modal.querySelector('#pointTypeFilter');
+        const actionTypeFilter = modal.querySelector('#actionTypeFilter');
         const prevBtn = modal.querySelector('#prevPageBtn');
         const nextBtn = modal.querySelector('#nextPageBtn');
 
-        // 모달 열기
-        if (trigger) {
-            trigger.addEventListener('click', () => this.open());
-        }
-
         // 모달 닫기
-        closeBtn.addEventListener('click', () => this.close());
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) this.close();
-        });
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.close());
+        }
+        
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) this.close();
+            });
+        }
 
         // ESC 키로 닫기
         document.addEventListener('keydown', (e) => {
@@ -398,26 +462,76 @@ class PointLogModal {
             }
         });
 
-        // 필터 변경
-        filterSelect.addEventListener('change', (e) => {
-            this.currentFilter = e.target.value;
-            this.currentPage = 1;
-            this.loadLogs();
-        });
+        // 포인트 유형 필터 변경
+        if (pointTypeFilter) {
+            pointTypeFilter.addEventListener('change', (e) => {
+                this.currentPointTypeFilter = e.target.value;
+                this.currentPage = 1;
+                this.loadLogs();
+            });
+        }
+
+        // 활동 유형 필터 변경
+        if (actionTypeFilter) {
+            actionTypeFilter.addEventListener('change', (e) => {
+                this.currentFilter = e.target.value;
+                this.currentPage = 1;
+                this.loadLogs();
+            });
+        }
 
         // 페이지네이션
-        prevBtn.addEventListener('click', () => {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-                this.loadLogs();
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    this.loadLogs();
+                }
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (this.currentPage < this.totalPages) {
+                    this.currentPage++;
+                    this.loadLogs();
+                }
+            });
+        }
+    }
+
+    /**
+     * 트리거 이벤트 바인딩
+     */
+    bindTriggerEvents() {
+        // 1. 단일 ID 트리거
+        if (typeof this.options.triggerId === 'string') {
+            const trigger = document.getElementById(this.options.triggerId);
+            if (trigger) {
+                trigger.addEventListener('click', () => this.open());
             }
+        }
+
+        // 2. 다중 ID 트리거 (배열)
+        if (Array.isArray(this.options.triggerId)) {
+            this.options.triggerId.forEach(id => {
+                const trigger = document.getElementById(id);
+                if (trigger) {
+                    trigger.addEventListener('click', () => this.open());
+                }
+            });
+        }
+
+        // 3. 클래스 기반 트리거
+        const classTriggers = document.querySelectorAll(`.${this.options.triggerClass}`);
+        classTriggers.forEach(trigger => {
+            trigger.addEventListener('click', () => this.open());
         });
 
-        nextBtn.addEventListener('click', () => {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++;
-                this.loadLogs();
-            }
+        // 4. 데이터 속성 기반 트리거
+        const dataTriggers = document.querySelectorAll('[data-modal="point-log"]');
+        dataTriggers.forEach(trigger => {
+            trigger.addEventListener('click', () => this.open());
         });
     }
 
@@ -426,10 +540,14 @@ class PointLogModal {
      */
     async open() {
         const modal = document.getElementById(this.options.modalId);
+        if (!modal) {
+            console.error('모달을 찾을 수 없습니다.');
+            return;
+        }
+        
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
         
-        // 데이터 로드
         await this.loadStats();
         await this.loadLogs();
     }
@@ -439,8 +557,10 @@ class PointLogModal {
      */
     close() {
         const modal = document.getElementById(this.options.modalId);
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
     }
 
     /**
@@ -450,6 +570,8 @@ class PointLogModal {
         const statsLoading = document.querySelector('.point-stats-loading');
         const statsContent = document.querySelector('.point-stats-content');
         
+        if (!statsLoading || !statsContent) return;
+        
         try {
             statsLoading.style.display = 'block';
             statsContent.style.display = 'none';
@@ -458,10 +580,11 @@ class PointLogModal {
             const data = await response.json();
 
             if (response.ok) {
-                document.getElementById('currentPointsValue').textContent = 
-                    data.currentPoints.toLocaleString();
-                document.getElementById('totalEarnedValue').textContent = 
-                    data.totalEarned.toLocaleString();
+                const currentPointsEl = document.getElementById('currentPointsValue');
+                const totalEarnedEl = document.getElementById('totalEarnedValue');
+                
+                if (currentPointsEl) currentPointsEl.textContent = data.currentPoints.toLocaleString();
+                if (totalEarnedEl) totalEarnedEl.textContent = data.totalEarned.toLocaleString();
                 
                 statsLoading.style.display = 'none';
                 statsContent.style.display = 'flex';
@@ -470,7 +593,7 @@ class PointLogModal {
             }
         } catch (error) {
             console.error('포인트 통계 로드 오류:', error);
-            statsLoading.textContent = '통계 로드 실패';
+            if (statsLoading) statsLoading.textContent = '통계 로드 실패';
         }
     }
 
@@ -484,6 +607,11 @@ class PointLogModal {
         const logsLoading = document.querySelector('.point-logs-loading');
         const logsList = document.getElementById('pointLogsList');
         
+        if (!logsLoading || !logsList) {
+            this.isLoading = false;
+            return;
+        }
+        
         try {
             logsLoading.style.display = 'block';
             logsList.innerHTML = '';
@@ -493,8 +621,14 @@ class PointLogModal {
                 limit: this.options.itemsPerPage
             });
 
+            // 활동 유형 필터 추가
             if (this.currentFilter !== 'all') {
                 params.append('actionType', this.currentFilter);
+            }
+
+            // 포인트 유형 필터 추가
+            if (this.currentPointTypeFilter !== 'all') {
+                params.append('pointType', this.currentPointTypeFilter);
             }
 
             const response = await fetch(`${this.options.apiBaseUrl}/user/point-logs?${params}`);
@@ -509,8 +643,8 @@ class PointLogModal {
             }
         } catch (error) {
             console.error('포인트 로그 로드 오류:', error);
-            logsLoading.textContent = '로그 로드 실패';
-            logsList.innerHTML = '<div class="no-logs">로그를 불러올 수 없습니다.</div>';
+            if (logsLoading) logsLoading.textContent = '로그 로드 실패';
+            if (logsList) logsList.innerHTML = '<div class="no-logs">로그를 불러올 수 없습니다.</div>';
         } finally {
             this.isLoading = false;
         }
@@ -521,6 +655,7 @@ class PointLogModal {
      */
     renderLogs(logs) {
         const logsList = document.getElementById('pointLogsList');
+        if (!logsList) return;
         
         if (logs.length === 0) {
             logsList.innerHTML = '<div class="no-logs">포인트 로그가 없습니다.</div>';
@@ -554,14 +689,19 @@ class PointLogModal {
             description += ` - "${shortComment}"`;
         }
 
+        // 포인트 유형 판별 (양수면 적립, 음수면 차감)
+        const isEarned = log.points > 0;
+        const pointClass = isEarned ? 'earned' : 'spent';
+        const pointPrefix = isEarned ? '+' : '';
+
         return `
-            <div class="point-log-item">
+            <div class="point-log-item ${pointClass}">
                 <div class="point-log-info">
                     <div class="point-log-action">${actionText}</div>
                     <div class="point-log-description">${description}</div>
                     <div class="point-log-date">${date}</div>
                 </div>
-                <div class="point-log-points">+${log.points}</div>
+                <div class="point-log-points ${pointClass}">${pointPrefix}${log.points}</div>
             </div>
         `;
     }
@@ -574,6 +714,8 @@ class PointLogModal {
         const prevBtn = document.getElementById('prevPageBtn');
         const nextBtn = document.getElementById('nextPageBtn');
         const pageInfo = document.getElementById('pageInfo');
+
+        if (!paginationDiv || !prevBtn || !nextBtn || !pageInfo) return;
 
         this.totalPages = pagination.totalPages;
 
@@ -605,5 +747,11 @@ window.createPointLogModal = function(options) {
     return new PointLogModal(options);
 };
 
-// 기본 인스턴스 생성 (옵션)
-window.pointLogModal = new PointLogModal();
+// DOM이 로드된 후 기본 인스턴스 생성
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        window.pointLogModal = new PointLogModal();
+    });
+} else {
+    window.pointLogModal = new PointLogModal();
+}
