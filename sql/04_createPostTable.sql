@@ -1,4 +1,4 @@
-use ai3;
+-- use ai3;
 
 -- =====================- 게시물 -=====================
 CREATE TABLE posts (
@@ -67,6 +67,7 @@ CREATE TABLE post_views (
     post_id INT NOT NULL,
     user_id INT NOT NULL,
     viewed_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    viewed_date DATE AS (DATE(viewed_at)) STORED,
     PRIMARY KEY (id),
     KEY idx_post_id (post_id),
     KEY idx_user_id (user_id),
@@ -74,7 +75,7 @@ CREATE TABLE post_views (
         FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
     CONSTRAINT fk_post_views_user_id 
         FOREIGN KEY (user_id) REFERENCES users(id),
-    UNIQUE KEY uk_post_user_view (post_id, user_id, DATE(viewed_at))
+    UNIQUE KEY uk_post_user_view (post_id, user_id, viewed_date)
 );
 
 -- =====================- 검색기록 -=====================

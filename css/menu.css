@@ -127,6 +127,8 @@ body {
 }
 
 .search-term {
+    display : flex;
+    align-items : flex-start;
     flex : 1;
     margin-left : 5px;
     cursor: pointer;
