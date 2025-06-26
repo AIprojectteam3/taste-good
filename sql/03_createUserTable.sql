@@ -22,6 +22,7 @@ CREATE TABLE user_levels (
     id INT NOT NULL AUTO_INCREMENT,
     user_id INT NULL,
     level INT NULL DEFAULT 1,
+    experience INT NULL DEFAULT 0,
     PRIMARY KEY (id),
     KEY idx_user_id (user_id),
     UNIQUE KEY uk_user_level (user_id),
@@ -85,4 +86,11 @@ CREATE TABLE point_logs (
     INDEX idx_user_id (user_id),
     INDEX idx_created_at (created_at),
     INDEX idx_action_type (action_type)
+);
+
+-- =====================- 레벨 요구사항 -=====================
+CREATE TABLE level_requirements (
+    level INT PRIMARY KEY,
+    required_exp INT NOT NULL,
+    INDEX idx_required_exp (required_exp)
 );
