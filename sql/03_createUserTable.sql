@@ -90,7 +90,9 @@ CREATE TABLE point_logs (
 
 -- =====================- 레벨 요구사항 -=====================
 CREATE TABLE level_requirements (
-    level INT PRIMARY KEY,
+    level INT NOT NULL,
     required_exp INT NOT NULL,
-    INDEX idx_required_exp (required_exp)
+    icon_url VARCHAR(255) NULL,
+    PRIMARY KEY (level),
+    KEY idx_required_exp (required_exp)
 );
