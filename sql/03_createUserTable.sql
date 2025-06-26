@@ -68,3 +68,21 @@ CREATE TABLE user_allergen (
         FOREIGN KEY (allergen_id)
         REFERENCES Allergen(AllergenID) ON DELETE CASCADE
 );
+
+-- =====================- 포인트 로그 -=====================
+CREATE TABLE point_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    points INT NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
+    description VARCHAR(255),
+    post_id INT NULL,
+    comment_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE SET NULL,
+    FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE SET NULL,
+    INDEX idx_user_id (user_id),
+    INDEX idx_created_at (created_at),
+    INDEX idx_action_type (action_type)
+);

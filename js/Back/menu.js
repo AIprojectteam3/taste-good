@@ -58,7 +58,7 @@ function updateProfileUI(user) {
     }
 
     if (pointCountElement) {
-        pointCountElement.textContent = user.points ? user.points.toString() : '0';
+        pointCountElement.textContent = user.point ? user.point.toString() : '0';
     } else {
         // console.warn("프로필 포인트 요소를 찾을 수 없습니다. (선택자: .profile .profile-stats .point .point-count)");
     }

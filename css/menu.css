@@ -38,7 +38,6 @@ body {
 .profile-header {
     display : flex;
     align-items : center;
-    justify-content : space-between;
     padding : 15px 15px 0 15px;
 }
 
@@ -55,6 +54,7 @@ body {
 
 .profile .level {
     display: flex;
+    margin-left : auto;
     gap: 5px;
 }
 

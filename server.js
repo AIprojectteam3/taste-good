@@ -782,7 +782,52 @@ app.post('/api/createPost', upload.array('postImages', 10), (req, res) => { // '
 
             Promise.all(fileInsertPromises)
                 .then(() => {
-                    res.json({ success: true, message: '게시물과 이미지가 성공적으로 등록되었습니다.', postId: postId });
+                    // 게시물 작성 성공 후 포인트 증가 (10점, 10분 쿨다운)
+                    const userId = req.session.userId;
+                    
+                    addPointsWithLog(
+                        userId, 
+                        10, 
+                        POINT_ACTIONS.POST_CREATE, 
+                        '게시물 작성', 
+                        postId, 
+                        null, 
+                        (err, result) => {
+                            if (err) {
+                                console.error('포인트 적립 실패:', err);
+                                // 포인트 적립 실패해도 게시물 작성은 성공으로 처리
+                                return res.json({ 
+                                    success: true, 
+                                    message: '게시물이 성공적으로 등록되었습니다.', 
+                                    postId: postId 
+                                });
+                            }
+                            
+                            if (result.onCooldown) {
+                                // 쿨다운 중인 경우
+                                return res.json({ 
+                                    success: true, 
+                                    message: `게시물이 성공적으로 등록되었습니다. (${result.message})`, 
+                                    postId: postId,
+                                    pointCooldown: {
+                                        active: true,
+                                        remainingTime: result.remainingTime,
+                                        message: result.message
+                                    }
+                                });
+                            }
+                            
+                            // 포인트 적립 성공
+                            res.json({ 
+                                success: true, 
+                                message: `게시물이 성공적으로 등록되었습니다. ${result.addedPoints}점이 적립되었습니다!`, 
+                                postId: postId,
+                                pointsAdded: result.addedPoints,
+                                totalPoints: result.totalPoints,
+                                nextPointAvailable: `${COOLDOWN_TIMES.POST_CREATE / 60}분 후`
+                            });
+                        }
+                    );
                 })
                 .catch(promiseErr => {
                     console.error('파일 정보 일괄 추가 중 오류 발생:', promiseErr);
@@ -1443,10 +1488,104 @@ app.post('/api/post/:postId/comment', (req, res) => {
                 return res.status(201).json({ success: true, message: '댓글이 성공적으로 등록되었습니다 (정보 조회 실패).', commentId: newCommentId });
             }
 
-            res.status(201).json({ success: true, message: '댓글이 성공적으로 등록되었습니다.', comment: commentData[0] });
+            // 댓글 작성 성공 후 포인트 증가 (5점, 30초 쿨다운)
+            const userId = req.session.userId;
+            
+            addPointsWithLog(
+                userId, 
+                5, 
+                POINT_ACTIONS.COMMENT_CREATE, 
+                '댓글 작성', 
+                postId, 
+                newCommentId, 
+                (err, result) => {
+                    if (err) {
+                        console.error('포인트 적립 실패:', err);
+                        return res.status(201).json({ 
+                            success: true, 
+                            message: '댓글이 성공적으로 등록되었습니다.', 
+                            comment: commentData[0] 
+                        });
+                    }
+                    
+                    if (result.onCooldown) {
+                        // 쿨다운 중인 경우
+                        return res.status(201).json({ 
+                            success: true, 
+                            message: `댓글이 성공적으로 등록되었습니다. (${result.message})`, 
+                            comment: commentData[0],
+                            pointCooldown: {
+                                active: true,
+                                remainingTime: result.remainingTime,
+                                message: result.message
+                            }
+                        });
+                    }
+                    
+                    // 포인트 적립 성공
+                    res.status(201).json({ 
+                        success: true, 
+                        message: `댓글이 성공적으로 등록되었습니다. ${result.addedPoints}점이 적립되었습니다!`, 
+                        comment: commentData[0],
+                        pointsAdded: result.addedPoints,
+                        totalPoints: result.totalPoints,
+                        nextPointAvailable: `${COOLDOWN_TIMES.COMMENT_CREATE}초 후`
+                    });
+                }
+            );
         });
     });
 });
+
+// ==================================================================================================================
+// 포인트 쿨다운 상태 확인 API
+// ==================================================================================================================
+app.get('/api/user/point-cooldowns', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
+    const cooldownStatus = {};
+    
+    // 각 액션 타입별 쿨다운 상태 확인
+    Object.keys(POINT_ACTIONS).forEach(actionKey => {
+        const actionType = POINT_ACTIONS[actionKey];
+        const cooldownCheck = checkPointCooldown(userId, actionType);
+        
+        cooldownStatus[actionType] = {
+            onCooldown: cooldownCheck.onCooldown,
+            remainingTime: cooldownCheck.remainingTime || 0,
+            remainingTimeText: cooldownCheck.onCooldown ? formatTime(cooldownCheck.remainingTime) : null,
+            maxCooldownTime: COOLDOWN_TIMES[actionType]
+        };
+    });
+
+    res.json({
+        success: true,
+        cooldowns: cooldownStatus
+    });
+});
+
+// ==================================================================================================================
+// 만료된 쿨다운 정리 (1분마다 실행)
+// ==================================================================================================================
+setInterval(() => {
+    const now = Date.now();
+    let cleanedCount = 0;
+    
+    for (const [key, expirationTime] of pointCooldowns.entries()) {
+        if (now >= expirationTime) {
+            pointCooldowns.delete(key);
+            cleanedCount++;
+        }
+    }
+    
+    if (cleanedCount > 0) {
+        console.log(`[INFO] 만료된 포인트 쿨다운 ${cleanedCount}개 정리됨`);
+    }
+}, 60000); // 1분마다 실행
 
 // ==================================================================================================================
 // 댓글 목록 가져오기 API
@@ -2727,6 +2866,225 @@ app.get('/api/recommend-filtered', async (req, res) => {
 });
 
 // ==================================================================================================================
+// 포인트 적립 및 로그 기록 함수
+// ==================================================================================================================
+function addPointsWithLog(userId, points, actionType, description, postId = null, commentId = null, callback) {
+    if (!userId || !points || points <= 0) {
+        return callback(new Error('유효하지 않은 파라미터입니다.'));
+    }
+
+    // 쿨다운 체크
+    const cooldownCheck = checkPointCooldown(userId, actionType);
+    if (cooldownCheck.onCooldown) {
+        const remainingTimeText = formatTime(cooldownCheck.remainingTime);
+        return callback(null, {
+            success: false,
+            onCooldown: true,
+            message: `포인트 적립 대기 시간이 남아있습니다. ${remainingTimeText} 후에 다시 시도해주세요.`,
+            remainingTime: cooldownCheck.remainingTime
+        });
+    }
+
+    // 트랜잭션 시작
+    db.beginTransaction((txErr) => {
+        if (txErr) {
+            console.error('포인트 적립 트랜잭션 시작 오류:', txErr);
+            return callback(txErr);
+        }
+
+        // 1. user_points 테이블에서 현재 사용자의 포인트 확인
+        const checkPointsQuery = 'SELECT id, point FROM user_points WHERE user_id = ?';
+        db.query(checkPointsQuery, [userId], (checkErr, checkResults) => {
+            if (checkErr) {
+                console.error('포인트 확인 중 오류:', checkErr);
+                return db.rollback(() => callback(checkErr));
+            }
+
+            let updatePromise;
+            
+            if (checkResults.length > 0) {
+                // 2-1. 기존 포인트가 있으면 업데이트
+                const updatePointsQuery = 'UPDATE user_points SET point = point + ? WHERE user_id = ?';
+                updatePromise = new Promise((resolve, reject) => {
+                    db.query(updatePointsQuery, [points, userId], (updateErr, updateResult) => {
+                        if (updateErr) reject(updateErr);
+                        else resolve({ newTotal: checkResults[0].point + points });
+                    });
+                });
+            } else {
+                // 2-2. 포인트 레코드가 없으면 새로 생성
+                const insertPointsQuery = 'INSERT INTO user_points (user_id, point) VALUES (?, ?)';
+                updatePromise = new Promise((resolve, reject) => {
+                    db.query(insertPointsQuery, [userId, points], (insertErr, insertResult) => {
+                        if (insertErr) reject(insertErr);
+                        else resolve({ newTotal: points });
+                    });
+                });
+            }
+
+            // 3. 포인트 업데이트 실행
+            updatePromise
+                .then((result) => {
+                    // 4. 포인트 로그 기록
+                    const insertLogQuery = `
+                        INSERT INTO point_logs (user_id, points, action_type, description, post_id, comment_id) 
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    `;
+                    
+                    db.query(insertLogQuery, [userId, points, actionType, description, postId, commentId], (logErr, logResult) => {
+                        if (logErr) {
+                            console.error('포인트 로그 기록 중 오류:', logErr);
+                            return db.rollback(() => callback(logErr));
+                        }
+
+                        // 5. 트랜잭션 커밋
+                        db.commit((commitErr) => {
+                            if (commitErr) {
+                                console.error('포인트 적립 트랜잭션 커밋 오류:', commitErr);
+                                return db.rollback(() => callback(commitErr));
+                            }
+
+                            // 6. 쿨다운 설정
+                            const cooldownTime = COOLDOWN_TIMES[actionType] || 60;
+                            setPointCooldown(userId, actionType, cooldownTime);
+
+                            console.log(`[INFO] 사용자 ${userId}의 포인트가 ${points}점 증가했습니다. (${actionType}) 총 포인트: ${result.newTotal}`);
+                            console.log(`[INFO] 쿨다운 설정: ${cooldownTime}초`);
+                            
+                            callback(null, {
+                                success: true,
+                                addedPoints: points,
+                                totalPoints: result.newTotal,
+                                logId: logResult.insertId,
+                                cooldownSet: cooldownTime
+                            });
+                        });
+                    });
+                })
+                .catch((updateErr) => {
+                    console.error('포인트 업데이트 중 오류:', updateErr);
+                    db.rollback(() => callback(updateErr));
+                });
+        });
+    });
+}
+
+// ==================================================================================================================
+// 사용자 포인트 로그 조회 API
+// ==================================================================================================================
+app.get('/api/user/point-logs', (req, res) => {
+    const userId = req.session.userId;
+    const { page = 1, limit = 20, actionType } = req.query;
+    
+    if (!userId) {
+        return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
+    const offset = (page - 1) * limit;
+    let whereClause = 'WHERE pl.user_id = ?';
+    let queryParams = [userId];
+    
+    if (actionType) {
+        whereClause += ' AND pl.action_type = ?';
+        queryParams.push(actionType);
+    }
+
+    const query = `
+        SELECT 
+            pl.id,
+            pl.points,
+            pl.action_type,
+            pl.description,
+            pl.created_at,
+            p.title as post_title,
+            c.comment as comment_text
+        FROM point_logs pl
+        LEFT JOIN posts p ON pl.post_id = p.id
+        LEFT JOIN comments c ON pl.comment_id = c.id
+        ${whereClause}
+        ORDER BY pl.created_at DESC
+        LIMIT ? OFFSET ?
+    `;
+    
+    queryParams.push(parseInt(limit), offset);
+
+    db.query(query, queryParams, (err, results) => {
+        if (err) {
+            console.error('포인트 로그 조회 중 오류:', err);
+            return res.status(500).json({ message: '포인트 로그를 가져오는 데 실패했습니다.' });
+        }
+
+        // 전체 개수 조회
+        const countQuery = `SELECT COUNT(*) as total FROM point_logs pl ${whereClause}`;
+        db.query(countQuery, queryParams.slice(0, -2), (countErr, countResults) => {
+            if (countErr) {
+                console.error('포인트 로그 개수 조회 중 오류:', countErr);
+                return res.status(500).json({ message: '포인트 로그 개수 조회에 실패했습니다.' });
+            }
+
+            const total = countResults[0].total;
+            const totalPages = Math.ceil(total / limit);
+
+            res.json({
+                logs: results,
+                pagination: {
+                    currentPage: parseInt(page),
+                    totalPages: totalPages,
+                    totalItems: total,
+                    itemsPerPage: parseInt(limit)
+                }
+            });
+        });
+    });
+});
+
+// ==================================================================================================================
+// 포인트 통계 조회 API
+// ==================================================================================================================
+app.get('/api/user/point-stats', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ message: '로그인이 필요합니다.' });
+    }
+
+    const statsQuery = `
+        SELECT 
+            action_type,
+            COUNT(*) as count,
+            SUM(points) as total_points
+        FROM point_logs 
+        WHERE user_id = ?
+        GROUP BY action_type
+        ORDER BY total_points DESC
+    `;
+
+    db.query(statsQuery, [userId], (err, results) => {
+        if (err) {
+            console.error('포인트 통계 조회 중 오류:', err);
+            return res.status(500).json({ message: '포인트 통계를 가져오는 데 실패했습니다.' });
+        }
+
+        // 전체 포인트 조회
+        const totalQuery = 'SELECT point FROM user_points WHERE user_id = ?';
+        db.query(totalQuery, [userId], (totalErr, totalResults) => {
+            if (totalErr) {
+                console.error('총 포인트 조회 중 오류:', totalErr);
+                return res.status(500).json({ message: '총 포인트 조회에 실패했습니다.' });
+            }
+
+            const currentPoints = totalResults.length > 0 ? totalResults[0].point : 0;
+            
+            res.json({
+                currentPoints: currentPoints,
+                statistics: results,
+                totalEarned: results.reduce((sum, stat) => sum + stat.total_points, 0)
+            });
+        });
+    });
+});
+
+// ==================================================================================================================
 // 서버 시작
 // ==================================================================================================================
 app.listen(PORT, () => {
@@ -3170,3 +3528,65 @@ function parseGPTResponseByMenu(gptResponse, recommendedMenus) {
 function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+// ==================================================================================================================
+// 포인트 적립 쿨다운 관리 시스템
+// ==================================================================================================================
+const pointCooldowns = new Map();
+
+// 쿨다운 체크 함수
+function checkPointCooldown(userId, actionType) {
+    const cooldownKey = `${userId}_${actionType}`;
+    const now = Date.now();
+    
+    if (pointCooldowns.has(cooldownKey)) {
+        const expirationTime = pointCooldowns.get(cooldownKey);
+        if (now < expirationTime) {
+            const remainingTime = Math.ceil((expirationTime - now) / 1000);
+            return {
+                onCooldown: true,
+                remainingTime: remainingTime
+            };
+        } else {
+            // 만료된 쿨다운 제거
+            pointCooldowns.delete(cooldownKey);
+        }
+    }
+    
+    return { onCooldown: false };
+}
+
+// 쿨다운 설정 함수
+function setPointCooldown(userId, actionType, cooldownSeconds) {
+    const cooldownKey = `${userId}_${actionType}`;
+    const expirationTime = Date.now() + (cooldownSeconds * 1000);
+    pointCooldowns.set(cooldownKey, expirationTime);
+    
+    // 자동 정리를 위한 타이머 설정
+    setTimeout(() => {
+        pointCooldowns.delete(cooldownKey);
+    }, cooldownSeconds * 1000);
+}
+
+// 시간 포맷팅 함수
+function formatTime(seconds) {
+    if (seconds < 60) {
+        return `${seconds}초`;
+    } else {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return remainingSeconds > 0 ? `${minutes}분 ${remainingSeconds}초` : `${minutes}분`;
+    }
+}
+
+// 포인트 액션 타입 상수
+const POINT_ACTIONS = {
+    POST_CREATE: 'POST_CREATE',
+    COMMENT_CREATE: 'COMMENT_CREATE'
+};
+
+// 쿨다운 시간 설정 (초 단위)
+const COOLDOWN_TIMES = {
+    POST_CREATE: 600,    // 10분 (600초)
+    COMMENT_CREATE: 30   // 30초
+};
