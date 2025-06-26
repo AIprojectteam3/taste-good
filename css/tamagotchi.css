@@ -214,8 +214,8 @@
     background: white;
     border-radius: 15px;
     padding: 25px;
+    min-width : 350px;
     height : 500px;
-    height : 100%;
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
     border: 2px solid #f0f0f0;
 }
@@ -258,6 +258,7 @@
 
 .food-btn {
     border-color: #FF6B6B;
+    color: #E53E3E;
 }
 
 .food-btn:hover {
@@ -268,6 +269,7 @@
 
 .care-btn {
     border-color: #2ECC71;
+    color: #16A085;
 }
 
 .care-btn:hover {
@@ -278,6 +280,7 @@
 
 .play-btn {
     border-color: #6BA6FF;
+    color: #3B82F6;
 }
 
 .play-btn:hover {
@@ -286,17 +289,18 @@
     border-color: #6BA6FF;
 }
 
-.shop-btn {
-    border-color: #FFB84D;
+.petshop-btn {
+    border-color: #FF9CAE;
+    color: #C2185B;
 }
 
-.shop-btn:hover {
-    background: linear-gradient(135deg, #FFB84D, #FF8C42);
+.petshop-btn:hover {
+    background: linear-gradient(135deg, #FF9CAE, #FF6B9D);
     color: white;
-    border-color: #FFB84D;
+    border-color: #E91E63;
 }
 
-.shop-btn .btn-title span {
+.petshop-btn .btn-title span {
     display : flex;
     flex-direction : column;
     align-items : center;
@@ -304,6 +308,7 @@
 
 .diary-btn {
     border-color: #A855F7;
+    color: #7C3AED;
 }
 
 .diary-btn:hover {
