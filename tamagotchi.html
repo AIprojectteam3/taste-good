@@ -98,30 +98,89 @@
 
         <div class="tamagotchi-content">
             <div class="tamagotchi-container">
-                <!-- 다마고치 캐릭터 영역 -->
-                <div class="tamagotchi-display">
-                    <div class="pet-container">
-                        <img src="image/pet-dummy.png" alt="내 다마고치" class="pet-image">
-                        <div class="pet-status">
-                            <div class="status-bar">
-                                <span class="status-label">배고픔</span>
-                                <div class="status-progress">
-                                    <div class="progress-fill hunger" style="width: 70%"></div>
+                <div class="tamagotchi-main">
+                    <!-- 다마고치 디스플레이 -->
+                    <div class="tamagotchi-display">
+                        <div class="pet-container">
+                            <img src="image/pet/pet_chicken.png" alt="다마고치" class="pet-image" id="petImage">
+                            
+                            <!-- 상태 바 (배고픔, 건강도, 행복도 순) -->
+                            <div class="pet-status">
+                                <div class="status-bar">
+                                    <span class="status-label">배고픔</span>
+                                    <div class="status-progress">
+                                        <div class="progress-fill hunger" id="hungerBar" style="width: 70%;"></div>
+                                    </div>
+                                    <span class="status-value" id="hungerValue">70%</span>
                                 </div>
-                            </div>
-                            <div class="status-bar">
-                                <span class="status-label">행복도</span>
-                                <div class="status-progress">
-                                    <div class="progress-fill happiness" style="width: 85%"></div>
+                                
+                                <div class="status-bar">
+                                    <span class="status-label">건강도</span>
+                                    <div class="status-progress">
+                                        <div class="progress-fill health" id="healthBar" style="width: 85%;"></div>
+                                    </div>
+                                    <span class="status-value" id="healthValue">85%</span>
                                 </div>
-                            </div>
-                            <div class="status-bar">
-                                <span class="status-label">건강도</span>
-                                <div class="status-progress">
-                                    <div class="progress-fill health" style="width: 60%"></div>
+                                
+                                <div class="status-bar">
+                                    <span class="status-label">행복도</span>
+                                    <div class="status-progress">
+                                        <div class="progress-fill happiness" id="happinessBar" style="width: 60%;"></div>
+                                    </div>
+                                    <span class="status-value" id="happinessValue">60%</span>
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- 액션 버튼 및 상태 정보 -->
+                    <div class="tamagotchi-controls">
+                        <!-- 액션 버튼들 -->
+                        <div class="action-buttons">
+                            <h3>포인트로 돌보기</h3>
+                            
+                            <button onclick="investPoints('food')" class="action-btn food-btn">
+                                <div class="btn-icon">🍎</div>
+                                <div class="btn-content">
+                                    <div class="btn-title">먹이주기</div>
+                                    <div class="btn-cost">5포인트</div>
+                                </div>
+                            </button>
+                            
+                            <button onclick="investPoints('care')" class="action-btn care-btn">
+                                <div class="btn-icon">💊</div>
+                                <div class="btn-content">
+                                    <div class="btn-title">돌보기</div>
+                                    <div class="btn-cost">10포인트</div>
+                                </div>
+                            </button>
+                            
+                            <button onclick="investPoints('play')" class="action-btn play-btn">
+                                <div class="btn-icon">🎮</div>
+                                <div class="btn-content">
+                                    <div class="btn-title">놀아주기</div>
+                                    <div class="btn-cost">15포인트</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- 현재 상태 정보 -->
+                <div class="current-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">보유 포인트</span>
+                        <span class="stat-value" id="currentPoints">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">경험치</span>
+                        <span class="stat-value">
+                            <span id="currentExp">0</span> / <span id="nextLevelExp">100</span>
+                            <span class="exp-unit"> Exp</span>
+                        </span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">현재 레벨</span>
+                        <span class="stat-value" id="currentLevel">1</span>
                     </div>
                 </div>
             </div>
