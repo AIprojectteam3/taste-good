@@ -2978,7 +2978,7 @@ function addPointsWithLog(userId, points, actionType, description, postId = null
 // ==================================================================================================================
 app.get('/api/user/point-logs', (req, res) => {
     const userId = req.session.userId;
-    const { page = 1, limit = 20, actionType } = req.query;
+    const { page = 1, limit = 20, actionType, pointType } = req.query;
     
     if (!userId) {
         return res.status(401).json({ message: '로그인이 필요합니다.' });
@@ -2987,14 +2987,24 @@ app.get('/api/user/point-logs', (req, res) => {
     const offset = (page - 1) * limit;
     let whereClause = 'WHERE pl.user_id = ?';
     let queryParams = [userId];
-    
-    if (actionType) {
+
+    // 활동 유형 필터
+    if (actionType && actionType !== 'all') {
         whereClause += ' AND pl.action_type = ?';
         queryParams.push(actionType);
     }
 
+    // ⭐ 포인트 유형 필터 추가 (적립/차감) ⭐
+    if (pointType && pointType !== 'all') {
+        if (pointType === 'earned') {
+            whereClause += ' AND pl.points > 0';
+        } else if (pointType === 'spent') {
+            whereClause += ' AND pl.points < 0';
+        }
+    }
+
     const query = `
-        SELECT 
+        SELECT
             pl.id,
             pl.points,
             pl.action_type,
@@ -3009,27 +3019,35 @@ app.get('/api/user/point-logs', (req, res) => {
         ORDER BY pl.created_at DESC
         LIMIT ? OFFSET ?
     `;
-    
+
     queryParams.push(parseInt(limit), offset);
 
     db.query(query, queryParams, (err, results) => {
         if (err) {
             console.error('포인트 로그 조회 중 오류:', err);
-            return res.status(500).json({ message: '포인트 로그를 가져오는 데 실패했습니다.' });
+            return res.status(500).json({
+                success: false,
+                message: '포인트 로그를 가져오는 데 실패했습니다.',
+                error: err.message
+            });
         }
 
-        // 전체 개수 조회
+        // 전체 개수 조회 (같은 WHERE 조건 적용)
         const countQuery = `SELECT COUNT(*) as total FROM point_logs pl ${whereClause}`;
         db.query(countQuery, queryParams.slice(0, -2), (countErr, countResults) => {
             if (countErr) {
                 console.error('포인트 로그 개수 조회 중 오류:', countErr);
-                return res.status(500).json({ message: '포인트 로그 개수 조회에 실패했습니다.' });
+                return res.status(500).json({
+                    success: false,
+                    message: '포인트 로그 개수 조회에 실패했습니다.'
+                });
             }
 
             const total = countResults[0].total;
             const totalPages = Math.ceil(total / limit);
 
             res.json({
+                success: true,
                 logs: results,
                 pagination: {
                     currentPage: parseInt(page),
@@ -3041,6 +3059,7 @@ app.get('/api/user/point-logs', (req, res) => {
         });
     });
 });
+
 
 // ==================================================================================================================
 // 포인트 통계 조회 API

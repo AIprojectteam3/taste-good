@@ -59,11 +59,11 @@ class PointLogModal {
                                 <div class="point-stats-content" style="display: none;">
                                     <div class="current-points">
                                         <span class="label">현재 포인트:</span>
-                                        <span class="value" id="currentPointsValue">0</span>점
+                                        <span class="value" id="totalEarnedValue">0</span>점
                                     </div>
                                     <div class="total-earned">
                                         <span class="label">총 획득 포인트:</span>
-                                        <span class="value" id="totalEarnedValue">0</span>점
+                                        <span class="value" id="currentPointsValue">0</span>점
                                     </div>
                                 </div>
                             </div>
@@ -71,7 +71,7 @@ class PointLogModal {
                             <!-- 필터 섹션 -->
                             <div class="point-filter-section">
                                 <div class="filter-row">
-                                    <div class="filter-group">
+                                    <div class="filter_group">
                                         <label for="pointTypeFilter">포인트 유형:</label>
                                         <select id="pointTypeFilter">
                                             <option value="all">전체</option>
@@ -79,7 +79,7 @@ class PointLogModal {
                                             <option value="spent">차감</option>
                                         </select>
                                     </div>
-                                    <div class="filter-group">
+                                    <div class="filter_group">
                                         <label for="actionTypeFilter">활동 유형:</label>
                                         <select id="actionTypeFilter">
                                             <option value="all">전체</option>
@@ -246,19 +246,19 @@ class PointLogModal {
                     flex-wrap: wrap;
                 }
 
-                .filter-group {
+                .filter_group {
                     display: flex;
                     align-items: center;
                     gap: 8px;
                 }
 
-                .filter-group label {
+                .filter_group label {
                     font-weight: 500;
                     color: #333;
                     white-space: nowrap;
                 }
 
-                .filter-group select {
+                .filter_group select {
                     padding: 4px;
                     border: 1px solid #ddd;
                     border-radius: 4px;
@@ -602,16 +602,11 @@ class PointLogModal {
      */
     async loadLogs() {
         if (this.isLoading) return;
-        
         this.isLoading = true;
+
         const logsLoading = document.querySelector('.point-logs-loading');
         const logsList = document.getElementById('pointLogsList');
-        
-        if (!logsLoading || !logsList) {
-            this.isLoading = false;
-            return;
-        }
-        
+
         try {
             logsLoading.style.display = 'block';
             logsList.innerHTML = '';
@@ -621,20 +616,32 @@ class PointLogModal {
                 limit: this.options.itemsPerPage
             });
 
-            // 활동 유형 필터 추가
             if (this.currentFilter !== 'all') {
                 params.append('actionType', this.currentFilter);
             }
 
-            // 포인트 유형 필터 추가
             if (this.currentPointTypeFilter !== 'all') {
                 params.append('pointType', this.currentPointTypeFilter);
             }
 
             const response = await fetch(`${this.options.apiBaseUrl}/user/point-logs?${params}`);
+            
+            // 응답 상태 확인
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // Content-Type 확인
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('서버에서 JSON이 아닌 응답을 받았습니다:', text);
+                throw new Error('서버에서 올바르지 않은 응답을 받았습니다.');
+            }
+
             const data = await response.json();
 
-            if (response.ok) {
+            if (data.success) {
                 this.renderLogs(data.logs);
                 this.updatePagination(data.pagination);
                 logsLoading.style.display = 'none';
@@ -643,8 +650,12 @@ class PointLogModal {
             }
         } catch (error) {
             console.error('포인트 로그 로드 오류:', error);
-            if (logsLoading) logsLoading.textContent = '로그 로드 실패';
-            if (logsList) logsList.innerHTML = '<div class="no-logs">로그를 불러올 수 없습니다.</div>';
+            if (logsLoading) {
+                logsLoading.textContent = `로그 로드 실패: ${error.message}`;
+            }
+            if (logsList) {
+                logsList.innerHTML = `<div class="error-message">포인트 로그를 불러올 수 없습니다: ${error.message}</div>`;
+            }
         } finally {
             this.isLoading = false;
         }
