@@ -102,7 +102,15 @@
                     <!-- 다마고치 디스플레이 -->
                     <div class="tamagotchi-display">
                         <div class="pet-container">
-                            <img src="image/pet/pet_chicken.png" alt="다마고치" class="pet-image" id="petImage">
+                            <!-- 펫 이름 섹션 추가 -->
+                            <div class="pet-name-section">
+                                <h2 class="pet-name" id="petName">내 다마고치</h2>
+                                <button class="pet-name-edit-btn" onclick="editPetName()" title="펫 이름 수정">
+                                    <img src="image/postedit-icon.png" alt="수정" class="edit-icon">
+                                </button>
+                            </div>
+                            
+                            <img src="image/pet/pet-dummy-2.png" alt="다마고치" class="pet-image" id="petImage">
                             
                             <!-- 상태 바 (배고픔, 건강도, 행복도 순) -->
                             <div class="pet-status">
@@ -111,7 +119,10 @@
                                     <div class="status-progress">
                                         <div class="progress-fill hunger" id="hungerBar" style="width: 70%;"></div>
                                     </div>
-                                    <span class="status-value" id="hungerValue">70%</span>
+                                    <div class="status-info">
+                                        <span class="status-percent" id="hungerPercent">70%</span>
+                                        <span class="status-detail" id="hungerDetail">70/100</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="status-bar">
@@ -119,7 +130,10 @@
                                     <div class="status-progress">
                                         <div class="progress-fill health" id="healthBar" style="width: 85%;"></div>
                                     </div>
-                                    <span class="status-value" id="healthValue">85%</span>
+                                    <div class="status-info">
+                                        <span class="status-percent" id="hungerPercent">70%</span>
+                                        <span class="status-detail" id="hungerDetail">70/100</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="status-bar">
@@ -127,7 +141,10 @@
                                     <div class="status-progress">
                                         <div class="progress-fill happiness" id="happinessBar" style="width: 60%;"></div>
                                     </div>
-                                    <span class="status-value" id="happinessValue">60%</span>
+                                    <div class="status-info">
+                                        <span class="status-percent" id="hungerPercent">70%</span>
+                                        <span class="status-detail" id="hungerDetail">70/100</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -139,7 +156,7 @@
                         <div class="action-buttons">
                             <h3>포인트로 돌보기</h3>
                             
-                            <button onclick="investPoints('food')" class="action-btn food-btn">
+                            <button class="action-btn food-btn">
                                 <div class="btn-icon">🍎</div>
                                 <div class="btn-content">
                                     <div class="btn-title">먹이주기</div>
@@ -147,7 +164,7 @@
                                 </div>
                             </button>
                             
-                            <button onclick="investPoints('care')" class="action-btn care-btn">
+                            <button class="action-btn care-btn">
                                 <div class="btn-icon">💊</div>
                                 <div class="btn-content">
                                     <div class="btn-title">돌보기</div>
@@ -155,13 +172,31 @@
                                 </div>
                             </button>
                             
-                            <button onclick="investPoints('play')" class="action-btn play-btn">
+                            <button class="action-btn play-btn">
                                 <div class="btn-icon">🎮</div>
                                 <div class="btn-content">
                                     <div class="btn-title">놀아주기</div>
                                     <div class="btn-cost">15포인트</div>
                                 </div>
                             </button>
+
+                            <div class = "util-btn">
+                                <button class = "action-btn shop-btn">
+                                    <div class = "btn-icon">🛍️</div>
+                                    <div class = "btn-content">
+                                        <div class = "btn-title">
+                                            <span>펫</span>
+                                            <span>상점</span>
+                                        </div>
+                                    </div>
+                                </button>
+                                <button class = "action-btn diary-btn">
+                                    <div class = "btn-icon">📓</div>
+                                    <div class = "btn-content">
+                                        <div class = "btn-title">다이<br>어리</div>
+                                    </div>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -173,10 +208,15 @@
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">경험치</span>
-                        <span class="stat-value">
-                            <span id="currentExp">0</span> / <span id="nextLevelExp">100</span>
-                            <span class="exp-unit"> Exp</span>
-                        </span>
+                        <div class="stat-value-with-progress">
+                            <span class="stat-value">
+                                <span id="currentExp">0</span> / <span id="nextLevelExp">100</span>
+                                <span class="exp-unit"> Exp</span>
+                            </span>
+                            <div class="exp-progress">
+                                <div class="exp-progress-fill" id="expProgressFill" style="width: 0%;"></div>
+                            </div>
+                        </div>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">현재 레벨</span>

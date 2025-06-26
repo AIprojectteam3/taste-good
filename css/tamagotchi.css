@@ -1,30 +1,47 @@
 /* 다마고치 페이지 전용 스타일 */
+
 .tamagotchi-content {
     display: flex;
     align-items: center;
     justify-content: center;
     margin-left: 250px;
-    min-height: 100vh;
+    min-height: 100vh; /* height 대신 min-height 사용 */
     padding: 20px;
     background-color: #f5f5f5;
+    overflow-x: hidden; /* 수평 스크롤 방지 */
+    box-sizing: border-box; /* 패딩 포함한 크기 계산 */
 }
 
 .tamagotchi-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-width: 600px;
+    justify-content: center;
+    max-width: 900px;
     width: 100%;
     gap: 30px;
+    box-sizing: border-box; /* 추가 */
+}
+
+/* 메인 레이아웃 (다마고치 + 컨트롤) */
+.tamagotchi-main {
+    display: flex;
+    gap: 30px;
+    width: 100%;
+    align-items: flex-start;
+    box-sizing: border-box; /* 추가 */
 }
 
 /* 다마고치 디스플레이 영역 */
 .tamagotchi-display {
+    flex: 1;
+    padding: 30px;
+    min-width: 400px;
+    min-height : 400px;
+    max-height : 500px;
     background: linear-gradient(135deg, #fff1f0 0%, #ffffff 100%);
     border-radius: 20px;
-    padding: 30px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    width: 100%;
     border: 3px solid #FF6B6B;
 }
 
@@ -32,7 +49,82 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px;
+    gap: 20px; /* 기존 25px에서 20px로 조정 */
+}
+
+.pet-name-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 15px;
+    width : 100%;
+}
+
+.pet-name {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pet-name-edit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left : 5px;
+    padding: 5px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    background: none;
+    background-color: rgba(73, 72, 72, 0.5);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pet-name-edit-btn:hover {
+    background-color: rgba(255, 107, 107, 0.1);
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.pet-name-edit-btn:active {
+    transform: scale(0.95);
+}
+
+.edit-icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.pet-name-edit-btn:hover .edit-icon {
+    opacity: 1;
+}
+
+/* 펫 이름 편집 모드 스타일 */
+.pet-name-input {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    background: transparent;
+    border: 2px dashed #FF6B6B;
+    border-radius: 8px;
+    padding: 5px 10px;
+    text-align: center;
+    outline: none;
+    max-width: 200px;
+}
+
+.pet-name-input:focus {
+    border-color: #4ECDC4;
+    box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.2);
 }
 
 .pet-image {
@@ -90,63 +182,220 @@
     background: linear-gradient(90deg, #FF6B6B, #FF8E53);
 }
 
-.progress-fill.happiness {
-    background: linear-gradient(90deg, #6BA6FF, #4ECDC4);
-}
-
 .progress-fill.health {
     background: linear-gradient(90deg, #2ECC71, #27AE60);
 }
 
-/* 모바일 반응형 */
-@media (max-width: 768px) {
-    .tamagotchi-content {
-        margin-left: 0;
-        padding: 80px 15px 20px 15px;
-    }
-    
-    .tamagotchi-container {
-        gap: 25px;
-    }
-    
-    .tamagotchi-display {
-        padding: 20px;
-        border-width: 2px;
-    }
-    
-    .pet-image {
-        width: 150px;
-        height: 150px;
-        padding: 15px;
-    }
-    
-    .tamagotchi-menu {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .menu-button {
-        flex-direction: row;
-        justify-content: flex-start;
-        padding: 20px;
-        min-width: unset;
-        width: 100%;
-    }
-    
-    .button-icon {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .button-icon img {
-        width: 24px;
-        height: 24px;
-    }
-    
-    .button-text {
-        font-size: 1.1rem;
-        margin-left: 10px;
-    }
+.progress-fill.happiness {
+    background: linear-gradient(90deg, #6BA6FF, #4ECDC4);
+}
+
+.status-value {
+    font-weight: bold;
+    color: #666;
+    min-width: 40px;
+    text-align: right;
+    font-size: 0.85rem;
+}
+
+/* 컨트롤 영역 (액션 버튼 + 상태 정보) */
+.tamagotchi-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 280px;
+}
+
+/* 액션 버튼 섹션 */
+.action-buttons {
+    display : flex;
+    flex-direction : column;
+    justify-content : center;
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    height : 500px;
+    height : 100%;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    border: 2px solid #f0f0f0;
+}
+
+.action-buttons h3 {
+    margin: 0 0 30px 0;
+    color: #333;
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 15px;
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    background: white;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    border: 2px solid transparent;
+}
+
+.action-btn:last-child {
+    margin-bottom: 0;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+.food-btn {
+    border-color: #FF6B6B;
+}
+
+.food-btn:hover {
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: white;
+    border-color: #FF6B6B;
+}
+
+.care-btn {
+    border-color: #2ECC71;
+}
+
+.care-btn:hover {
+    background: linear-gradient(135deg, #2ECC71, #27AE60);
+    color: white;
+    border-color: #2ECC71;
+}
+
+.play-btn {
+    border-color: #6BA6FF;
+}
+
+.play-btn:hover {
+    background: linear-gradient(135deg, #6BA6FF, #4ECDC4);
+    color: white;
+    border-color: #6BA6FF;
+}
+
+.shop-btn {
+    border-color: #FFB84D;
+}
+
+.shop-btn:hover {
+    background: linear-gradient(135deg, #FFB84D, #FF8C42);
+    color: white;
+    border-color: #FFB84D;
+}
+
+.shop-btn .btn-title span {
+    display : flex;
+    flex-direction : column;
+    align-items : center;
+}
+
+.diary-btn {
+    border-color: #A855F7;
+}
+
+.diary-btn:hover {
+    background: linear-gradient(135deg, #A855F7, #EC4899);
+    color: white;
+    border-color: #A855F7;
+}
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    width: 45px;
+    height: 45px;
+    font-size: 1.8rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.btn-content {
+    flex: 1;
+    text-align: left;
+}
+
+.btn-title {
+    font-size: 1rem;
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.btn-cost {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: normal;
+}
+
+.action-btn:hover .btn-cost {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* 현재 상태 정보 */
+.current-stats {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 40px;
+    width : 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    color: #666;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.status-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 50px;
+}
+
+.status-percent {
+    font-weight: bold;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.status-detail {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 2px;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #333;
+    font-size: 0.95rem;
 }
 
 /* 애니메이션 효과 */
@@ -167,4 +416,171 @@
 
 .progress-fill {
     animation: fillProgress 1s ease-out;
+}
+
+/* 버튼 비활성화 상태 */
+.action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.action-btn:disabled:hover {
+    transform: none !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    background: white;
+    color: inherit;
+}
+
+.stat-value-with-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    width : 50%;
+}
+
+.exp-progress {
+    width: 100%; /* 또는 원하는 너비 */
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 2px;
+}
+
+.exp-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FFD700, #ff6f61);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+}
+
+.exp-unit {
+    font-size: 0.8rem;
+    color: #999;
+    font-weight: normal;
+}
+
+.util-btn {
+    display : flex;
+    gap : 10px;
+}
+
+.util-btn > button {
+    height : 100px;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    .tamagotchi-content {
+        margin-left: 0;
+        padding: 80px 10px 20px 10px; /* 좌우 패딩 줄임 */
+        width: 100vw; /* 뷰포트 전체 너비 사용 */
+        max-width: 100vw; /* 최대 너비 제한 */
+        overflow-x: hidden; /* 수평 스크롤 완전 차단 */
+        box-sizing: border-box;
+    }
+
+    .tamagotchi-container {
+        max-width: 100%; /* 100%로 변경 */
+        width: 100%;
+        gap: 20px; /* 간격 줄임 */
+        padding: 0; /* 패딩 제거 */
+        margin: 0; /* 마진 제거 */
+        box-sizing: border-box;
+    }
+
+    .tamagotchi-main {
+        flex-direction: column;
+        gap: 20px;
+        width: 100%;
+        max-width: 100%; /* 추가 */
+        box-sizing: border-box;
+    }
+
+    .tamagotchi-display {
+        flex: unset;
+        margin: 0;
+        padding: 15px;
+        min-width: unset;
+        max-width: 100%;
+        width: 100%;
+        min-height: 300px; /* 높이 줄임 */
+        border-width: 2px;
+        box-sizing: border-box;
+    }
+
+    .pet-name {
+        font-size: 1.3rem;
+    }
+    
+    .pet-name-section {
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .pet-name-edit-btn {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .edit-icon {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .pet-name-input {
+        font-size: 1.3rem;
+        max-width: 150px;
+        padding: 4px 8px;
+    }
+
+    .pet-image {
+        width: 150px;
+        height: 150px;
+        padding: 15px;
+    }
+
+    .tamagotchi-controls {
+        min-width: unset;
+        width: 100%;
+        max-width: 100%; /* 추가 */
+        box-sizing: border-box;
+    }
+
+    .action-buttons {
+        padding: 15px; /* 패딩 줄임 */
+        min-height: unset; /* 최소 높이 제거 */
+        box-sizing: border-box;
+    }
+
+    .btn-icon {
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        margin-right: 10px;
+    }
+
+    .btn-title {
+        font-size: 0.95rem;
+    }
+
+    .btn-cost {
+        font-size: 0.8rem;
+    }
+
+    .current-stats {
+        padding: 15px;
+    }
+
+    .status-percent {
+        display: none;
+    }
+    
+    .status-detail {
+        font-size: 0.85rem;
+        color: #333;
+        font-weight: bold;
+    }
 }
