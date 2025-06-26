@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addSlide.innerHTML = `
             <div class="mobile-add-content">
                 <div class="mobile-add-icon">
-                    <i>+</i>
+                    <i class="fas fa-plus"></i>
                 </div>
                 <div class="mobile-add-text">사진 추가</div>
             </div>
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 사진 추가 썸네일
         const addThumb = document.createElement('div');
         addThumb.className = 'thumbnail-add-btn';
-        addThumb.innerHTML = '<i>+</i>';
+        addThumb.innerHTML = '<i class="fas fa-plus"></i>';
         addThumb.addEventListener('click', () => imageUpload.click());
         thumbnails.appendChild(addThumb);
 
@@ -392,7 +392,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         submitBtn.disabled = true;
-        submitBtn.innerHTML = isEditMode ? '수정 중...' : '등록 중...';
 
         try {
             const formData = new FormData();

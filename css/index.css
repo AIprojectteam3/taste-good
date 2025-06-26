@@ -200,6 +200,7 @@ body {
     right: 40px;
     width: 65px;
     height: 65px;
+    font-size : 1rem;
     background-color: #FF6B6B;
     border-radius: 50%;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
@@ -215,6 +216,7 @@ body {
 
 .create-post-button:hover {
     background-color: #e05252;
+    transform: translateY(-3px);
 }
 
 .create-post-button i {
@@ -312,7 +314,7 @@ body {
 
 .floating-search-btn:hover {
     background-color: #5a94e6;
-    transform: scale(1.05);
+    transform: translateY(-3px);
 }
 
 /* 검색창이 열렸을 때 버튼 스타일 */
@@ -323,6 +325,7 @@ body {
 
 .floating-search-btn.active:hover {
     background-color: #e55a5a;
+    transform: translateY(-3px);
 }
 
 .search-info {
