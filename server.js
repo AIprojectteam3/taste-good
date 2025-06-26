@@ -3616,6 +3616,6 @@ const POINT_ACTIONS = {
 
 // 쿨다운 시간 설정 (초 단위)
 const COOLDOWN_TIMES = {
-    POST_CREATE: 600,    // 10분 (600초)
+    POST_CREATE: 300,    // 10분 (600초)
     COMMENT_CREATE: 30   // 30초
 };
