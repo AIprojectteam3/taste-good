@@ -1,0 +1,212 @@
+/* style.css */
+body {
+  font-family: sans-serif;
+  text-align: center;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  margin: 0 0 20px 0;
+  padding-top: 30px;
+}
+
+.main-layout {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px;
+  margin-top: 50px;
+}
+
+.left-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.roulette-area {
+  position: relative;
+  width: 90vw;         /* 화면 너비의 90% */
+  max-width: 500px;    /* 최대 크기 제한 */
+  height: auto;
+}
+
+.wheel, #canvas {
+  width: 100%;
+  height: auto;
+  max-width: 500px;
+  max-height: 500px;
+  display: block;
+}
+
+.needle {
+  position: absolute;
+  top: -30px; /* 필요에 따라 조정 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;  /* 이미지 크기 */
+  height: auto;
+  z-index: 10;
+  pointer-events: none; /* 클릭 방지 */
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 250px;
+  margin-left: 100px;
+}
+
+.controls input {
+  width: 100%;
+  padding: 10px;
+  font-size: 1em;
+  margin-bottom: 10px;
+}
+
+.controls button {
+  padding: 10px;
+  font-size: 1em;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.controls ul {
+  list-style: none;
+  padding: 0;
+  width: 100%;
+  max-height: 530px;      /* 10개 정도의 높이로 제한 */
+  overflow-y: auto;       /* 10개 초과 시 스크롤 표시 */
+}
+
+.controls li {
+  display: flex;
+  justify-content: space-between;
+  background: #fff;
+  padding: 5px 10px;
+  margin-bottom: 5px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.spin-button {
+  padding: 15px 30px;
+  font-size: 1.2em;
+  margin-top: 10px;
+  cursor: pointer;
+  background: #ff9800;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+}
+
+.history {
+  margin: 20px;
+  text-align: left;
+}
+
+.history h3 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.history ul {
+  list-style: none;
+  padding: 0;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.history li {
+  background: #fff;
+  padding: 5px 10px;
+  margin-bottom: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.input-row input {
+  flex: 1;
+  padding: 10px;
+  font-size: 1em;
+}
+
+.input-row button {
+  padding: 10px 16px;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+#addBtn {
+  background: #ffb7b2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-weight: bold;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  box-shadow: 0 2px 8px rgba(181,234,215,0.15);
+}
+#addBtn:hover {
+  background: #ff6f61;
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* 삭제 버튼 스타일 */
+#foodList button {
+  background: #fff;
+  color: gray;
+  border: none;
+  border-radius: 4px;
+  margin: 0;
+  padding: 5px 14px;
+  font-size: 0.95em;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: background 0.2s, transform 0.2s;
+}
+#foodList button:hover {
+  transform: scale(1.08);
+}
+
+@media (max-width: 768px) {
+  .main-layout {
+    flex-direction: column;
+    align-items: center;
+    
+  }
+
+  .controls {
+    margin-left: 12px;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .controls input {
+    width: 100%;
+  }
+  .input-row {
+    width: 100%;
+  }
+  .spin-button {
+    width: 100%;
+    font-size: 1.1em;
+  }
+
+  h1 {
+    padding-top: 60px;
+  }
+}
