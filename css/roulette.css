@@ -190,7 +190,7 @@ h1 {
   }
 
   .controls {
-    margin-left: 12px;
+    margin : 0;
     width: 100%;
     max-width: 400px;
   }
