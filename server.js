@@ -580,10 +580,12 @@ app.get('/api/user', (req, res) => {
             ul.level,
             up.point,
             u.sns_id,
+            lr.icon_url as level_icon_url,
             IFNULL(p.post_count, 0) AS post_count
         FROM users u
         LEFT JOIN user_levels ul ON u.id = ul.user_id
         LEFT JOIN user_points up ON u.id = up.user_id
+        LEFT JOIN level_requirements lr ON COALESCE(ul.level, 1) = lr.level
         LEFT JOIN (
             SELECT user_id, COUNT(*) AS post_count
             FROM posts
@@ -606,6 +608,13 @@ app.get('/api/user', (req, res) => {
             if (userData.profile_image_path) {
                 userData.profile_image_path = userData.profile_image_path.replace(/\\/g, '/');
             }
+
+            if (userData.level_icon_url) {
+                userData.level_icon_url = userData.level_icon_url.replace(/\\/g, '/');
+            } else {
+                userData.level_icon_url = 'image/dropper-icon.png'; // 기본 아이콘
+            }
+
             console.log('[INFO] /api/user - User data fetched for userId:', userId, userData);
             return res.json(userData);
         } else {
