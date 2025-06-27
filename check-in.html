@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>메뉴</title>
-    <link rel="stylesheet" href="css/menu.css">
+    <title>출석 체크</title>
+    <link rel = "stylesheet" href = "css/menu.css">
+    <link rel = "stylesheet" href = "css/check-in.css">
 
     <script src = "js/menu.js"></script>
+    <script src = "js/check-in.js"></script>
 </head>
 <body>
     <div class = "container">
@@ -85,7 +87,7 @@
                     </a></li>
                     <hr>
                     <li><a href = "check-in.html">
-                        <img src = "image/check-in.png" alt = "출석체크">
+                        <img src = "image/check-in-icon.png" alt = "출석체크">
                         <span>출석체크</span>
                     </a></li>
                     <li><a href = "#">
@@ -111,9 +113,130 @@
             </nav>
         </aside>
 
-        <main class = "">
+        <div class="content">
+            <div class="check-in-container">
+                <div class="page-header">
+                    <h1>출석체크</h1>
+                    <p>매일 출석하고 포인트를 받아보세요!</p>
+                </div>
 
-        </main>
+                <!-- 출석 현황 요약 -->
+                <div class="attendance-summary">
+                    <div class="summary-card">
+                        <div class="summary-title">이번 달 출석</div>
+                        <div class="summary-value">15일</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-title">연속 출석</div>
+                        <div class="summary-value">3일</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-title">총 포인트</div>
+                        <div class="summary-value">450P</div>
+                    </div>
+                </div>
+
+                <!-- 달력 -->
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <button class="nav-btn" id="prevMonth">
+                            <img src = "image/previous-icon.png" src = "이전 아이콘">
+                        </button>
+                        <h2 id="currentMonth">2025년 6월</h2>
+                        <button class="nav-btn" id="nextMonth">
+                            <img src = "image/next-icon.png" src = "다음 아이콘">
+                        </button>
+                    </div>
+                    <div class="calendar">
+                        <div class="calendar-grid">
+                            <div class="day-header">일</div>
+                            <div class="day-header">월</div>
+                            <div class="day-header">화</div>
+                            <div class="day-header">수</div>
+                            <div class="day-header">목</div>
+                            <div class="day-header">금</div>
+                            <div class="day-header">토</div>
+                            
+                            <!-- 빈 날짜들 (이전 달) -->
+                            <div class="day other-month">25</div>
+                            <div class="day other-month">26</div>
+                            <div class="day other-month">27</div>
+                            <div class="day other-month">28</div>
+                            <div class="day other-month">29</div>
+                            <div class="day other-month">30</div>
+                            <div class="day other-month">31</div>
+                            
+                            <!-- 6월 날짜들 -->
+                            <div class="day">1</div>
+                            <div class="day checked">2</div>
+                            <div class="day checked">3</div>
+                            <div class="day checked">4</div>
+                            <div class="day">5</div>
+                            <div class="day">6</div>
+                            <div class="day">7</div>
+                            <div class="day">8</div>
+                            <div class="day checked">9</div>
+                            <div class="day checked">10</div>
+                            <div class="day">11</div>
+                            <div class="day">12</div>
+                            <div class="day">13</div>
+                            <div class="day">14</div>
+                            <div class="day checked">15</div>
+                            <div class="day">16</div>
+                            <div class="day">17</div>
+                            <div class="day">18</div>
+                            <div class="day">19</div>
+                            <div class="day">20</div>
+                            <div class="day">21</div>
+                            <div class="day">22</div>
+                            <div class="day">23</div>
+                            <div class="day">24</div>
+                            <div class="day">25</div>
+                            <div class="day">26</div>
+                            <div class="day">27</div>
+                            <div class="day today">28</div>
+                            <div class="day">29</div>
+                            <div class="day">30</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 출석체크 버튼 -->
+                <div class="check-in-section">
+                    <div class="check-in-status">
+                        <div class="status-message">오늘 출석체크를 완료하세요!</div>
+                        <div class="reward-info">+10 포인트 획득 가능</div>
+                    </div>
+                    <button class="check-in-btn" id="checkInBtn">
+                        <img src="image/check-icon.png" alt="체크">
+                        <span>출석체크</span>
+                    </button>
+                </div>
+
+                <!-- 출석 보상 정보 -->
+                <div class="reward-info-section">
+                    <h3>출석 보상</h3>
+                    <div class="reward-list">
+                        <div class="reward-item">
+                            <span class="reward-day">1일차</span>
+                            <span class="reward-points">+10P</span>
+                        </div>
+                        <div class="reward-item">
+                            <span class="reward-day">3일 연속</span>
+                            <span class="reward-points">+30P</span>
+                        </div>
+                        <div class="reward-item">
+                            <span class="reward-day">7일 연속</span>
+                            <span class="reward-points">+70P</span>
+                        </div>
+                        <div class="reward-item">
+                            <span class="reward-day">30일 연속</span>
+                            <span class="reward-points">+300P</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 모바일 네비게이션 -->
