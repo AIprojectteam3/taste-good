@@ -3,8 +3,8 @@
 .tamagotchi-content {
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin-left: 250px;
+    justify-content: flex-start;
+    margin-left: 300px;
     min-height: 100vh; /* height 대신 min-height 사용 */
     padding: 20px;
     background-color: #f5f5f5;
