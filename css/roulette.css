@@ -19,6 +19,7 @@ h1 {
 
 .roulette-div {
   padding : 20px;
+  width : 85%;
   border : 2px solid #ff6f61;
   border-radius : 15px;
   background-color : #fff;
