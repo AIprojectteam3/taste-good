@@ -28,7 +28,7 @@ async function initializeRecommender() {
     // 사용자 알레르기 정보 로드
     await loadUserAllergenInfo();
 
-    // 모든 옵션 로드 (알레르기 제외)
+    // 모든 옵션 로드
     Promise.all([
         populateCheckboxes('/api/options/categories', 'categories-container', 'Category', 'Category', 'category'),
         populateCheckboxes('/api/options/needs', 'needs-container', 'NeedID', 'NeedKor', 'need'),
@@ -36,13 +36,23 @@ async function initializeRecommender() {
         populateCheckboxes('/api/options/season', 'season-container', 'SeasonID', 'SeasonKor', 'season'),
         populateCheckboxes('/api/options/weathers', 'weathers-container', 'WeatherID', 'WeatherKor', 'weather'),
         populateCheckboxes('/api/options/times', 'times-container', 'TimeID', 'TimeKor', 'time')
-    ]).catch(error => {
+    ]).then(() => {
+        setupSliders();
+        
+        // 모바일 콜랩시블 기능 초기화
+        initializeMobileCollapsible();
+        
+        // 화면 크기 변경 이벤트 리스너 추가
+        window.addEventListener('resize', handleResize);
+        
+        // 선택 상태 업데이트 이벤트 리스너 추가
+        setupSelectionStatusListeners();
+        
+        getBtn.addEventListener('click', getRecommendation);
+    }).catch(error => {
         console.error("체크박스 생성 중 오류 발생:", error);
-        resultsContainer.innerHTML = '<div class="ai-recommendation"><h3>⚠️ 오류 발생</h3><p>데이터 로드에 실패했습니다.</p></div>';
+        resultsContainer.innerHTML = '<div class="error-message"><h3>오류 발생</h3><p>데이터 로드에 실패했습니다.</p></div>';
     });
-
-    getBtn.addEventListener('click', getRecommendation);
-    setupSliders();
 }
 
 async function loadUserAllergenInfo() {
@@ -1417,4 +1427,223 @@ function handleLogout(event) {
             alert('로그아웃 중 오류가 발생했습니다.');
         });
     }
+}
+
+let mobileCollapsibleInitialized = false;
+
+function initializeMobileCollapsible() {
+    // 모바일 환경이 아니거나 이미 초기화된 경우 건너뛰기
+    if (window.innerWidth > 768 || mobileCollapsibleInitialized) {
+        return;
+    }
+
+    console.log('모바일 콜랩시블 초기화 시작');
+    
+    const filterGroups = document.querySelectorAll('.filter-group');
+    
+    filterGroups.forEach((group, index) => {
+        const label = group.querySelector('label');
+        const content = group.querySelector('.checkbox-container, .range-slider-group, .user-allergen-display');
+        
+        if (label && content) {
+            // 기존 래퍼 제거
+            const existingWrapper = group.querySelector('.collapsible-content');
+            if (existingWrapper) {
+                const wrappedContent = existingWrapper.firstElementChild;
+                if (wrappedContent) {
+                    existingWrapper.parentNode.insertBefore(wrappedContent, existingWrapper);
+                    existingWrapper.remove();
+                }
+            }
+            
+            // 새 래퍼 생성
+            const wrapper = document.createElement('div');
+            wrapper.className = 'collapsible-content';
+            content.parentNode.insertBefore(wrapper, content);
+            wrapper.appendChild(content);
+            
+            // 첫 번째 그룹은 열어두고, 나머지는 접기
+            if (index > 0) {
+                group.classList.add('collapsed');
+            }
+            
+            // 기존 이벤트 리스너 제거
+            const newLabel = label.cloneNode(true);
+            label.parentNode.replaceChild(newLabel, label);
+            
+            // 새 이벤트 리스너 추가
+            newLabel.addEventListener('click', function(e) {
+                if (e.target === this || e.target.tagName === 'SPAN') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleFilterGroupNew(group);
+                }
+            });
+            
+            newLabel.addEventListener('touchend', function(e) {
+                if (e.target === this || e.target.tagName === 'SPAN') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleFilterGroupNew(group);
+                }
+            });
+        }
+    });
+    
+    mobileCollapsibleInitialized = true;
+    console.log('모바일 콜랩시블 초기화 완료');
+}
+
+function toggleFilterGroupNew(group) {
+    const content = group.querySelector('.collapsible-content');
+    if (!content) return;
+    
+    const isCollapsed = group.classList.contains('collapsed');
+    
+    // 애니메이션 중복 방지
+    if (content.style.transition === 'none') return;
+    
+    if (isCollapsed) {
+        // 펼치기
+        console.log('펼치기 시작');
+        
+        // 1. 높이를 auto로 설정하여 실제 높이 측정
+        content.style.transition = 'none';
+        content.style.maxHeight = 'auto';
+        const targetHeight = content.scrollHeight;
+        content.style.maxHeight = '0px';
+        
+        // 2. 강제 리플로우
+        content.offsetHeight;
+        
+        // 3. 트랜지션 재활성화 후 애니메이션 시작
+        content.style.transition = 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        
+        requestAnimationFrame(() => {
+            group.classList.remove('collapsed');
+            content.style.maxHeight = targetHeight + 'px';
+        });
+        
+        // 4. 애니메이션 완료 후 auto로 변경
+        setTimeout(() => {
+            if (!group.classList.contains('collapsed')) {
+                content.style.maxHeight = '1000px';
+            }
+        }, 400);
+        
+    } else {
+        // 접기
+        console.log('접기 시작');
+        
+        // 1. 현재 높이 고정
+        const currentHeight = content.scrollHeight;
+        content.style.maxHeight = currentHeight + 'px';
+        
+        // 2. 강제 리플로우
+        content.offsetHeight;
+        
+        // 3. 애니메이션 시작
+        requestAnimationFrame(() => {
+            group.classList.add('collapsed');
+            content.style.maxHeight = '0px';
+        });
+    }
+    
+    // 선택 상태 업데이트
+    setTimeout(() => {
+        updateGroupSelectionStatus();
+    }, 100);
+}
+
+// 화면 크기 변경 감지
+function handleResize() {
+    // 디바운싱
+    clearTimeout(window.resizeTimer);
+    window.resizeTimer = setTimeout(() => {
+        const filterGroups = document.querySelectorAll('.filter-group');
+        
+        if (window.innerWidth > 768) {
+            // 데스크톱: 콜랩시블 해제
+            console.log('데스크톱 모드로 전환');
+            
+            filterGroups.forEach(group => {
+                group.classList.remove('collapsed', 'has-selection');
+                
+                // 래퍼 해제
+                const wrapper = group.querySelector('.collapsible-content');
+                if (wrapper) {
+                    const content = wrapper.firstElementChild;
+                    if (content) {
+                        content.style.maxHeight = '';
+                        content.style.transition = '';
+                        wrapper.parentNode.insertBefore(content, wrapper);
+                        wrapper.remove();
+                    }
+                }
+            });
+            
+            mobileCollapsibleInitialized = false;
+            
+        } else {
+            // 모바일: 콜랩시블 활성화
+            console.log('모바일 모드로 전환');
+            mobileCollapsibleInitialized = false;
+            
+            setTimeout(() => {
+                initializeMobileCollapsible();
+                updateGroupSelectionStatus();
+            }, 100);
+        }
+    }, 300);
+}
+
+function updateGroupSelectionStatus() {
+    if (window.innerWidth <= 768) {
+        const filterGroups = document.querySelectorAll('.filter-group');
+        
+        filterGroups.forEach(group => {
+            const checkboxes = group.querySelectorAll('input[type="checkbox"]:checked');
+            const sliders = group.querySelectorAll('input[type="range"]');
+            
+            let hasSelection = false;
+            
+            // 체크박스 확인 ("상관없음" 제외)
+            const nonAllCheckboxes = Array.from(checkboxes).filter(cb => cb.value !== 'all');
+            hasSelection = nonAllCheckboxes.length > 0;
+            
+            // 슬라이더 값 확인
+            sliders.forEach(slider => {
+                if (slider.id === 'kcal-slider' && parseInt(slider.value) < 2000) hasSelection = true;
+                if (slider.id === 'price-slider' && parseInt(slider.value) < 50000) hasSelection = true;
+            });
+            
+            group.classList.toggle('has-selection', hasSelection);
+        });
+    }
+}
+
+// 선택 상태 업데이트 이벤트 리스너 설정
+function setupSelectionStatusListeners() {
+    // 체크박스 변경 감지
+    document.addEventListener('change', function(e) {
+        if (e.target.type === 'checkbox') {
+            setTimeout(() => {
+                updateGroupSelectionStatus();
+            }, 50);
+        }
+    });
+    
+    // 슬라이더 변경 감지
+    document.addEventListener('input', function(e) {
+        if (e.target.type === 'range') {
+            setTimeout(() => {
+                updateGroupSelectionStatus();
+            }, 50);
+        }
+    });
+    
+    // 초기 상태 설정
+    setTimeout(() => {
+        updateGroupSelectionStatus();
+    }, 500);
 }

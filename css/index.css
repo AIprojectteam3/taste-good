@@ -35,7 +35,7 @@ body {
 
 .content {
     display: grid;
-    align-items: stretch; /* 카드가 셀 전체를 채우도록 */
+    align-items: stretch;
     position: relative;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 25px;
@@ -43,9 +43,9 @@ body {
     margin-left: 250px;
     max-width: calc(100vw - 250px);
     width: 100%;
-    height: auto !important; /* 자연스러운 스크롤 허용 */
+    height: auto !important;
     overflow-y: visible !important;
-    grid-auto-rows: 0; /* 초기값 0으로 설정 */
+    grid-auto-rows: 0;
 }
 
 /* 스크롤바 숨기기 (선택사항) */
@@ -672,12 +672,12 @@ body {
     }
 
     .content {
-        grid-template-columns: 1fr;  /* 한 줄에 한 개 */
-        grid-auto-rows: auto !important; /* 여기가 핵심! 자동 높이 설정 */
-        margin-left: 0;              /* 메뉴 여백 제거 */
-        max-width: 100vw;            /* 전체 폭 사용 */
+        grid-template-columns: 1fr;
+        grid-auto-rows: auto !important;
+        margin-left: 0;
+        max-width: 100vw;
         padding : 65px 5px 0 5px;
-        gap: 16px;                   /* 카드 간격 조정 */
+        gap: 16px;
     }
 
     .card {
