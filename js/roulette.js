@@ -65,9 +65,17 @@ function drawWheel() {
 
 function updateFoodList() {
   foodList.innerHTML = "";
-  foods.forEach(food => {
+  foods.forEach((food, index) => {
     const li = document.createElement("li");
     li.textContent = food;
+    
+    // 룰렛과 동일한 파스텔 색상 적용
+    const backgroundColor = pastelColors[index % pastelColors.length];
+    li.style.backgroundColor = backgroundColor;
+    
+    // 텍스트 색상을 어둡게 설정 (파스텔 색상에서 가독성 향상)
+    li.style.color = "#333";
+    
     const delBtn = document.createElement("button");
     delBtn.textContent = "삭제";
     delBtn.onclick = () => removeFood(food);
@@ -114,6 +122,21 @@ function alertResult(indicatedSegment) {
 function addToHistory(food) {
   const li = document.createElement("li");
   li.textContent = food;
+  
+  // 해당 음식이 foods 배열에서 몇 번째 인덱스인지 찾기
+  const foodIndex = foods.indexOf(food);
+  if (foodIndex !== -1) {
+    // 룰렛과 동일한 파스텔 색상 적용
+    li.style.backgroundColor = pastelColors[foodIndex % pastelColors.length];
+    li.style.color = "#333";
+    li.style.padding = "12px 15px";
+    li.style.borderRadius = "8px";
+    li.style.marginBottom = "8px";
+    li.style.border = "1px solid rgba(0,0,0,0.1)";
+    li.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+    li.style.fontWeight = "500";
+  }
+  
   historyList.prepend(li);
 }
 

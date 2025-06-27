@@ -96,27 +96,29 @@
         </aside>
 
         <main class = "roulette">
-            <h1>🍽️ 맛잘알 룰렛</h1>
-            <div class="main-layout">
-                <div class="left-area">
-                    <div class="roulette-area">
-                        <img src="image/roulette_pointer.png" class="needle" alt="룰렛 바늘">
-                        <canvas id="canvas" width="500" height="500"></canvas>
+            <div class = "roulette-div">
+                <h1>🍽️ 맛잘알 룰렛</h1>
+                <div class="main-layout">
+                    <div class="left-area">
+                        <div class="roulette-area">
+                            <img src="image/roulette_pointer.png" class="needle" alt="룰렛 바늘">
+                            <canvas id="canvas" width="500" height="500"></canvas>
+                        </div>
+                        <button class="spin-button" id="spinBtn">돌리기!</button>
+                        <div id="result"></div>
                     </div>
-                    <button class="spin-button" id="spinBtn">돌리기!</button>
-                    <div id="result"></div>
-                </div>
-                <div class="controls">
-                    <div class="input-row">
-                        <input type="text" id="newFood" placeholder="음식 추가">
-                        <button id="addBtn">추가</button>
+                    <div class="controls">
+                        <div class="input-row">
+                            <input type="text" id="newFood" placeholder="음식 추가">
+                            <button id="addBtn">추가</button>
+                        </div>
+                        <ul id="foodList"></ul>
                     </div>
-                    <ul id="foodList"></ul>
                 </div>
-            </div>
-            <div class="history">
-                <h3>🍽️ 추천 기록</h3>
-                <ul id="historyList"></ul>
+                <div class="history">
+                    <h3>🍽️ 추천 기록</h3>
+                    <ul id="historyList"></ul>
+                </div>
             </div>
         </main>
     </div>
