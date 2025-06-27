@@ -100,6 +100,7 @@ body {
     top : 50%;
     left : 50%;
     transform : translate(-50%, -50%);
+    gap: 50px;
 }
 
 .main_content_div {
@@ -126,12 +127,14 @@ body {
 
 #ani_left > .content_text {
     justify-content : left;
-    margin-left : 30px
+    margin-left : 30px;
+    font-family: "Jua", sans-serif;
 }
 
 #ani_right > .content_text {
     justify-content : right;
     margin-right : 30px;
+    font-family: "Jua", sans-serif;
 }
 
 @keyframes fadeInLeft {
@@ -157,8 +160,8 @@ body {
 }
 
 .content_img {
-    width : 35%;
-    height : 90%;
+    width : 55%;
+    height : 120%;
     margin : 10px;
     border : 2px solid black;
     border-radius : 8px;
@@ -172,6 +175,14 @@ body {
     width: 100%;
 }
 
+#ani_left > .content_img {
+    margin-left: -180px;
+}
+
+#ani_right > .content_img {
+    margin-right: -180px;
+}
+
 .content_text {
     display : flex;
     align-items : center;
@@ -183,11 +194,11 @@ body {
 
 .content_text > p {
     margin : 0;
-    font-size : 1.5rem;
+    font-size : 2rem;
 }
 
 .content_text > p > span {
-    font-size : 2.4rem;
+    font-size : 3rem;
 }
 
 .p_left {
@@ -206,11 +217,16 @@ body {
     left : 50%;
     width : 40%;
     transform : translate(-50%, -70%);
-    font-size : 3rem;
+    font-size : 4rem;
+    font-family: "Jua", sans-serif;
 }
 
 .text_div > span:nth-child(2) {
     text-align : right;
+}
+
+.yellow > .text_div {
+    padding-bottom: 170px;
 }
 
 .footer {
@@ -224,7 +240,7 @@ body {
     right: 0;
     height: 14svh;
     flex-wrap: wrap;
-    background: #333;
+    background: rgba(51,51,51,0.8);
     color: white;
     opacity: 0;
     pointer-events: none;
@@ -254,8 +270,8 @@ body {
 }
 
 .sns_img img {
-    width : 50px;
-    height : 50px;
+    width : 40px;
+    height : 40px;
 }
 
 .footer_copyright {
@@ -287,7 +303,7 @@ body {
     display : flex;
     align-items : center;
     justify-content : space-between;
-    gap : 10px;
+    gap : 20px;
 }
 
 .modal {
