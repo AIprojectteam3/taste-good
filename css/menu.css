@@ -42,7 +42,8 @@ body {
 .profile-header {
     display : flex;
     align-items : center;
-    padding : 15px 15px 0 15px;
+    justify-content : space-between;
+    padding : 15px 25px 0 25px;
 }
 
 .profile-header .image img {
@@ -50,36 +51,69 @@ body {
     border-radius: 50%;
 }
 
+.nickname-container {
+    display : flex;
+    align-items : flex-end;
+    justify-content : center;
+    flex-direction : column;
+}
+
 .profile .nickname {
     display : flex;
     align-items : center;
-    font-size: 18px;
+    font-size: 1rem;
+    font-weight : bold;
+}
+
+.profile .email-text {
+    font-size: 0.6rem;
+    color: #666;
 }
 
 .profile .level {
     display: flex;
-    margin-left : auto;
-    gap: 5px;
+    gap: 20px;
 }
 
 .profile .level > span {
     font-size: 14px;
 }
 
+.profile .level-value {
+    font-weight : bold;
+}
+
 .profile .profile-stats {
     display: flex;
     justify-content: space-between;
-    padding : 15px;
+    padding : 15px 25px;
 }
 
-.profile-stats > div > a {
+.profile-stats > div {
+    align-items : center;
+}
+
+.profile-stats .level {
+    width : 60%;
+}
+
+.profile-stats .user-info {
+    flex-direction : column;
+    width : 40%;
+}
+
+.user-info > div, .user-info > div > a {
     display : flex;
     align-items : center;
-    justify-content : center;
-    flex-direction : column;
+    justify-content : flex-end;
+    width : 100%;
 }
 
-.profile-stats > div span:nth-child(2) {
+.user-info a span:nth-child(1) {
+    margin-right : auto;
+}
+
+.user-info > div span:nth-child(2) {
     font-weight : bold;
 }
 
@@ -319,16 +353,6 @@ body {
 .main-menu img {
     width : 30px;
     height : 30px;
-}
-
-.post {
-    /* background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
-    overflow: hidden;
-    display: flex;
-    flex-direction: column; /* 이미지와 텍스트를 세로로 정렬 */
-    justify-content: space-between; /* 콘텐츠 간 간격 유지 */
 }
 
 .post img {

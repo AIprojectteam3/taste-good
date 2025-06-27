@@ -33,6 +33,7 @@ async function fetchUserProfile() {
 
 function updateProfileUI(user) {
     const nicknameElement = document.querySelector('.profile .nickname');
+    const emailElement = document.querySelector('.nickname-container .email-text');
     const levelElement = document.querySelector('.profile .level .level-value');
     const postCountElement = document.querySelector('.profile .profile-stats .post .post-count');
     const followerCountElement = document.querySelector('.profile .profile-stats .follower .follower-count');
@@ -43,6 +44,12 @@ function updateProfileUI(user) {
         nicknameElement.textContent = user.username;
     } else {
         // console.warn("프로필 닉네임 요소를 찾을 수 없습니다. (선택자: .profile .nickname)");
+    }
+
+    if (emailElement) {
+        emailElement.textContent = user.email || '이메일 없음';
+    } else {
+        // console.warn("이메일 표시 요소를 찾을 수 없습니다. (선택자: .nickname-container .email-text)");
     }
 
     if (levelElement) {
@@ -76,6 +83,33 @@ function updateProfileUI(user) {
 
     if (followerCountElement) {
         followerCountElement.textContent = '0';
+    }
+}
+
+async function fetchAndDisplayUserEmail() {
+    try {
+        const response = await fetch('/api/user');
+        if (!response.ok) {
+            console.error('사용자 정보 요청 실패:', response.status);
+            return;
+        }
+        
+        const userData = await response.json();
+        if (!userData) {
+            console.error("사용자 정보를 받지 못했습니다.");
+            return;
+        }
+        
+        // 이메일을 email-text 요소에 삽입
+        const emailElement = document.querySelector('.nickname-container .email-text');
+        if (emailElement && userData.email) {
+            emailElement.textContent = userData.email;
+        } else {
+            console.warn("이메일 요소를 찾을 수 없거나 이메일 데이터가 없습니다.");
+        }
+        
+    } catch (error) {
+        console.error('이메일 정보 가져오기 중 오류:', error);
     }
 }
 

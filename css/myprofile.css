@@ -61,20 +61,20 @@
     padding: 0 20px;
 }
 
-.level span:nth-child(2) {
+.information .level span:nth-child(2) {
     display: flex;
     align-items: center;
 }
 
-.level_label {
+.information .level_label {
     font-size: 1.2rem;
 }
 
-.level_value {
+.information .level_value {
     margin: 0 8px;
 }
 
-.level-icon2 {
+.information .level-icon2 {
     margin-left: 10px;
     width: 30px;
     height: 30px;

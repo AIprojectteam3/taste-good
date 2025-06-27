@@ -411,13 +411,18 @@
 }
 
 /* 애니메이션 효과 */
-@keyframes petBounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+@keyframes floating {
+    0%, 100% { 
+        transform: translateY(0px);
+    }
+    50% { 
+        transform: translateY(-15px);
+    }
 }
 
 .pet-image:hover {
-    animation: petBounce 0.6s ease-in-out;
+    animation: floating 1s ease-in-out infinite;
+    transform: scale(1.05);
 }
 
 /* 상태 바 애니메이션 */
