@@ -89,10 +89,12 @@ function addFood() {
 function removeFood(name) {
   foods = foods.filter(f => f !== name);
   if (foods.length === 0) {
-    currentRotation = 0;
-    wheel.style.transform = `rotate(0deg)`;
+      if (theWheel) {
+          theWheel.stopAnimation(false);
+          theWheel.rotationAngle = 0;
+      }
   }
-  makeWheel(); // drawWheel() 대신 makeWheel() 호출
+  makeWheel();
   updateFoodList();
 }
 
@@ -152,12 +154,19 @@ document.getElementById('addBtn').onclick = function() {
   const input = document.getElementById('newFood');
   const value = input.value.trim();
   if (value && !foods.includes(value)) {
-    foods.push(value);
-    input.value = '';
-    updateFoodList();
-    makeWheel();
+      foods.push(value);
+      input.value = '';
+      updateFoodList();
+      makeWheel();
   }
 };
+
+document.getElementById('newFood').addEventListener('keydown', function(event) {
+  if (event.key === 'Enter') {
+      event.preventDefault(); // 기본 동작 방지
+      document.getElementById('addBtn').click(); // 추가 버튼 클릭 트리거
+  }
+});
 
 // spin 버튼 클릭 이벤트에서 룰렛 도는 동안 입력, 추가, 삭제 버튼 모두 비활성화
 document.getElementById('spinBtn').onclick = function() {
@@ -166,26 +175,30 @@ document.getElementById('spinBtn').onclick = function() {
     document.getElementById('newFood').disabled = true;
     document.getElementById('addBtn').disabled = true;
     document.querySelectorAll('#foodList button').forEach(btn => btn.disabled = true);
-
-    // 애니메이션 상태 초기화
-    theWheel.stopAnimation(false);
+    
+    // 애니메이션이 실행 중인 경우에만 정지
+    if (theWheel.animation && theWheel.animation.tween) {
+        theWheel.stopAnimation(false);
+    }
+    
+    // 회전 각도 초기화
     theWheel.rotationAngle = 0;
     theWheel.draw();
-
+    
     // 애니메이션 옵션 새로 할당
     theWheel.animation = {
-      'type': 'spinToStop',
-      'duration': 5,
-      'spins': 5,
-      'callbackFinished': function(seg) {
-        alertResult(seg);
-        // 룰렛 멈추면 다시 활성화
-        document.getElementById('newFood').disabled = false;
-        document.getElementById('addBtn').disabled = false;
-        document.querySelectorAll('#foodList button').forEach(btn => btn.disabled = false);
-      }
+        'type': 'spinToStop',
+        'duration': 5,
+        'spins': 5,
+        'callbackFinished': function(seg) {
+            alertResult(seg);
+            // 룰렛 멈추면 다시 활성화
+            document.getElementById('newFood').disabled = false;
+            document.getElementById('addBtn').disabled = false;
+            document.querySelectorAll('#foodList button').forEach(btn => btn.disabled = false);
+        }
     };
-
+    
     theWheel.startAnimation();
   }
 };
