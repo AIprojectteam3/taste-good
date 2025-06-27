@@ -792,7 +792,7 @@ input[type="range"]::-moz-range-thumb {
         background-color: #f8f9fa;
     }
 
-    .filter-group > label::after {
+    .filter-group:has(.checkbox-container) > label::after {
         content: '▼';
         position: absolute;
         right: 15px;
@@ -803,7 +803,7 @@ input[type="range"]::-moz-range-thumb {
         color: #ff6f61;
     }
 
-    .filter-group.collapsed label::after {
+    .filter-group:has(.checkbox-container).collapsed label::after {
         transform: translateY(-50%) rotate(-90deg);
     }
 

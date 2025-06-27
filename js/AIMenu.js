@@ -1439,7 +1439,7 @@ function initializeMobileCollapsible() {
 
     console.log('모바일 콜랩시블 초기화 시작');
     
-    const filterGroups = document.querySelectorAll('.filter-group');
+    const filterGroups = document.querySelectorAll('.filter-group:not(#user-allergen-info)');
     
     filterGroups.forEach((group, index) => {
         const label = group.querySelector('label');
