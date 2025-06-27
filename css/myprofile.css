@@ -56,18 +56,20 @@
 
 .information .level {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
     padding: 0 20px;
 }
 
-.information .level span:nth-child(2) {
-    display: flex;
-    align-items: center;
+.information .level {
+    display : flex;
+    align-items: flex-end;
+    height : 100%;
+    font-size : 1.2rem;
 }
 
-.information .level_label {
-    font-size: 1.2rem;
+.information .level > span {
+    margin-top : 15px;
 }
 
 .information .level_value {
@@ -75,6 +77,8 @@
 }
 
 .information .level-icon2 {
+    display : flex;
+    align-items: flex-end;
     margin-left: 10px;
     width: 30px;
     height: 30px;

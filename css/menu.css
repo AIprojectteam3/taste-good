@@ -119,6 +119,10 @@ body {
     font-size : 0.8rem;
 }
 
+.profile-stats .level-text-container {
+    margin-top : 6px;
+}
+
 .profile-stats .level-icon-container {
     display : flex;
     align-items : center;
@@ -403,7 +407,7 @@ body {
 
 .exp-bar-container {
     width: 100%;
-    margin-top: 8px;
+    margin-top: 2px;
 }
 
 .exp-bar {

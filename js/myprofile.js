@@ -82,7 +82,7 @@ async function loadProfileData() {
             return;
         }
 
-        // 기존 프로필 정보 로드 코드...
+        // 기존 프로필 정보 로드 코드
         const usernameEl = profileDiv.querySelector('.username_span');
         const levelEl = profileDiv.querySelector('.level_value');
         const postEl = profileDiv.querySelector('.post_span');
@@ -91,6 +91,9 @@ async function loadProfileData() {
         const userdesEl = profileDiv.querySelector('.profile_des');
         const profileImageEl = document.querySelector('.myprofile-image > img');
         const emailEl = document.querySelector('.emailSpan');
+        
+        // 레벨 아이콘 요소 추가
+        const levelIconEl = document.querySelector('.level-icon2');
 
         if (usernameEl && userData.username) usernameEl.textContent = userData.username;
         if (levelEl && userData.level !== undefined) levelEl.textContent = userData.level;
@@ -107,6 +110,16 @@ async function loadProfileData() {
                 profileImageEl.src = 'image/profile-icon.png';
             }
             profileImageEl.alt = userData.username + '의 프로필 이미지';
+        }
+
+        // 레벨 아이콘 업데이트 추가
+        if (levelIconEl) {
+            if (userData.level_icon_url && userData.level_icon_url.trim() !== '') {
+                levelIconEl.src = userData.level_icon_url;
+            } else {
+                levelIconEl.src = 'image/dropper-icon.png'; // 기본 아이콘
+            }
+            levelIconEl.alt = `레벨 ${userData.level || 1} 아이콘`;
         }
 
         // 프로필 설명 처리
