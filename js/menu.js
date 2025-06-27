@@ -92,6 +92,8 @@ function updateProfileUI(user) {
     } else {
         console.warn("레벨 아이콘 요소를 찾을 수 없습니다. (선택자: .level-icon .level_icon)");
     }
+
+    updateExperienceBar(user);
 }
 
 // ==============================================================================================
@@ -313,6 +315,96 @@ function stopRankingUpdates() {
         clearInterval(rankingUpdateInterval);
         rankingUpdateInterval = null;
     }
+}
+
+function updateExperienceBar(user) {
+    const expProgressElement = document.querySelector('.exp-progress');
+    const currentExpElement = document.querySelector('.current-exp');
+    const requiredExpElement = document.querySelector('.required-exp');
+
+    if (!expProgressElement || !currentExpElement || !requiredExpElement) {
+        console.warn('경험치 바 요소를 찾을 수 없습니다.');
+        return;
+    }
+
+    const currentExp = user.experience || 0;
+    const currentLevel = user.level || 1;
+    const requiredExp = user.required_exp || 100;
+
+    // 현재 레벨에서의 경험치 진행률 계산
+    const expProgress = Math.min((currentExp / requiredExp) * 100, 100);
+
+    // 경험치 바 애니메이션
+    const oldWidth = expProgressElement.style.width;
+    expProgressElement.style.setProperty('--old-width', oldWidth);
+    expProgressElement.style.setProperty('--new-width', `${expProgress}%`);
+    expProgressElement.classList.add('exp-gain-animation');
+
+    setTimeout(() => {
+        expProgressElement.style.width = `${expProgress}%`;
+        expProgressElement.classList.remove('exp-gain-animation');
+    }, 100);
+
+    // 텍스트 업데이트
+    currentExpElement.textContent = currentExp.toLocaleString();
+    requiredExpElement.textContent = requiredExp.toLocaleString();
+
+    // 레벨업 체크 및 애니메이션
+    if (currentExp >= requiredExp) {
+        const levelElement = document.querySelector('.level-value');
+        if (levelElement) {
+            levelElement.classList.add('level-up-animation');
+            setTimeout(() => {
+                levelElement.classList.remove('level-up-animation');
+            }, 1000);
+        }
+    }
+}
+
+// 경험치 획득 애니메이션 함수
+function animateExpGain(gainedExp) {
+    const expText = document.querySelector('.exp-text');
+    if (!expText) return;
+
+    const gainIndicator = document.createElement('div');
+    gainIndicator.textContent = `+${gainedExp} EXP`;
+    gainIndicator.style.cssText = `
+        position: absolute;
+        color: #4CAF50;
+        font-weight: bold;
+        font-size: 0.8rem;
+        animation: expGainFloat 2s ease-out forwards;
+        pointer-events: none;
+        z-index: 1000;
+    `;
+
+    // 애니메이션 CSS 추가
+    if (!document.querySelector('#exp-gain-animation-style')) {
+        const style = document.createElement('style');
+        style.id = 'exp-gain-animation-style';
+        style.textContent = `
+            @keyframes expGainFloat {
+                0% {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(-30px);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    expText.style.position = 'relative';
+    expText.appendChild(gainIndicator);
+
+    setTimeout(() => {
+        if (gainIndicator.parentNode) {
+            gainIndicator.parentNode.removeChild(gainIndicator);
+        }
+    }, 2000);
 }
 
 // 페이지 가시성 변경 시 업데이트 제어

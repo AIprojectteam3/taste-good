@@ -32,29 +32,65 @@ SELECT 'User registration triggers created successfully!' AS message;
 -- =====================- 필요 경험치 도달했을 경우 레벨 자동 상승(프로시저) -=====================
 DELIMITER $$
 
+DROP PROCEDURE IF EXISTS add_experience$$
+
 CREATE PROCEDURE add_experience(
     IN p_user_id INT,
     IN p_exp_amount INT
 )
 BEGIN
-    DECLARE current_level INT DEFAULT 1;
-    DECLARE new_experience INT DEFAULT 0;
+    DECLARE cur_level INT DEFAULT 1;
+    DECLARE cur_exp INT DEFAULT 0;
+    DECLARE req_exp INT DEFAULT 100;
+    DECLARE user_exists INT DEFAULT 0;
     
-    UPDATE user_levels 
-    SET experience = experience + p_exp_amount 
-    WHERE user_id = p_user_id;
-    
-    SELECT experience INTO new_experience 
+    -- Check if user exists in user_levels table
+    SELECT COUNT(*) INTO user_exists
     FROM user_levels 
     WHERE user_id = p_user_id;
     
-    SELECT MAX(level) INTO current_level
-    FROM level_requirements 
-    WHERE required_exp <= new_experience;
+    IF user_exists = 0 THEN
+        -- Insert new user with default values
+        INSERT INTO user_levels (user_id, level, experience) 
+        VALUES (p_user_id, 1, 0);
+    END IF;
     
-    UPDATE user_levels 
-    SET level = current_level 
+    -- Get current level and experience
+    SELECT level, experience 
+    INTO cur_level, cur_exp
+    FROM user_levels 
     WHERE user_id = p_user_id;
+    
+    -- Add experience
+    SET cur_exp = cur_exp + p_exp_amount;
+    
+    -- Level up check loop
+    level_check: LOOP
+        SELECT required_exp INTO req_exp
+        FROM level_requirements 
+        WHERE level = cur_level
+        LIMIT 1;
+        
+        IF cur_exp >= req_exp THEN
+            SET cur_exp = cur_exp - req_exp;
+            SET cur_level = cur_level + 1;
+            
+            -- Check if next level exists
+            IF NOT EXISTS(SELECT 1 FROM level_requirements WHERE level = cur_level) THEN
+                SET cur_exp = req_exp;
+                SET cur_level = cur_level - 1;
+                LEAVE level_check;
+            END IF;
+        ELSE
+            LEAVE level_check;
+        END IF;
+    END LOOP;
+    
+    -- Update existing record only
+    UPDATE user_levels 
+    SET level = cur_level, experience = cur_exp
+    WHERE user_id = p_user_id;
+        
 END$$
 
 DELIMITER ;
