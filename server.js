@@ -89,19 +89,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'intro.html'));
 });
 
-// 보호된 페이지들에 대한 서버 사이드 검증
-app.get(['/index.html', '/myprofile.html'], (req, res, next) => {
-    if (!req.session.userId) {
-        return res.redirect('/intro.html');
-    }
-    
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('X-Frame-Options', 'DENY'); // 추가 보안
-    
-    next();
-});
 app.use(express.static(path.join(__dirname))); // 정적 파일 제공
 
 app.use('/Uploads', express.static(path.join(__dirname, 'Uploads')));
