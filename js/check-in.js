@@ -137,59 +137,330 @@ function initializeCheckIn(){
 
 async function performCheckIn(){
     try{
-        const res  = await fetch('/api/attendance/check-in',{method:'POST',headers:{'Content-Type':'application/json'}});
-        const json = await res.json();
-        if(!json.success){ alert(json.message); return; }
-
-        if(json.hasQuestion){
-            showQuestionModal(json.question);
-        }else{
-            await completeCheckIn(json.points);
-        }
-    }catch(e){ console.error(e); alert('출석체크 중 오류 발생'); }
-}
-
-/* ---------- 질문 모달 ---------- */
-function showQuestionModal(q){
-    const modal = document.createElement('div');
-    modal.id = 'questionModal';
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h3>출석체크 질문</h3>
-            <p class="question-text">${q.question_text}</p>
-            <textarea id="userAnswer" rows="4" placeholder="답변을 입력해주세요..."></textarea>
-            <div class="modal-buttons">
-                <button class="btn-cancel">취소</button>
-                <button class="btn-submit">제출</button>
-            </div>
-        </div>`;
-    document.body.appendChild(modal);
-
-    modal.querySelector('.btn-cancel').onclick = closeQuestionModal;
-    modal.querySelector('.btn-submit').onclick  = ()=>submitAnswer(q.id);
-}
-
-function closeQuestionModal(){
-    document.getElementById('questionModal')?.remove();
-}
-
-async function submitAnswer(questionId){
-    const answer = document.getElementById('userAnswer').value.trim();
-    if(!answer){ alert('답변을 입력해주세요.'); return; }
-
-    try{
-        const res  = await fetch('/api/attendance/submit-answer',{
+        const res = await fetch('/api/attendance/check-in',{
             method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({questionId,answer})
+            headers:{'Content-Type':'application/json'}
         });
         const json = await res.json();
-        if(json.success){
-            closeQuestionModal();
+        
+        if(!json.success){
+            alert(json.message);
+            return;
+        }
+
+        if(json.hasQuestion){
+            showMultipleQuestionsModal(json.questions);
+        } else {
             await completeCheckIn(json.points);
-        }else alert(json.message);
-    }catch(e){ console.error(e); alert('답변 제출 오류'); }
+        }
+    } catch(e){
+        console.error(e);
+        alert('출석체크 중 오류 발생');
+    }
+}
+
+// 다중 질문 모달 표시 함수
+function showMultipleQuestionsModal(questions) {
+    // console.log('=== showMultipleQuestionsModal 시작 ===');
+    // console.log('전달받은 질문 수:', questions.length);
+    
+    // questions.forEach((question, index) => {
+    //     console.log(`질문 ${index + 1}:`, {
+    //         id: question.id,
+    //         text: question.question_text,
+    //         category: question.category_name,
+    //         optionsCount: question.options ? question.options.length : 0,
+    //         options: question.options
+    //     });
+    // });
+
+    const modal = document.createElement('div');
+    modal.id = 'multipleQuestionsModal';
+    modal.className = 'modal-overlay';
+    
+    let questionsHtml = '';
+    questions.forEach((question, index) => {
+        if (!question.options || question.options.length === 0) {
+            console.error(`질문 ${question.id}에 옵션이 없습니다!`);
+            questionsHtml += `
+                <div class="question-item" data-question-id="${question.id}">
+                    <div class="question-category">
+                        <span class="category-badge">${question.category_name}</span>
+                    </div>
+                    <div class="question-text">${question.question_text}</div>
+                    <div class="options-container">
+                        <p style="color: red;">이 질문에는 선택지가 없습니다.</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        questionsHtml += `
+            <div class="question-item" data-question-id="${question.id}">
+                <div class="question-category">
+                    <span class="category-badge">${question.category_name}</span>
+                </div>
+                <div class="question-text">${question.question_text}</div>
+                <div class="options-container">
+                    ${question.options.map((option, optionIndex) => {
+                        console.log(`질문 ${question.id} 옵션 ${optionIndex}:`, option);
+                        return `
+                            <label class="option-item">
+                                <input type="radio" 
+                                       name="question_${question.id}" 
+                                       value="${option.value || optionIndex + 1}"
+                                       data-text="${option.text || '옵션 없음'}"
+                                       id="option_${question.id}_${optionIndex}">
+                                <span class="option-content">
+                                    <span class="option-text">${option.text || '옵션 없음'}</span>
+                                </span>
+                            </label>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    modal.innerHTML = `
+        <div class="modal-content multiple-questions">
+            <h3>오늘의 질문 (${questions.length}개)</h3>
+            <div class="questions-container">
+                ${questionsHtml}
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-submit">답변 완료</button>
+                <button type="button" class="btn-cancel">취소</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    
+    // DOM에 추가된 후 라디오 버튼 확인
+    setTimeout(() => {
+        const addedRadios = modal.querySelectorAll('input[type="radio"]');
+        console.log('모달에 추가된 라디오 버튼 수:', addedRadios.length);
+        addedRadios.forEach((radio, index) => {
+            console.log(`추가된 라디오 ${index}:`, {
+                name: radio.name,
+                value: radio.value,
+                dataText: radio.dataset.text
+            });
+        });
+    }, 100);
+
+    // 이벤트 리스너 추가
+    modal.querySelector('.btn-cancel').onclick = closeMultipleQuestionsModal;
+    modal.querySelector('.btn-submit').onclick = () => submitMultipleAnswers(questions);
+}
+
+// 다중 답변 제출
+async function submitMultipleAnswers(questions) {
+    console.log('submitMultipleAnswers 호출됨, 질문 수:', questions.length);
+    
+    const answers = [];
+    let hasEmptyAnswer = false;
+
+    // 모든 라디오 버튼 다시 확인
+    const allRadios = document.querySelectorAll('input[type="radio"]');
+    console.log('현재 페이지의 모든 라디오 버튼 수:', allRadios.length);
+
+    questions.forEach((question, index) => {
+        console.log(`질문 ${index + 1} (ID: ${question.id}) 처리 중...`);
+        
+        // 여러 방법으로 선택된 라디오 버튼 찾기
+        let selectedOption = document.querySelector(`input[name="question_${question.id}"]:checked`);
+        
+        // 첫 번째 방법으로 찾지 못하면 다른 방법 시도
+        if (!selectedOption) {
+            console.log(`방법 1 실패, 다른 방법으로 시도... (question_${question.id})`);
+            
+            // 모든 라디오 버튼을 순회하면서 찾기
+            const questionRadios = document.querySelectorAll(`input[name="question_${question.id}"]`);
+            console.log(`질문 ${question.id}의 라디오 버튼 수:`, questionRadios.length);
+            
+            questionRadios.forEach(radio => {
+                console.log(`라디오 확인:`, {
+                    name: radio.name,
+                    value: radio.value,
+                    checked: radio.checked,
+                    dataText: radio.dataset.text
+                });
+                
+                if (radio.checked) {
+                    selectedOption = radio;
+                }
+            });
+        }
+        
+        if (!selectedOption) {
+            console.log(`질문 ${question.id}에 선택된 답변이 없습니다.`);
+            hasEmptyAnswer = true;
+            const questionItem = document.querySelector(`[data-question-id="${question.id}"]`);
+            if (questionItem) {
+                questionItem.style.borderColor = '#ff6f61';
+                questionItem.style.backgroundColor = '#fff5f4';
+                questionItem.classList.add('error');
+            }
+            return;
+        }
+        
+        // 오류 스타일 제거
+        const questionItem = document.querySelector(`[data-question-id="${question.id}"]`);
+        if (questionItem) {
+            questionItem.style.borderColor = '';
+            questionItem.style.backgroundColor = '';
+            questionItem.classList.remove('error');
+        }
+        
+        // 안전한 데이터 추출
+        const answerText = selectedOption.dataset.text || selectedOption.getAttribute('data-text') || '답변 없음';
+        const answerCode = selectedOption.value || '0';
+        
+        console.log(`질문 ${question.id} 답변:`, answerText, '코드:', answerCode);
+        
+        answers.push({
+            questionId: question.id,
+            answer: answerText,
+            answerCode: answerCode
+        });
+    });
+
+    if (hasEmptyAnswer) {
+        alert('모든 질문에 답변해주세요.');
+        return;
+    }
+
+    console.log('제출할 답변들:', answers);
+
+    try {
+        const res = await fetch('/api/attendance/submit-answers', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ answers })
+        });
+        
+        const json = await res.json();
+        
+        if (json.success) {
+            closeMultipleQuestionsModal();
+            await completeCheckIn(json.points);
+        } else {
+            alert(json.message);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('답변 제출 오류');
+    }
+}
+
+// 다중 질문 모달 닫기
+function closeMultipleQuestionsModal() {
+    document.getElementById('multipleQuestionsModal')?.remove();
+}
+
+// 다중 답변 제출
+async function submitMultipleAnswers(questions) {
+    console.log('=== submitMultipleAnswers 시작 ===');
+    console.log('전달받은 질문들:', questions);
+    
+    // 현재 DOM에 있는 모든 라디오 버튼 확인
+    const allRadios = document.querySelectorAll('input[type="radio"]');
+    console.log('페이지의 모든 라디오 버튼 수:', allRadios.length);
+    
+    allRadios.forEach((radio, index) => {
+        console.log(`라디오 ${index}:`, {
+            name: radio.name,
+            value: radio.value,
+            checked: radio.checked,
+            dataText: radio.dataset.text
+        });
+    });
+    
+    const answers = [];
+    let hasEmptyAnswer = false;
+
+    questions.forEach((question, questionIndex) => {
+        console.log(`\n=== 질문 ${questionIndex + 1} 처리 (ID: ${question.id}) ===`);
+        
+        // 해당 질문의 모든 라디오 버튼 찾기
+        const questionRadios = document.querySelectorAll(`input[name="question_${question.id}"]`);
+        console.log(`질문 ${question.id}의 라디오 버튼 수:`, questionRadios.length);
+        
+        if (questionRadios.length === 0) {
+            console.error(`질문 ${question.id}의 라디오 버튼을 찾을 수 없습니다!`);
+            hasEmptyAnswer = true;
+            return;
+        }
+        
+        // 각 라디오 버튼 상태 확인
+        let selectedOption = null;
+        questionRadios.forEach((radio, radioIndex) => {
+            console.log(`  라디오 ${radioIndex}:`, {
+                name: radio.name,
+                value: radio.value,
+                checked: radio.checked,
+                dataText: radio.dataset.text
+            });
+            
+            if (radio.checked) {
+                selectedOption = radio;
+            }
+        });
+        
+        if (!selectedOption) {
+            console.log(`질문 ${question.id}에 선택된 답변이 없습니다.`);
+            hasEmptyAnswer = true;
+            const questionItem = document.querySelector(`[data-question-id="${question.id}"]`);
+            if (questionItem) {
+                questionItem.style.borderColor = '#ff6f61';
+                questionItem.style.backgroundColor = '#fff5f4';
+            }
+            return;
+        }
+        
+        console.log(`질문 ${question.id} 선택된 답변:`, {
+            value: selectedOption.value,
+            dataText: selectedOption.dataset.text
+        });
+        
+        answers.push({
+            questionId: question.id,
+            answer: selectedOption.dataset.text || selectedOption.value,
+            answerCode: selectedOption.value
+        });
+    });
+
+    console.log('=== 최종 답변 목록 ===');
+    console.log('hasEmptyAnswer:', hasEmptyAnswer);
+    console.log('answers:', answers);
+
+    if (hasEmptyAnswer) {
+        alert('모든 질문에 답변해주세요.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/attendance/submit-answers', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ answers })
+        });
+        
+        const json = await res.json();
+        
+        if (json.success) {
+            closeMultipleQuestionsModal();
+            await completeCheckIn(json.points);
+        } else {
+            alert(json.message);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('답변 제출 오류');
+    }
 }
 
 /* ---------- 출석 완료 후 처리 ---------- */

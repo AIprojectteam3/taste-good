@@ -90,3 +90,17 @@ CREATE TABLE question_answer_codes (
     FOREIGN KEY (category_id) REFERENCES question_categories(id),
     INDEX idx_category_code (category_id, answer_code)
 );
+
+-- 질문별 객관식 선택지 테이블
+CREATE TABLE question_options (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    question_id INT NOT NULL,
+    option_text VARCHAR(100) NOT NULL,
+    option_value INT NOT NULL,
+    option_emoji VARCHAR(10),
+    sort_order INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (question_id) REFERENCES attendance_questions(id) ON DELETE CASCADE,
+    INDEX idx_question_sort (question_id, sort_order)
+);

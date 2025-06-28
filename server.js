@@ -2976,33 +2976,16 @@ function addPointsWithLog(userId, points, actionType, description, postId = null
 // ==================================================================================================================
 app.get('/api/user/point-logs', (req, res) => {
     const userId = req.session.userId;
-    const { page = 1, limit = 20, actionType, pointType } = req.query;
     
     if (!userId) {
-        return res.status(401).json({ message: '로그인이 필요합니다.' });
+        return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
     }
 
-    const offset = (page - 1) * limit;
-    let whereClause = 'WHERE pl.user_id = ?';
-    let queryParams = [userId];
-
-    // 활동 유형 필터
-    if (actionType && actionType !== 'all') {
-        whereClause += ' AND pl.action_type = ?';
-        queryParams.push(actionType);
-    }
-
-    // ⭐ 포인트 유형 필터 추가 (적립/차감) ⭐
-    if (pointType && pointType !== 'all') {
-        if (pointType === 'earned') {
-            whereClause += ' AND pl.points > 0';
-        } else if (pointType === 'spent') {
-            whereClause += ' AND pl.points < 0';
-        }
-    }
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
 
     const query = `
-        SELECT
+        SELECT 
             pl.id,
             pl.points,
             pl.action_type,
@@ -3013,36 +2996,27 @@ app.get('/api/user/point-logs', (req, res) => {
         FROM point_logs pl
         LEFT JOIN posts p ON pl.post_id = p.id
         LEFT JOIN comments c ON pl.comment_id = c.id
-        ${whereClause}
+        WHERE pl.user_id = ?
         ORDER BY pl.created_at DESC
         LIMIT ? OFFSET ?
     `;
 
-    queryParams.push(parseInt(limit), offset);
-
-    db.query(query, queryParams, (err, results) => {
+    db.query(query, [userId, parseInt(limit), offset], (err, results) => {
         if (err) {
-            console.error('포인트 로그 조회 중 오류:', err);
-            return res.status(500).json({
-                success: false,
-                message: '포인트 로그를 가져오는 데 실패했습니다.',
-                error: err.message
-            });
+            console.error('포인트 로그 조회 오류:', err);
+            return res.status(500).json({ success: false, message: '서버 오류' });
         }
 
-        // 전체 개수 조회 (같은 WHERE 조건 적용)
-        const countQuery = `SELECT COUNT(*) as total FROM point_logs pl ${whereClause}`;
-        db.query(countQuery, queryParams.slice(0, -2), (countErr, countResults) => {
+        // 총 개수 조회
+        const countQuery = 'SELECT COUNT(*) as total FROM point_logs WHERE user_id = ?';
+        db.query(countQuery, [userId], (countErr, countResults) => {
             if (countErr) {
-                console.error('포인트 로그 개수 조회 중 오류:', countErr);
-                return res.status(500).json({
-                    success: false,
-                    message: '포인트 로그 개수 조회에 실패했습니다.'
-                });
+                console.error('포인트 로그 개수 조회 오류:', countErr);
+                return res.status(500).json({ success: false, message: '서버 오류' });
             }
 
-            const total = countResults[0].total;
-            const totalPages = Math.ceil(total / limit);
+            const totalCount = countResults[0].total;
+            const totalPages = Math.ceil(totalCount / parseInt(limit));
 
             res.json({
                 success: true,
@@ -3050,8 +3024,8 @@ app.get('/api/user/point-logs', (req, res) => {
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: totalPages,
-                    totalItems: total,
-                    itemsPerPage: parseInt(limit)
+                    totalCount: totalCount,
+                    limit: parseInt(limit)
                 }
             });
         });
@@ -3176,34 +3150,77 @@ app.post('/api/attendance/check-in', (req, res) => {
                 return res.json({ success: false, message: '이미 출석체크를 완료했습니다.' });
             }
 
-            // 랜덤 질문 선택 (질문 테이블이 있다면)
-            const questionQuery = 'SELECT * FROM attendance_questions WHERE is_active = TRUE ORDER BY RAND() LIMIT 1';
+            // 1단계: 질문만 먼저 조회 (중복 방지)
+            const questionsQuery = `
+                SELECT DISTINCT
+                    aq.id,
+                    aq.question_text,
+                    aq.category_id,
+                    qc.category_name
+                FROM attendance_questions aq
+                JOIN question_categories qc ON aq.category_id = qc.id
+                WHERE aq.is_active = TRUE AND qc.is_active = TRUE
+                ORDER BY RAND()
+                LIMIT 3
+            `;
             
-            db.query(questionQuery, (qErr, questions) => {
+            console.log('질문 조회 시작...');
+            db.query(questionsQuery, (qErr, questions) => {
                 if (qErr || questions.length === 0) {
-                    // 질문이 없으면 기본 출석체크만
-                    const insertQuery = 'INSERT INTO attendance_logs (user_id, attendance_date, points_earned) VALUES (?, ?, ?)';
-                    
-                    db.query(insertQuery, [userId, today, 10], (insertErr) => {
-                        if (insertErr) {
-                            console.error('출석 로그 생성 오류:', insertErr);
-                            return res.status(500).json({ success: false, message: '서버 오류' });
-                        }
+                    console.log('질문 조회 실패 또는 질문 없음:', qErr);
+                    return completeBasicCheckIn(userId, today, res);
+                }
 
-                        // 사용자 포인트 업데이트
-                        const updatePointsQuery = 'UPDATE user_points SET point = point + 10 WHERE user_id = ?';
-                        db.query(updatePointsQuery, [userId], (updateErr) => {
-                            if (updateErr) {
-                                console.error('포인트 업데이트 오류:', updateErr);
+                console.log('조회된 질문 수:', questions.length);
+
+                // 2단계: 각 질문의 선택지를 개별 조회
+                const optionPromises = questions.map(question => {
+                    return new Promise((resolve, reject) => {
+                        const optionsQuery = `
+                            SELECT 
+                                id, 
+                                option_text as text, 
+                                option_value as value, 
+                                option_emoji as emoji
+                            FROM question_options 
+                            WHERE question_id = ? AND is_active = TRUE 
+                            ORDER BY sort_order
+                        `;
+                        
+                        db.query(optionsQuery, [question.id], (optErr, options) => {
+                            if (optErr) {
+                                console.error(`질문 ${question.id} 옵션 조회 오류:`, optErr);
+                                question.options = [];
+                            } else {
+                                console.log(`질문 ${question.id} 옵션 수:`, options.length);
+                                question.options = options;
                             }
-                            
-                            updateAttendanceStats(userId);
-                            res.json({ success: true, points: 10, hasQuestion: false });
+                            resolve(question);
                         });
                     });
-                } else {
-                    res.json({ success: true, question: questions[0], hasQuestion: true });
-                }
+                });
+
+                Promise.all(optionPromises)
+                    .then(questionsWithOptions => {
+                        // 중복 제거 확인
+                        const uniqueQuestions = questionsWithOptions.filter((question, index, self) => 
+                            index === self.findIndex(q => q.id === question.id)
+                        );
+
+                        console.log('최종 질문 데이터:', uniqueQuestions.length, '개');
+                        console.log('질문 ID들:', uniqueQuestions.map(q => q.id));
+
+                        res.json({ 
+                            success: true, 
+                            questions: uniqueQuestions, 
+                            hasQuestion: true,
+                            totalQuestions: uniqueQuestions.length
+                        });
+                    })
+                    .catch(optErr => {
+                        console.error('선택지 조회 오류:', optErr);
+                        return completeBasicCheckIn(userId, today, res);
+                    });
             });
         });
     } catch (error) {
@@ -3213,46 +3230,109 @@ app.post('/api/attendance/check-in', (req, res) => {
 });
 
 // 질문 답변 제출
-app.post('/api/attendance/submit-answer', (req, res) => {
+app.post('/api/attendance/submit-answers', (req, res) => {
     const userId = req.session.userId;
-    const { questionId, answer } = req.body;
+    const { answers } = req.body;
     
     if (!userId) {
         return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
     }
 
-    try {
-        const today = new Date().toISOString().split('T')[0];
+    if (!answers || !Array.isArray(answers) || answers.length === 0) {
+        return res.status(400).json({ success: false, message: '답변을 입력해주세요.' });
+    }
 
-        // 출석 로그 생성
-        const insertLogQuery = 'INSERT INTO attendance_logs (user_id, attendance_date, points_earned) VALUES (?, ?, ?)';
-        
-        db.query(insertLogQuery, [userId, today, 10], (err, result) => {
-            if (err) {
-                console.error('출석 로그 생성 오류:', err);
+    try {
+        // 한국 시간 기준으로 오늘 날짜 계산
+        const now = new Date();
+        const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+        const today = koreaTime.toISOString().split('T')[0];
+
+        db.beginTransaction((txErr) => {
+            if (txErr) {
+                console.error('트랜잭션 시작 오류:', txErr);
                 return res.status(500).json({ success: false, message: '서버 오류' });
             }
 
-            const attendanceLogId = result.insertId;
-
-            // 답변 저장 (테이블이 있다면)
-            const insertAnswerQuery = 'INSERT INTO attendance_answers (attendance_log_id, question_id, user_answer) VALUES (?, ?, ?)';
+            // 1. 출석 로그 생성
+            const insertLogQuery = 'INSERT INTO attendance_logs (user_id, attendance_date, points_earned) VALUES (?, ?, ?)';
             
-            db.query(insertAnswerQuery, [attendanceLogId, questionId, answer], (answerErr) => {
-                if (answerErr) {
-                    console.error('답변 저장 오류:', answerErr);
+            db.query(insertLogQuery, [userId, today, 10], (err, result) => {
+                if (err) {
+                    return db.rollback(() => {
+                        console.error('출석 로그 생성 오류:', err);
+                        res.status(500).json({ success: false, message: '서버 오류' });
+                    });
                 }
 
-                // 사용자 포인트 업데이트
-                const updatePointsQuery = 'UPDATE user_points SET point = point + 10 WHERE user_id = ?';
-                db.query(updatePointsQuery, [userId], (updateErr) => {
-                    if (updateErr) {
-                        console.error('포인트 업데이트 오류:', updateErr);
-                    }
-                    
-                    updateAttendanceStats(userId);
-                    res.json({ success: true, points: 10 });
+                const attendanceLogId = result.insertId;
+
+                // 2. 모든 답변 저장
+                const answerPromises = answers.map(answer => {
+                    return new Promise((resolve, reject) => {
+                        const insertAnswerQuery = 'INSERT INTO attendance_answers (attendance_log_id, question_id, user_answer) VALUES (?, ?, ?)';
+                        db.query(insertAnswerQuery, [attendanceLogId, answer.questionId, answer.answer], (answerErr) => {
+                            if (answerErr) reject(answerErr);
+                            else resolve();
+                        });
+                    });
                 });
+
+                Promise.all(answerPromises)
+                    .then(() => {
+                        // 3. 포인트 업데이트
+                        const updatePointsQuery = 'UPDATE user_points SET point = point + 10 WHERE user_id = ?';
+                        db.query(updatePointsQuery, [userId], (updateErr) => {
+                            if (updateErr) {
+                                return db.rollback(() => {
+                                    console.error('포인트 업데이트 오류:', updateErr);
+                                    res.status(500).json({ success: false, message: '포인트 업데이트 오류' });
+                                });
+                            }
+
+                            // 4. 포인트 로그 삽입 (새로 추가)
+                            const insertPointLogQuery = `
+                                INSERT INTO point_logs (user_id, points, action_type, description, post_id, comment_id) 
+                                VALUES (?, ?, ?, ?, ?, ?)
+                            `;
+                            
+                            const pointsEarned = 10;
+                            const actionType = 'attendance_check_in';
+                            const description = '출석체크 포인트 적립';
+                            const postId = null;
+                            const commentId = null;
+
+                            db.query(insertPointLogQuery, [userId, pointsEarned, actionType, description, postId, commentId], (logErr) => {
+                                if (logErr) {
+                                    console.error('포인트 로그 삽입 오류:', logErr);
+                                    // 포인트 로그 실패해도 출석체크는 성공으로 처리
+                                }
+
+                                db.commit((commitErr) => {
+                                    if (commitErr) {
+                                        return db.rollback(() => {
+                                            console.error('커밋 오류:', commitErr);
+                                            res.status(500).json({ success: false, message: '서버 오류' });
+                                        });
+                                    }
+
+                                    updateAttendanceStats(userId);
+                                    res.json({
+                                        success: true,
+                                        points: 10,
+                                        answersCount: answers.length,
+                                        message: '출석체크가 완료되었습니다! 10포인트가 적립되었습니다.'
+                                    });
+                                });
+                            });
+                        });
+                    })
+                    .catch((answerErr) => {
+                        db.rollback(() => {
+                            console.error('답변 저장 오류:', answerErr);
+                            res.status(500).json({ success: false, message: '답변 저장 오류' });
+                        });
+                    });
             });
         });
     } catch (error) {
@@ -3316,6 +3396,80 @@ app.get('/api/attendance/rewards', (req, res) => {
         res.status(500).json({ success: false, message: '서버 오류' });
     }
 });
+
+// 기본 출석체크 함수
+function completeBasicCheckIn(userId, today, res) {
+    // 한국 시간 기준으로 오늘 날짜 재계산
+    const now = new Date();
+    const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+    const koreanToday = koreaTime.toISOString().split('T')[0];
+    
+    db.beginTransaction((txErr) => {
+        if (txErr) {
+            console.error('기본 출석체크 트랜잭션 시작 오류:', txErr);
+            return res.status(500).json({ success: false, message: '서버 오류' });
+        }
+
+        // 1. 출석 로그 생성
+        const insertQuery = 'INSERT INTO attendance_logs (user_id, attendance_date, points_earned) VALUES (?, ?, ?)';
+        
+        db.query(insertQuery, [userId, koreanToday, 10], (insertErr) => {
+            if (insertErr) {
+                return db.rollback(() => {
+                    console.error('출석 로그 생성 오류:', insertErr);
+                    res.status(500).json({ success: false, message: '서버 오류' });
+                });
+            }
+
+            // 2. 사용자 포인트 업데이트
+            const updatePointsQuery = 'UPDATE user_points SET point = point + 10 WHERE user_id = ?';
+            db.query(updatePointsQuery, [userId], (updateErr) => {
+                if (updateErr) {
+                    return db.rollback(() => {
+                        console.error('포인트 업데이트 오류:', updateErr);
+                        res.status(500).json({ success: false, message: '포인트 업데이트 오류' });
+                    });
+                }
+
+                // 3. 포인트 로그 삽입 (새로 추가)
+                const insertPointLogQuery = `
+                    INSERT INTO point_logs (user_id, points, action_type, description, post_id, comment_id) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `;
+                
+                const pointsEarned = 10;
+                const actionType = 'attendance_check_in';
+                const description = '출석체크 포인트 적립';
+                const postId = null;
+                const commentId = null;
+
+                db.query(insertPointLogQuery, [userId, pointsEarned, actionType, description, postId, commentId], (logErr) => {
+                    if (logErr) {
+                        console.error('포인트 로그 삽입 오류:', logErr);
+                        // 포인트 로그 실패해도 출석체크는 성공으로 처리
+                    }
+
+                    db.commit((commitErr) => {
+                        if (commitErr) {
+                            return db.rollback(() => {
+                                console.error('커밋 오류:', commitErr);
+                                res.status(500).json({ success: false, message: '서버 오류' });
+                            });
+                        }
+
+                        updateAttendanceStats(userId);
+                        res.json({ 
+                            success: true, 
+                            points: 10, 
+                            hasQuestion: false,
+                            message: '출석체크가 완료되었습니다! 10포인트가 적립되었습니다.'
+                        });
+                    });
+                });
+            });
+        });
+    });
+}
 
 // 출석 통계 업데이트 함수 수정
 function updateAttendanceStats(userId, callback = () => {}) {
