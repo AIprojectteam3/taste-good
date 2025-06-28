@@ -3112,6 +3112,275 @@ app.get('/api/user/point-stats', (req, res) => {
 });
 
 // ==================================================================================================================
+// 출석체크 관련 API 수정
+// ==================================================================================================================
+
+// 출석체크 데이터 조회
+app.get('/api/attendance/data', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
+    }
+
+    try {
+        // 사용자 출석 로그 조회
+        const attendanceQuery = 'SELECT attendance_date FROM attendance_logs WHERE user_id = ? ORDER BY attendance_date';
+        
+        db.query(attendanceQuery, [userId], (err, attendanceLogs) => {
+            if (err) {
+                console.error('출석 데이터 조회 오류:', err);
+                return res.status(500).json({ success: false, message: '서버 오류' });
+            }
+
+            // 기존 JavaScript 형태로 변환
+            const attendanceData = {};
+            attendanceLogs.forEach(log => {
+                const date = new Date(log.attendance_date);
+                const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+                if (!attendanceData[key]) {
+                    attendanceData[key] = [];
+                }
+                attendanceData[key].push(date.getDate());
+            });
+
+            res.json({ success: true, attendanceData });
+        });
+    } catch (error) {
+        console.error('출석 데이터 조회 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류' });
+    }
+});
+
+// 출석체크 실행
+app.post('/api/attendance/check-in', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
+    }
+
+    try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // 오늘 이미 출석했는지 확인
+        const checkQuery = 'SELECT id FROM attendance_logs WHERE user_id = ? AND attendance_date = ?';
+        
+        db.query(checkQuery, [userId, today], (err, existing) => {
+            if (err) {
+                console.error('출석 확인 오류:', err);
+                return res.status(500).json({ success: false, message: '서버 오류' });
+            }
+
+            if (existing.length > 0) {
+                return res.json({ success: false, message: '이미 출석체크를 완료했습니다.' });
+            }
+
+            // 랜덤 질문 선택 (질문 테이블이 있다면)
+            const questionQuery = 'SELECT * FROM attendance_questions WHERE is_active = TRUE ORDER BY RAND() LIMIT 1';
+            
+            db.query(questionQuery, (qErr, questions) => {
+                if (qErr || questions.length === 0) {
+                    // 질문이 없으면 기본 출석체크만
+                    const insertQuery = 'INSERT INTO attendance_logs (user_id, attendance_date, points_earned) VALUES (?, ?, ?)';
+                    
+                    db.query(insertQuery, [userId, today, 10], (insertErr) => {
+                        if (insertErr) {
+                            console.error('출석 로그 생성 오류:', insertErr);
+                            return res.status(500).json({ success: false, message: '서버 오류' });
+                        }
+
+                        // 사용자 포인트 업데이트
+                        const updatePointsQuery = 'UPDATE user_points SET point = point + 10 WHERE user_id = ?';
+                        db.query(updatePointsQuery, [userId], (updateErr) => {
+                            if (updateErr) {
+                                console.error('포인트 업데이트 오류:', updateErr);
+                            }
+                            
+                            updateAttendanceStats(userId);
+                            res.json({ success: true, points: 10, hasQuestion: false });
+                        });
+                    });
+                } else {
+                    res.json({ success: true, question: questions[0], hasQuestion: true });
+                }
+            });
+        });
+    } catch (error) {
+        console.error('출석체크 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류' });
+    }
+});
+
+// 질문 답변 제출
+app.post('/api/attendance/submit-answer', (req, res) => {
+    const userId = req.session.userId;
+    const { questionId, answer } = req.body;
+    
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
+    }
+
+    try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // 출석 로그 생성
+        const insertLogQuery = 'INSERT INTO attendance_logs (user_id, attendance_date, points_earned) VALUES (?, ?, ?)';
+        
+        db.query(insertLogQuery, [userId, today, 10], (err, result) => {
+            if (err) {
+                console.error('출석 로그 생성 오류:', err);
+                return res.status(500).json({ success: false, message: '서버 오류' });
+            }
+
+            const attendanceLogId = result.insertId;
+
+            // 답변 저장 (테이블이 있다면)
+            const insertAnswerQuery = 'INSERT INTO attendance_answers (attendance_log_id, question_id, user_answer) VALUES (?, ?, ?)';
+            
+            db.query(insertAnswerQuery, [attendanceLogId, questionId, answer], (answerErr) => {
+                if (answerErr) {
+                    console.error('답변 저장 오류:', answerErr);
+                }
+
+                // 사용자 포인트 업데이트
+                const updatePointsQuery = 'UPDATE user_points SET point = point + 10 WHERE user_id = ?';
+                db.query(updatePointsQuery, [userId], (updateErr) => {
+                    if (updateErr) {
+                        console.error('포인트 업데이트 오류:', updateErr);
+                    }
+                    
+                    updateAttendanceStats(userId);
+                    res.json({ success: true, points: 10 });
+                });
+            });
+        });
+    } catch (error) {
+        console.error('답변 제출 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류' });
+    }
+});
+
+// 출석 통계 조회
+app.get('/api/attendance/stats', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
+    }
+
+    try {
+        const statsQuery = 'SELECT * FROM user_attendance_stats WHERE user_id = ?';
+        
+        db.query(statsQuery, [userId], (err, stats) => {
+            if (err) {
+                console.error('출석 통계 조회 오류:', err);
+                return res.status(500).json({ success: false, message: '서버 오류' });
+            }
+
+            if (stats.length === 0) {
+                // 통계가 없으면 초기화
+                updateAttendanceStats(userId, () => {
+                    db.query(statsQuery, [userId], (newErr, newStats) => {
+                        if (newErr) {
+                            return res.status(500).json({ success: false, message: '서버 오류' });
+                        }
+                        res.json({ success: true, stats: newStats[0] || {} });
+                    });
+                });
+            } else {
+                res.json({ success: true, stats: stats[0] });
+            }
+        });
+    } catch (error) {
+        console.error('출석 통계 조회 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류' });
+    }
+});
+
+// 보상 정보 조회 (수정된 버전)
+app.get('/api/attendance/rewards', (req, res) => {
+    try {
+        const rewardsQuery = 'SELECT * FROM attendance_rewards WHERE is_active = TRUE ORDER BY consecutive_days';
+        
+        db.query(rewardsQuery, (err, rewards) => {
+            if (err) {
+                console.error('보상 정보 조회 오류:', err);
+                return res.status(500).json({ success: false, message: '서버 오류' });
+            }
+
+            res.json({ success: true, rewards });
+        });
+    } catch (error) {
+        console.error('보상 정보 조회 오류:', error);
+        res.status(500).json({ success: false, message: '서버 오류' });
+    }
+});
+
+// 출석 통계 업데이트 함수 수정
+function updateAttendanceStats(userId, callback = () => {}) {
+    try {
+        // 총 출석일 수
+        const totalDaysQuery = 'SELECT COUNT(*) as total FROM attendance_logs WHERE user_id = ?';
+        
+        db.query(totalDaysQuery, [userId], (err, totalResult) => {
+            if (err) {
+                console.error('총 출석일 조회 오류:', err);
+                return callback(err);
+            }
+
+            // 이번 달 출석일 수
+            const monthlyQuery = 'SELECT COUNT(*) as monthly FROM attendance_logs WHERE user_id = ? AND YEAR(attendance_date) = YEAR(CURDATE()) AND MONTH(attendance_date) = MONTH(CURDATE())';
+            
+            db.query(monthlyQuery, [userId], (monthErr, monthResult) => {
+                if (monthErr) {
+                    console.error('월간 출석일 조회 오류:', monthErr);
+                    return callback(monthErr);
+                }
+
+                // 총 포인트
+                const pointsQuery = 'SELECT SUM(points_earned) as total FROM attendance_logs WHERE user_id = ?';
+                
+                db.query(pointsQuery, [userId], (pointErr, pointResult) => {
+                    if (pointErr) {
+                        console.error('총 포인트 조회 오류:', pointErr);
+                        return callback(pointErr);
+                    }
+
+                    const totalDays = totalResult[0].total || 0;
+                    const monthlyDays = monthResult[0].monthly || 0;
+                    const totalPoints = pointResult[0].total || 0;
+                    const consecutiveDays = 1; // 간단한 연속일 계산
+
+                    // 통계 업데이트 또는 생성
+                    const upsertQuery = `
+                        INSERT INTO user_attendance_stats 
+                        (user_id, total_attendance_days, current_consecutive_days, current_month_attendance, total_points_earned, last_attendance_date)
+                        VALUES (?, ?, ?, ?, ?, CURDATE())
+                        ON DUPLICATE KEY UPDATE
+                        total_attendance_days = VALUES(total_attendance_days),
+                        current_consecutive_days = VALUES(current_consecutive_days),
+                        current_month_attendance = VALUES(current_month_attendance),
+                        total_points_earned = VALUES(total_points_earned),
+                        last_attendance_date = VALUES(last_attendance_date)
+                    `;
+
+                    db.query(upsertQuery, [userId, totalDays, consecutiveDays, monthlyDays, totalPoints], (upsertErr) => {
+                        if (upsertErr) {
+                            console.error('출석 통계 업데이트 오류:', upsertErr);
+                        }
+                        callback(upsertErr);
+                    });
+                });
+            });
+        });
+    } catch (error) {
+        console.error('출석 통계 업데이트 오류:', error);
+        callback(error);
+    }
+}
+
+// ==================================================================================================================
 // 서버 시작
 // ==================================================================================================================
 app.listen(PORT, () => {
