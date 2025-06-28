@@ -2976,16 +2976,49 @@ function addPointsWithLog(userId, points, actionType, description, postId = null
 // ==================================================================================================================
 app.get('/api/user/point-logs', (req, res) => {
     const userId = req.session.userId;
-    
     if (!userId) {
         return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
     }
 
-    const { page = 1, limit = 10 } = req.query;
+    const { 
+        page = 1, 
+        limit = 20, 
+        actionType = 'all', 
+        pointType = 'all' 
+    } = req.query;
+    
     const offset = (parseInt(page) - 1) * parseInt(limit);
-
+    
+    // 기본 쿼리
+    let whereConditions = ['pl.user_id = ?'];
+    let queryParams = [userId];
+    
+    // actionType 필터링 (클라이언트 값을 DB 값으로 매핑)
+    if (actionType !== 'all') {
+        let dbActionType = actionType;
+        
+        // 클라이언트에서 보내는 값을 DB에 저장된 값으로 변환
+        if (actionType === 'attendance') {
+            dbActionType = 'attendance_check_in';
+        }
+        
+        whereConditions.push('pl.action_type = ?');
+        queryParams.push(dbActionType);
+    }
+    
+    // pointType 필터링 (earned/spent)
+    if (pointType !== 'all') {
+        if (pointType === 'earned') {
+            whereConditions.push('pl.points > 0');
+        } else if (pointType === 'spent') {
+            whereConditions.push('pl.points < 0');
+        }
+    }
+    
+    const whereClause = whereConditions.join(' AND ');
+    
     const query = `
-        SELECT 
+        SELECT
             pl.id,
             pl.points,
             pl.action_type,
@@ -2996,20 +3029,38 @@ app.get('/api/user/point-logs', (req, res) => {
         FROM point_logs pl
         LEFT JOIN posts p ON pl.post_id = p.id
         LEFT JOIN comments c ON pl.comment_id = c.id
-        WHERE pl.user_id = ?
+        WHERE ${whereClause}
         ORDER BY pl.created_at DESC
         LIMIT ? OFFSET ?
     `;
-
-    db.query(query, [userId, parseInt(limit), offset], (err, results) => {
+    
+    queryParams.push(parseInt(limit), offset);
+    
+    db.query(query, queryParams, (err, results) => {
         if (err) {
             console.error('포인트 로그 조회 오류:', err);
             return res.status(500).json({ success: false, message: '서버 오류' });
         }
 
+        // 클라이언트에서 사용할 수 있도록 action_type 값을 변환
+        const processedResults = results.map(log => ({
+            ...log,
+            actionType: log.action_type === 'attendance_check_in' ? 'attendance' : log.action_type,
+            pointChange: log.points
+        }));
+
         // 총 개수 조회
-        const countQuery = 'SELECT COUNT(*) as total FROM point_logs WHERE user_id = ?';
-        db.query(countQuery, [userId], (countErr, countResults) => {
+        const countQuery = `
+            SELECT COUNT(*) as total 
+            FROM point_logs pl
+            LEFT JOIN posts p ON pl.post_id = p.id
+            LEFT JOIN comments c ON pl.comment_id = c.id
+            WHERE ${whereClause}
+        `;
+        
+        const countParams = queryParams.slice(0, -2); // limit, offset 제외
+        
+        db.query(countQuery, countParams, (countErr, countResults) => {
             if (countErr) {
                 console.error('포인트 로그 개수 조회 오류:', countErr);
                 return res.status(500).json({ success: false, message: '서버 오류' });
@@ -3020,7 +3071,7 @@ app.get('/api/user/point-logs', (req, res) => {
 
             res.json({
                 success: true,
-                logs: results,
+                logs: processedResults,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: totalPages,
@@ -3031,7 +3082,6 @@ app.get('/api/user/point-logs', (req, res) => {
         });
     });
 });
-
 
 // ==================================================================================================================
 // 포인트 통계 조회 API

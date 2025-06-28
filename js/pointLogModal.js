@@ -85,6 +85,7 @@ class PointLogModal {
                                             <option value="all">전체</option>
                                             <option value="POST_CREATE">게시물 작성</option>
                                             <option value="COMMENT_CREATE">댓글 작성</option>
+                                            <option value="attendance">출석체크</option>
                                         </select>
                                     </div>
                                 </div>
@@ -683,7 +684,8 @@ class PointLogModal {
     createLogItemHTML(log) {
         const actionTypeMap = {
             'POST_CREATE': '게시물 작성',
-            'COMMENT_CREATE': '댓글 작성'
+            'COMMENT_CREATE': '댓글 작성',
+            'attendance_check_in': '출석체크'
         };
 
         const actionText = actionTypeMap[log.action_type] || log.action_type;
