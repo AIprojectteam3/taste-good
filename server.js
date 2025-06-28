@@ -2567,119 +2567,6 @@ const allergenKorMap = {
     "15": "게", "16": "새우", "17": "오징어", "18": "조개류", "19": "아황산류"
 };
 
-app.get('/api/recommend', async (req, res) => {
-    const category_str = req.query.category;
-    const need_ids_str = req.query.need;
-    const goal_ids_str = req.query.goal;
-    const season_ids_str = req.query.season;
-    const weather_ids_str = req.query.weather;
-    const time_ids_str = req.query.time;
-    const allergen_ids_str = req.query.allergen;
-    const max_kcal_str = req.query.max_kcal;
-    const max_price_str = req.query.max_price;
-    const people_count = req.query.people_count || 1;
-    const menu_count = req.query.menu_count || 1;
-    
-    // 사용자 ID 가져오기
-    const userId = req.session.userId;
-    
-    try {
-        // 사용자 알레르기 정보 조회
-        let userAllergens = [];
-        if (userId) {
-            const allergenQuery = `
-                SELECT ua.allergen_id, a.AllergenKor
-                FROM user_allergen ua
-                JOIN allergen a ON ua.allergen_id = a.AllergenID
-                WHERE ua.user_id = ?
-            `;
-            
-            userAllergens = await new Promise((resolve, reject) => {
-                db.query(allergenQuery, [userId], (err, results) => {
-                    if (err) {
-                        console.error('사용자 알레르기 정보 조회 중 오류:', err);
-                        resolve([]); // 오류 시 빈 배열 반환
-                    } else {
-                        resolve(results);
-                    }
-                });
-            });
-        }
-
-        // 프롬프트 동적 생성
-        let prompt = `${people_count}명이 먹을 수 있는 메뉴를 ${menu_count}개 추천해줘.\n`;
-        
-        if (category_str) prompt += `카테고리: ${category_str}\n`;
-        if (need_ids_str) {
-            const kor = need_ids_str.split(',').map(id => needKorMap[id] || id).join(', ');
-            prompt += `상황: ${kor}\n`;
-        }
-        if (goal_ids_str) {
-            const kor = goal_ids_str.split(',').map(id => goalKorMap[id] || id).join(', ');
-            prompt += `목표: ${kor}\n`;
-        }
-        if (weather_ids_str) {
-            const kor = weather_ids_str.split(',').map(id => weatherKorMap[id] || id).join(', ');
-            prompt += `날씨: ${kor}\n`;
-        }
-        if (time_ids_str) {
-            const kor = time_ids_str.split(',').map(id => timeKorMap[id] || id).join(', ');
-            prompt += `시간대: ${kor}\n`;
-        }
-        if (season_ids_str) {
-            const kor = season_ids_str.split(',').map(id => seasonKorMap[id] || id).join(', ');
-            prompt += `계절: ${kor}\n`;
-        }
-        
-        // 사용자 등록 알레르기 정보 추가
-        if (userAllergens.length > 0) {
-            const allergenNames = userAllergens.map(allergen => allergen.AllergenKor).join(', ');
-            prompt += `알레르기 주의사항: ${allergenNames}가 들어가는 메뉴는 절대 포함하지 말아주세요.\n`;
-        }
-        
-        // URL 파라미터로 전달된 추가 알레르기 정보 (기존 코드 유지)
-        if (allergen_ids_str) {
-            const kor = allergen_ids_str.split(',').map(id => allergenKorMap[id] || id).join(', ');
-            prompt += `추가 알레르기 주의사항: ${kor}도 피해주세요.\n`;
-        }
-        
-        if (max_kcal_str) prompt += `최대 칼로리: ${max_kcal_str}\n`;
-        if (max_price_str) prompt += `인당 최대 가격: ${max_price_str}\n`;
-        
-        prompt += "메뉴 이름, 간단한 설명, 예상 칼로리, 가격을 알려주고, 해당 메뉴의 알레르기 정보를 알려주세요.";
-
-        // OpenAI API 키 확인
-        if (!process.env.OPENAI_API_KEY) {
-            console.error('OPENAI_API_KEY 환경변수가 설정되지 않았습니다.');
-            return res.status(500).json({
-                error: "OpenAI API 키가 설정되지 않았습니다.",
-                gpt: "죄송합니다. 현재 AI 추천 서비스를 이용할 수 없습니다. 잠시 후 다시 시도해주세요."
-            });
-        }
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [{ role: "user", content: prompt }],
-            max_tokens: 800,
-            temperature: 0.7
-        });
-
-        const gptAnswer = completion.choices[0].message.content;
-        console.log("===== [AI 추천 프롬프트] =====\n" + prompt);
-        console.log("===== [AI 응답] =====\n" + gptAnswer);
-
-        res.json({ gpt: gptAnswer });
-
-    } catch (err) {
-        console.error("GPT 응답 실패:", err.message);
-        console.error("전체 오류:", err);
-        res.status(200).json({
-            gpt: "죄송합니다. 현재 AI 추천 서비스에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
-            error: "GPT 응답 실패"
-        });
-    }
-});
-
 // ==================================================================================================================
 // 메뉴 상세 정보 조회 API (AIMenu.js에서 사용)
 // ==================================================================================================================
@@ -2765,55 +2652,102 @@ app.get('/api/recommend-filtered', async (req, res) => {
                 });
             });
         }
+
+        // 사용자 출석체크 답변 정보 조회 (최근 7일)
+        let userPreferences = '';
+        if (userId) {
+            const attendanceQuery = `
+                SELECT aa.user_answer, aq.question_text
+                FROM attendance_logs al
+                JOIN attendance_answers aa ON al.id = aa.attendance_log_id
+                JOIN attendance_questions aq ON aa.question_id = aq.id
+                WHERE al.user_id = ?
+                  AND al.attendance_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                  AND aq.question_text IS NOT NULL
+                ORDER BY al.attendance_date DESC
+                LIMIT 8
+            `;
+            
+            const attendanceAnswers = await new Promise((resolve, reject) => {
+                db.query(attendanceQuery, [userId], (err, results) => {
+                    if (err) {
+                        console.error('출석체크 답변 조회 오류:', err);
+                        resolve([]);
+                    } else {
+                        resolve(results);
+                    }
+                });
+            });
+
+            // 답변을 간결하게 요약
+            if (attendanceAnswers.length > 0) {
+                const preferences = attendanceAnswers
+                    .map(a => `${a.user_answer}`)
+                    .slice(0, 6) // 최대 6개 답변만
+                    .join(', ');
+                userPreferences = preferences;
+                
+                console.log('=== 출석체크 답변 포함됨 ===');
+                console.log(`답변: ${userPreferences}`);
+            }
+        }
         
         // GPT 전달용 메뉴 최적화
         const optimizedMenus = optimizeMenusForGPT(filteredMenus, parseInt(menu_count));
         
-        // 사용자 조건 상세 정보 구성
-        const userConditions = buildUserConditionsText({
-            category, need, goal, season, weather, time,
-            max_kcal, max_price, people_count, menu_count,
-            userAllergens
-        });
-        
         // 메뉴 목록 생성
         const menuList = optimizedMenus.map(menu => 
-            `${menu.MenuKor}(${menu.Category}, ${menu.kcal}kcal, ${menu.Price}원)`
+            `${menu.MenuKor}(${menu.kcal}kcal, ${menu.Price}원)`
         ).join(', ');
 
-        // 향상된 프롬프트 생성
-        let prompt = `다음은 사용자가 요청한 메뉴 추천 조건입니다:\n\n`;
-        prompt += `${userConditions}\n\n`;
-        prompt += `위 조건을 바탕으로 다음 메뉴 목록에서 ${people_count}명이 먹을 수 있는 메뉴를 ${menu_count}개 추천해주세요:\n\n`;
-        prompt += `**메뉴 목록:** ${menuList}\n\n`;
+        // 균형잡힌 프롬프트 생성 (너무 간결하지도, 너무 길지도 않게)
+        let prompt = `${people_count}명이 먹을 메뉴 ${menu_count}개를 다음 목록에서 추천해주세요.\n\n`;
         
-        // 폴백 레벨에 따른 안내 메시지 추가
-        if (fallbackLevel !== 'none') {
-            prompt += `**참고:** 일부 조건을 완화하여 메뉴를 선별했습니다.\n\n`;
+        // 조건 추가
+        if (category) prompt += `카테고리: ${category}\n`;
+        if (need) {
+            const needKor = need.split(',').map(id => needKorMap[id] || id).join(', ');
+            prompt += `상황: ${needKor}\n`;
         }
+        if (goal) {
+            const goalKor = goal.split(',').map(id => goalKorMap[id] || id).join(', ');
+            prompt += `목표: ${goalKor}\n`;
+        }
+        if (weather) {
+            const weatherKor = weather.split(',').map(id => weatherKorMap[id] || id).join(', ');
+            prompt += `날씨: ${weatherKor}\n`;
+        }
+        if (time) {
+            const timeKor = time.split(',').map(id => timeKorMap[id] || id).join(', ');
+            prompt += `시간: ${timeKor}\n`;
+        }
+        if (max_kcal) prompt += `최대 칼로리: ${max_kcal}\n`;
+        if (max_price) prompt += `최대 가격: ${max_price}원\n`;
         
-        prompt += `**응답 형식:**\n`;
-        prompt += `다음 형식으로 각 메뉴별로 구분하여 답변해주세요:\n\n`;
-        prompt += `=== [메뉴명] ===\n`;
-        prompt += `추천 이유: (해당 메뉴만의 구체적인 추천 이유)\n`;
-        prompt += `특징: (해당 메뉴의 특징)\n`;
-        prompt += `어울리는 조합: (이 메뉴와 함께 먹으면 좋은 사이드메뉴, 음료, 디저트 등을 3-4가지 추천)\n`;
-        prompt += `===\n\n`;
-        
-        prompt += `**추천 요청사항:**\n`;
-        prompt += `- 위 메뉴 목록에 있는 정확한 메뉴명을 사용해주세요\n`;
-        prompt += `- 각 메뉴별로 구분된 설명을 제공해주세요\n`;
-        prompt += `- 사용자의 조건을 고려하여 개별 메뉴의 적합성을 설명해주세요\n`;
-        
+        // 알레르기 정보
         if (userAllergens.length > 0) {
-            prompt += `- 알레르기 정보를 반드시 확인하여 안전한 메뉴만 추천해주세요\n`;
+            const allergenNames = userAllergens.map(a => a.AllergenKor).join(', ');
+            prompt += `알레르기 주의: ${allergenNames} 제외\n`;
         }
         
-        console.log(`GPT 전달 메뉴 수: ${optimizedMenus.length}/${filteredMenus.length}`);
+        // 사용자 선호도 추가
+        if (userPreferences) {
+            prompt += `사용자 선호: ${userPreferences}\n`;
+        }
+        
+        prompt += `\n메뉴 목록: ${menuList}\n\n`;
+        
+        // 명확한 응답 형식 지시
+        prompt += `위 메뉴 목록의 정확한 메뉴명을 사용하여 다음 형식으로 답변:\n\n`;
+        prompt += `=== [메뉴명] ===\n`;
+        prompt += `추천 이유: \n`;
+        prompt += `특징: \n`;
+        prompt += `조합: \n`;
+        prompt += `===\n\n`;
+        prompt += `반드시 ${menu_count}개 메뉴를 추천하고, 위 목록에 있는 정확한 메뉴명만 사용하세요.`;
+        
         console.log(`프롬프트 길이: ${prompt.length}자`);
-        // console.log('=== 생성된 프롬프트 ===');
-        // console.log(prompt);
-        // console.log('========================');
+        console.log(`메뉴 수: ${optimizedMenus.length}개`);
 
         const requestStartTime = Date.now();
         
@@ -2821,27 +2755,27 @@ app.get('/api/recommend-filtered', async (req, res) => {
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: prompt }],
-            max_tokens: 800, // 더 상세한 응답을 위해 토큰 수 증가
+            max_tokens: 700, // 적절한 토큰 수로 조정
             temperature: 0.7
         });
 
         const responseTime = Date.now() - requestStartTime;
         const gptResponse = completion.choices[0].message.content;
 
-        console.log(`응답 길이: ${gptResponse.length}자`);
+        console.log(`GPT 응답 길이: ${gptResponse.length}자`);
+        console.log(`토큰 사용량:`, completion.usage);
         
         // 추천된 메뉴 추출
         const recommendedMenus = extractRecommendedMenus(gptResponse, filteredMenus, parseInt(menu_count));
-        
         const parsedResponse = parseGPTResponseByMenu(gptResponse, recommendedMenus);
 
-        console.log(`GPT 추천 완료: ${recommendedMenus.length}개 메뉴 추출`);
-        console.log('추출된 메뉴:', recommendedMenus.map(m => m.MenuKor));
+        console.log(`추천된 메뉴 수: ${recommendedMenus.length}개`);
+        console.log('추천 메뉴:', recommendedMenus.map(m => m.MenuKor));
 
         res.json({
             gpt: gptResponse,
             menus: recommendedMenus,
-            menuSpecificResponses: parsedResponse, // 메뉴별 응답 추가
+            menuSpecificResponses: parsedResponse,
             totalFiltered: filteredMenus.length,
             optimizedCount: optimizedMenus.length,
             fallbackLevel: fallbackLevel,
@@ -2849,6 +2783,7 @@ app.get('/api/recommend-filtered', async (req, res) => {
             responseLength: gptResponse.length,
             responseTime: responseTime,
             tokenUsage: completion.usage || null,
+            userPreferencesIncluded: userPreferences ? true : false,
             extractionInfo: {
                 requestedCount: parseInt(menu_count),
                 extractedCount: recommendedMenus.length,
