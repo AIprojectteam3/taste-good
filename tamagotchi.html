@@ -128,7 +128,9 @@
                                 </button>
                             </div>
                             
-                            <img src="image/pet/pet-dummy-2.png" alt="다마고치" class="pet-image" id="petImage">
+                            <div class = "pet-image-section">
+                                <img src="image/pet/pet-dummy-2.png" alt="다마고치" class="pet-image" id="petImage">
+                            </div>
                             
                             <!-- 상태 바 (배고픔, 건강도, 행복도 순) -->
                             <div class="pet-status">
@@ -240,6 +242,21 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 펫 분양소 모달 (기존 HTML 끝부분에 추가) -->
+    <div id="petshop-modal-overlay" class="petshop-modal-overlay">
+        <div class="petshop-modal-container">
+            <div class="petshop-modal-header">
+                <h2 class="petshop-modal-title">🐾 펫 분양소</h2>
+                <span class="petshop-close-btn">&times;</span>
+            </div>
+            <div class="petshop-modal-body">
+                <div class="petshop-grid" id="petshop-grid">
+                    <!-- 펫 카드들이 여기에 동적으로 생성됩니다 -->
                 </div>
             </div>
         </div>

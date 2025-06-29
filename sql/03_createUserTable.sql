@@ -136,26 +136,17 @@ CREATE TABLE user_tamagotchi (
 
 -- =====================- 다마고치 펫 -=====================
 CREATE TABLE pet_types (
-    id INT NOT NULL AUTO_INCREMENT,
-    pet_name VARCHAR(50) NOT NULL COMMENT '펫 이름',
-    pet_image_path VARCHAR(255) NOT NULL COMMENT '펫 이미지 경로',
-    hunger_max_requirement INT NOT NULL DEFAULT 100 COMMENT '배고픔 스텟 최대 필요치',
-    health_max_requirement INT NOT NULL DEFAULT 100 COMMENT '건강도 스텟 최대 필요치',
-    happiness_max_requirement INT NOT NULL DEFAULT 100 COMMENT '행복도 스텟 최대 필요치',
-    completion_exp_reward INT NOT NULL DEFAULT 100 COMMENT '모든 스텟 100% 달성 시 경험치 보상',
-    pet_description TEXT NULL COMMENT '펫 설명',
-    pet_rarity ENUM('common', 'rare', 'epic', 'legendary') DEFAULT 'common' COMMENT '펫 희귀도',
-    unlock_level INT DEFAULT 1 COMMENT '펫 해금 필요 레벨',
-    feeding_efficiency DECIMAL(3,2) DEFAULT 1.00 COMMENT '먹이주기 효율 (기본값 대비 배수)',
-    care_efficiency DECIMAL(3,2) DEFAULT 1.00 COMMENT '돌보기 효율 (기본값 대비 배수)',
-    play_efficiency DECIMAL(3,2) DEFAULT 1.00 COMMENT '놀아주기 효율 (기본값 대비 배수)',
-    special_ability VARCHAR(100) NULL COMMENT '펫 특수 능력',
-    is_active BOOLEAN DEFAULT TRUE COMMENT '활성화 여부',
-    sort_order INT DEFAULT 0 COMMENT '정렬 순서',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    id int NOT NULL AUTO_INCREMENT,
+    pet_name varchar(50) NOT NULL,
+    pet_image_path varchar(255) NOT NULL,
+    hunger_max_requirement int NOT NULL DEFAULT 100,
+    health_max_requirement int NOT NULL DEFAULT 100,
+    happiness_max_requirement int NOT NULL DEFAULT 100,
+    completion_exp_reward int NOT NULL DEFAULT 100,
+    pet_description text,
+    unlock_level int DEFAULT 1,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_pet_rarity (pet_rarity),
-    KEY idx_unlock_level (unlock_level),
-    KEY idx_sort_order (sort_order)
+    INDEX idx_unlock_level (unlock_level)
 );

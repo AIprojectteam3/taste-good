@@ -3520,6 +3520,102 @@ function updateAttendanceStats(userId, callback = () => {}) {
 }
 
 // ==================================================================================================================
+// 다마고치 관련 API
+// ==================================================================================================================
+app.get('/api/pets', (req, res) => {
+    const query = `
+        SELECT 
+            id,
+            pet_name,
+            pet_image_path,
+            hunger_max_requirement,
+            health_max_requirement,
+            happiness_max_requirement,
+            completion_exp_reward,
+            pet_description,
+            unlock_level
+        FROM pet_types 
+        ORDER BY unlock_level ASC, id ASC
+    `;
+    
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('펫 목록 조회 오류:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: '펫 목록을 불러오는데 실패했습니다.' 
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            pets: results 
+        });
+    });
+});
+
+// 펫 선택 API
+app.post('/api/user/select-pet', (req, res) => {
+    const userId = req.session.userId;
+    const { petId } = req.body;
+    
+    if (!userId) {
+        return res.status(401).json({ 
+            success: false, 
+            message: '로그인이 필요합니다.' 
+        });
+    }
+    
+    if (!petId) {
+        return res.status(400).json({ 
+            success: false, 
+            message: '펫 ID가 필요합니다.' 
+        });
+    }
+    
+    // 펫 정보와 사용자 레벨 확인
+    const checkQuery = `
+        SELECT pt.unlock_level, pt.pet_name, COALESCE(ul.level, 1) as user_level
+        FROM pet_types pt
+        CROSS JOIN (SELECT COALESCE(level, 1) as level FROM user_levels WHERE user_id = ? UNION SELECT 1 LIMIT 1) ul
+        WHERE pt.id = ?
+        LIMIT 1
+    `;
+    
+    db.query(checkQuery, [userId, petId], (err, results) => {
+        if (err) {
+            console.error('펫 선택 확인 오류:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: '서버 오류가 발생했습니다.' 
+            });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: '해당 펫을 찾을 수 없습니다.' 
+            });
+        }
+        
+        const { unlock_level, pet_name, user_level } = results[0];
+        
+        if (user_level < unlock_level) {
+            return res.status(403).json({ 
+                success: false, 
+                message: `레벨 ${unlock_level}이 필요합니다. (현재 레벨: ${user_level})` 
+            });
+        }
+        
+        // 사용자의 현재 펫 업데이트 (실제 구현에서는 user_pets 테이블 등이 필요)
+        res.json({ 
+            success: true, 
+            message: `${pet_name}이(가) 선택되었습니다!` 
+        });
+    });
+});
+
+// ==================================================================================================================
 // 서버 시작
 // ==================================================================================================================
 app.listen(PORT, () => {
