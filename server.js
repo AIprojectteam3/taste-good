@@ -3607,10 +3607,491 @@ app.post('/api/user/select-pet', (req, res) => {
             });
         }
         
-        // 사용자의 현재 펫 업데이트 (실제 구현에서는 user_pets 테이블 등이 필요)
+        // 기존 다마고치가 있는지 확인
+        const checkExistingQuery = 'SELECT id FROM user_tamagotchi WHERE user_id = ?';
+        db.query(checkExistingQuery, [userId], (checkErr, existingResults) => {
+            if (checkErr) {
+                console.error('기존 다마고치 확인 오류:', checkErr);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: '서버 오류가 발생했습니다.' 
+                });
+            }
+            
+            if (existingResults.length > 0) {
+                // 기존 다마고치가 있으면 펫 이름만 업데이트
+                const updateQuery = `
+                    UPDATE user_tamagotchi 
+                    SET pet_name = ?, last_updated = CURRENT_TIMESTAMP
+                    WHERE user_id = ?
+                `;
+                
+                db.query(updateQuery, [pet_name, userId], (updateErr) => {
+                    if (updateErr) {
+                        console.error('다마고치 업데이트 오류:', updateErr);
+                        return res.status(500).json({ 
+                            success: false, 
+                            message: '펫 선택에 실패했습니다.' 
+                        });
+                    }
+                    
+                    res.json({ 
+                        success: true, 
+                        message: `${pet_name}으로 변경되었습니다!` 
+                    });
+                });
+            } else {
+                // 새로운 다마고치 생성
+                const createQuery = `
+                    INSERT INTO user_tamagotchi (user_id, pet_name, hunger, health, happiness)
+                    VALUES (?, ?, 70, 85, 60)
+                `;
+                
+                db.query(createQuery, [userId, pet_name], (createErr) => {
+                    if (createErr) {
+                        console.error('다마고치 생성 오류:', createErr);
+                        return res.status(500).json({ 
+                            success: false, 
+                            message: '펫 생성에 실패했습니다.' 
+                        });
+                    }
+                    
+                    res.json({ 
+                        success: true, 
+                        message: `${pet_name}이(가) 선택되었습니다!` 
+                    });
+                });
+            }
+        });
+    });
+});
+
+// 사용자 다마고치 정보 조회 API
+app.get('/api/user/tamagotchi', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ 
+            success: false, 
+            message: '로그인이 필요합니다.' 
+        });
+    }
+    
+    const query = `
+        SELECT 
+            ut.id,
+            ut.pet_name,
+            ut.hunger,
+            ut.health,
+            ut.happiness,
+            ut.last_fed,
+            ut.last_cared,
+            ut.last_played,
+            ut.last_updated,
+            ut.created_at
+        FROM user_tamagotchi ut
+        WHERE ut.user_id = ?
+    `;
+    
+    db.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('다마고치 정보 조회 오류:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: '다마고치 정보를 불러오는데 실패했습니다.' 
+            });
+        }
+        
+        if (results.length === 0) {
+            // 다마고치가 없는 경우 null 반환 (자동 생성하지 않음)
+            return res.json({ 
+                success: true, 
+                tamagotchi: null,
+                message: '키우고 있는 펫이 없습니다.'
+            });
+        } else {
+            res.json({ 
+                success: true, 
+                tamagotchi: results[0] 
+            });
+        }
+    });
+});
+
+// 다마고치 먹이주기 API
+app.post('/api/user/tamagotchi/feed', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ 
+            success: false, 
+            message: '로그인이 필요합니다.' 
+        });
+    }
+    
+    // 포인트 차감 및 배고픔 증가
+    const feedCost = 5;
+    
+    // 사용자 포인트 확인
+    const checkPointsQuery = 'SELECT point FROM user_points WHERE user_id = ?';
+    db.query(checkPointsQuery, [userId], (err, pointResults) => {
+        if (err) {
+            console.error('포인트 확인 오류:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: '서버 오류가 발생했습니다.' 
+            });
+        }
+        
+        const currentPoints = pointResults.length > 0 ? pointResults[0].point : 0;
+        
+        if (currentPoints < feedCost) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '포인트가 부족합니다.' 
+            });
+        }
+        
+        // 트랜잭션 시작
+        db.beginTransaction((txErr) => {
+            if (txErr) {
+                console.error('트랜잭션 시작 오류:', txErr);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: '서버 오류가 발생했습니다.' 
+                });
+            }
+            
+            // 포인트 차감
+            const deductPointsQuery = 'UPDATE user_points SET point = point - ? WHERE user_id = ?';
+            db.query(deductPointsQuery, [feedCost, userId], (deductErr) => {
+                if (deductErr) {
+                    return db.rollback(() => {
+                        console.error('포인트 차감 오류:', deductErr);
+                        res.status(500).json({ 
+                            success: false, 
+                            message: '포인트 차감에 실패했습니다.' 
+                        });
+                    });
+                }
+                
+                // 다마고치 배고픔 증가 (최대 100)
+                const updateHungerQuery = `
+                    UPDATE user_tamagotchi 
+                    SET hunger = LEAST(hunger + 15, 100), 
+                        last_fed = CURRENT_TIMESTAMP,
+                        last_updated = CURRENT_TIMESTAMP
+                    WHERE user_id = ?
+                `;
+                
+                db.query(updateHungerQuery, [userId], (updateErr, updateResult) => {
+                    if (updateErr) {
+                        return db.rollback(() => {
+                            console.error('다마고치 업데이트 오류:', updateErr);
+                            res.status(500).json({ 
+                                success: false, 
+                                message: '다마고치 업데이트에 실패했습니다.' 
+                            });
+                        });
+                    }
+                    
+                    if (updateResult.affectedRows === 0) {
+                        return db.rollback(() => {
+                            res.status(404).json({ 
+                                success: false, 
+                                message: '다마고치를 찾을 수 없습니다.' 
+                            });
+                        });
+                    }
+                    
+                    // 커밋
+                    db.commit((commitErr) => {
+                        if (commitErr) {
+                            return db.rollback(() => {
+                                console.error('커밋 오류:', commitErr);
+                                res.status(500).json({ 
+                                    success: false, 
+                                    message: '서버 오류가 발생했습니다.' 
+                                });
+                            });
+                        }
+                        
+                        res.json({ 
+                            success: true, 
+                            message: '먹이를 주었습니다!',
+                            pointsUsed: feedCost,
+                            hungerIncrease: 15
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// 다마고치 돌보기 API
+app.post('/api/user/tamagotchi/care', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ 
+            success: false, 
+            message: '로그인이 필요합니다.' 
+        });
+    }
+    
+    const careCost = 10;
+    
+    // 포인트 확인 및 차감, 건강도 증가 (먹이주기와 유사한 로직)
+    const checkPointsQuery = 'SELECT point FROM user_points WHERE user_id = ?';
+    db.query(checkPointsQuery, [userId], (err, pointResults) => {
+        if (err) {
+            console.error('포인트 확인 오류:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: '서버 오류가 발생했습니다.' 
+            });
+        }
+        
+        const currentPoints = pointResults.length > 0 ? pointResults[0].point : 0;
+        
+        if (currentPoints < careCost) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '포인트가 부족합니다.' 
+            });
+        }
+        
+        db.beginTransaction((txErr) => {
+            if (txErr) {
+                console.error('트랜잭션 시작 오류:', txErr);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: '서버 오류가 발생했습니다.' 
+                });
+            }
+            
+            const deductPointsQuery = 'UPDATE user_points SET point = point - ? WHERE user_id = ?';
+            db.query(deductPointsQuery, [careCost, userId], (deductErr) => {
+                if (deductErr) {
+                    return db.rollback(() => {
+                        console.error('포인트 차감 오류:', deductErr);
+                        res.status(500).json({ 
+                            success: false, 
+                            message: '포인트 차감에 실패했습니다.' 
+                        });
+                    });
+                }
+                
+                const updateHealthQuery = `
+                    UPDATE user_tamagotchi 
+                    SET health = LEAST(health + 20, 100), 
+                        last_cared = CURRENT_TIMESTAMP,
+                        last_updated = CURRENT_TIMESTAMP
+                    WHERE user_id = ?
+                `;
+                
+                db.query(updateHealthQuery, [userId], (updateErr, updateResult) => {
+                    if (updateErr) {
+                        return db.rollback(() => {
+                            console.error('다마고치 업데이트 오류:', updateErr);
+                            res.status(500).json({ 
+                                success: false, 
+                                message: '다마고치 업데이트에 실패했습니다.' 
+                            });
+                        });
+                    }
+                    
+                    if (updateResult.affectedRows === 0) {
+                        return db.rollback(() => {
+                            res.status(404).json({ 
+                                success: false, 
+                                message: '다마고치를 찾을 수 없습니다.' 
+                            });
+                        });
+                    }
+                    
+                    db.commit((commitErr) => {
+                        if (commitErr) {
+                            return db.rollback(() => {
+                                console.error('커밋 오류:', commitErr);
+                                res.status(500).json({ 
+                                    success: false, 
+                                    message: '서버 오류가 발생했습니다.' 
+                                });
+                            });
+                        }
+                        
+                        res.json({ 
+                            success: true, 
+                            message: '돌봐주었습니다!',
+                            pointsUsed: careCost,
+                            healthIncrease: 20
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// 다마고치 놀아주기 API
+app.post('/api/user/tamagotchi/play', (req, res) => {
+    const userId = req.session.userId;
+    
+    if (!userId) {
+        return res.status(401).json({ 
+            success: false, 
+            message: '로그인이 필요합니다.' 
+        });
+    }
+    
+    const playCost = 15;
+    
+    const checkPointsQuery = 'SELECT point FROM user_points WHERE user_id = ?';
+    db.query(checkPointsQuery, [userId], (err, pointResults) => {
+        if (err) {
+            console.error('포인트 확인 오류:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: '서버 오류가 발생했습니다.' 
+            });
+        }
+        
+        const currentPoints = pointResults.length > 0 ? pointResults[0].point : 0;
+        
+        if (currentPoints < playCost) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '포인트가 부족합니다.' 
+            });
+        }
+        
+        db.beginTransaction((txErr) => {
+            if (txErr) {
+                console.error('트랜잭션 시작 오류:', txErr);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: '서버 오류가 발생했습니다.' 
+                });
+            }
+            
+            const deductPointsQuery = 'UPDATE user_points SET point = point - ? WHERE user_id = ?';
+            db.query(deductPointsQuery, [playCost, userId], (deductErr) => {
+                if (deductErr) {
+                    return db.rollback(() => {
+                        console.error('포인트 차감 오류:', deductErr);
+                        res.status(500).json({ 
+                            success: false, 
+                            message: '포인트 차감에 실패했습니다.' 
+                        });
+                    });
+                }
+                
+                const updateHappinessQuery = `
+                    UPDATE user_tamagotchi 
+                    SET happiness = LEAST(happiness + 25, 100), 
+                        last_played = CURRENT_TIMESTAMP,
+                        last_updated = CURRENT_TIMESTAMP
+                    WHERE user_id = ?
+                `;
+                
+                db.query(updateHappinessQuery, [userId], (updateErr, updateResult) => {
+                    if (updateErr) {
+                        return db.rollback(() => {
+                            console.error('다마고치 업데이트 오류:', updateErr);
+                            res.status(500).json({ 
+                                success: false, 
+                                message: '다마고치 업데이트에 실패했습니다.' 
+                            });
+                        });
+                    }
+                    
+                    if (updateResult.affectedRows === 0) {
+                        return db.rollback(() => {
+                            res.status(404).json({ 
+                                success: false, 
+                                message: '다마고치를 찾을 수 없습니다.' 
+                            });
+                        });
+                    }
+                    
+                    db.commit((commitErr) => {
+                        if (commitErr) {
+                            return db.rollback(() => {
+                                console.error('커밋 오류:', commitErr);
+                                res.status(500).json({ 
+                                    success: false, 
+                                    message: '서버 오류가 발생했습니다.' 
+                                });
+                            });
+                        }
+                        
+                        res.json({ 
+                            success: true, 
+                            message: '놀아주었습니다!',
+                            pointsUsed: playCost,
+                            happinessIncrease: 25
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// 다마고치 이름 변경 API
+app.put('/api/user/tamagotchi/name', (req, res) => {
+    const userId = req.session.userId;
+    const { petName } = req.body;
+    
+    if (!userId) {
+        return res.status(401).json({ 
+            success: false, 
+            message: '로그인이 필요합니다.' 
+        });
+    }
+    
+    if (!petName || petName.trim().length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: '펫 이름을 입력해주세요.' 
+        });
+    }
+    
+    if (petName.trim().length > 50) {
+        return res.status(400).json({ 
+            success: false, 
+            message: '펫 이름은 50자 이하로 입력해주세요.' 
+        });
+    }
+    
+    const updateNameQuery = `
+        UPDATE user_tamagotchi 
+        SET pet_name = ?, last_updated = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+    `;
+    
+    db.query(updateNameQuery, [petName.trim(), userId], (err, result) => {
+        if (err) {
+            console.error('펫 이름 변경 오류:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: '펫 이름 변경에 실패했습니다.' 
+            });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: '다마고치를 찾을 수 없습니다.' 
+            });
+        }
+        
         res.json({ 
             success: true, 
-            message: `${pet_name}이(가) 선택되었습니다!` 
+            message: '펫 이름이 변경되었습니다!',
+            newName: petName.trim()
         });
     });
 });

@@ -38,24 +38,60 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // 액션 버튼 이벤트 리스너
+    const feedBtn = document.querySelector('.food-btn');
+    const careBtn = document.querySelector('.care-btn');
+    const playBtn = document.querySelector('.play-btn');
+    
+    if (feedBtn) {
+        feedBtn.addEventListener('click', handleFeedAction);
+    }
+    
+    if (careBtn) {
+        careBtn.addEventListener('click', handleCareAction);
+    }
+    
+    if (playBtn) {
+        playBtn.addEventListener('click', handlePlayAction);
+    }
+    
+    // 펫 이름 편집 기능
+    const petNameEditBtn = document.querySelector('.pet-name-edit-btn');
+    if (petNameEditBtn) {
+        petNameEditBtn.addEventListener('click', handlePetNameEdit);
+    }
 });
 
 async function loadUserData() {
     try {
-        const response = await fetch('/api/user');
-        if (!response.ok) {
+        const [userResponse, tamagotchiResponse] = await Promise.all([
+            fetch('/api/user'),
+            fetch('/api/user/tamagotchi')
+        ]);
+        
+        if (!userResponse.ok || !tamagotchiResponse.ok) {
             throw new Error('사용자 정보를 가져올 수 없습니다.');
         }
-
-        const userData = await response.json();
+        
+        const userData = await userResponse.json();
+        const tamagotchiData = await tamagotchiResponse.json();
+        
         if (!userData) {
             throw new Error('사용자 데이터가 없습니다.');
         }
-
+        
         // current-stats 영역 업데이트
         updateCurrentStats(userData);
-
-        return userData;
+        
+        // 다마고치 정보 업데이트 (펫이 없어도 처리)
+        if (tamagotchiData.success && tamagotchiData.tamagotchi) {
+            updateTamagotchiDisplay(tamagotchiData.tamagotchi);
+        } else {
+            updateTamagotchiDisplay(null);
+        }
+        
+        return { userData, tamagotchi: tamagotchiData.tamagotchi || null };
     } catch (error) {
         console.error('사용자 데이터 로드 실패:', error);
         alert('사용자 정보를 불러오는데 실패했습니다.');
@@ -212,7 +248,7 @@ function displayPetshopPets(pets, userLevel) {
     petGrid.innerHTML = petCards;
 }
 
-// 펫 선택 함수
+// 펫 선택 함수 수정
 async function selectPetFromShop(petId, petName) {
     if (confirm(`${petName}을(를) 선택하시겠습니까?`)) {
         try {
@@ -230,7 +266,7 @@ async function selectPetFromShop(petId, petName) {
                 alert(`${petName}이(가) 선택되었습니다!`);
                 closePetshopModal();
                 // 페이지 새로고침하여 선택된 펫 반영
-                window.location.reload();
+                await loadUserData();
             } else {
                 alert(result.message || '펫 선택에 실패했습니다.');
             }
@@ -238,5 +274,267 @@ async function selectPetFromShop(petId, petName) {
             console.error('펫 선택 오류:', error);
             alert('펫 선택 중 오류가 발생했습니다.');
         }
+    }
+}
+
+// 다마고치 디스플레이 업데이트 함수
+function updateTamagotchiDisplay(tamagotchi) {
+    if (!tamagotchi) {
+        // 펫이 없는 경우 메시지 표시
+        showNoPetMessage();
+        return;
+    }
+    
+    // 기존 펫 정보 표시 로직
+    const petNameElement = document.querySelector('.pet-name');
+    if (petNameElement) {
+        petNameElement.textContent = tamagotchi.pet_name || '내 다마고치';
+    }
+    
+    // 배고픔 상태 업데이트
+    updateStatusBar('hunger', tamagotchi.hunger);
+    
+    // 건강도 상태 업데이트
+    updateStatusBar('health', tamagotchi.health);
+    
+    // 행복도 상태 업데이트
+    updateStatusBar('happiness', tamagotchi.happiness);
+    
+    // 펫 디스플레이 영역 보이기
+    showPetDisplay();
+}
+
+function showNoPetMessage() {
+    const tamagotchiDisplay = document.querySelector('.tamagotchi-display');
+    if (tamagotchiDisplay) {
+        tamagotchiDisplay.innerHTML = `
+            <div class="no-pet-container">
+                <div class="no-pet-icon">🐣</div>
+                <h2 class="no-pet-title">키우고 있는 펫이 없습니다</h2>
+                <p class="no-pet-description">
+                    펫 분양소에서 새로운 친구를 만나보세요!<br>
+                    귀여운 다마고치가 여러분을 기다리고 있어요.
+                </p>
+                <button class="adopt-pet-btn" onclick="openPetshopModal()">
+                    <span class="btn-icon">🏪</span>
+                    <span class="btn-text">펫 분양소 가기</span>
+                </button>
+            </div>
+        `;
+    }
+    
+    // 액션 버튼들 비활성화
+    disableActionButtons();
+}
+
+function showPetDisplay() {
+    const tamagotchiDisplay = document.querySelector('.tamagotchi-display');
+    if (tamagotchiDisplay && tamagotchiDisplay.querySelector('.no-pet-container')) {
+        // 기존 펫 디스플레이 구조로 복원
+        tamagotchiDisplay.innerHTML = `
+            <div class="pet-container">
+                <div class="pet-name-section">
+                    <h2 class="pet-name">내 다마고치</h2>
+                    <button class="pet-name-edit-btn" title="이름 편집">
+                        <img src="image/edit-icon.png" alt="편집" class="edit-icon">
+                    </button>
+                </div>
+                
+                <img src="image/pet/default.png" alt="다마고치" class="pet-image" id="pet-image">
+                
+                <div class="pet-status">
+                    <div class="status-bar">
+                        <span class="status-label">배고픔</span>
+                        <div class="status-progress">
+                            <div class="progress-fill hunger" style="width: 70%"></div>
+                        </div>
+                        <span class="status-value">70/100</span>
+                    </div>
+                    
+                    <div class="status-bar">
+                        <span class="status-label">건강도</span>
+                        <div class="status-progress">
+                            <div class="progress-fill health" style="width: 70%"></div>
+                        </div>
+                        <span class="status-value">70/100</span>
+                    </div>
+                    
+                    <div class="status-bar">
+                        <span class="status-label">행복도</span>
+                        <div class="status-progress">
+                            <div class="progress-fill happiness" style="width: 70%"></div>
+                        </div>
+                        <span class="status-value">70/100</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 이벤트 리스너 재등록
+        const petNameEditBtn = document.querySelector('.pet-name-edit-btn');
+        if (petNameEditBtn) {
+            petNameEditBtn.addEventListener('click', handlePetNameEdit);
+        }
+    }
+    
+    // 액션 버튼들 활성화
+    enableActionButtons();
+}
+
+// 액션 버튼 비활성화 함수
+function disableActionButtons() {
+    const actionButtons = document.querySelectorAll('.action-btn:not(.petshop-btn)');
+    actionButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    });
+}
+
+// 액션 버튼 활성화 함수
+function enableActionButtons() {
+    const actionButtons = document.querySelectorAll('.action-btn:not(.petshop-btn)');
+    actionButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    });
+}
+
+// 상태 바 업데이트 함수
+function updateStatusBar(statusType, value) {
+    const statusBar = document.querySelector(`.status-bar .progress-fill.${statusType}`);
+    const statusValue = document.querySelector(`.status-bar .status-value`);
+    
+    if (statusBar) {
+        statusBar.style.width = `${value}%`;
+    }
+    
+    // 해당 상태의 값 텍스트 업데이트
+    const statusElement = document.querySelector(`.status-bar:has(.progress-fill.${statusType}) .status-value`);
+    if (statusElement) {
+        statusElement.textContent = `${value}/100`;
+    }
+}
+
+// 먹이주기 액션
+async function handleFeedAction() {
+    const tamagotchiDisplay = document.querySelector('.tamagotchi-display');
+    if (tamagotchiDisplay.querySelector('.no-pet-container')) {
+        alert('키우고 있는 펫이 없습니다. 먼저 펫을 분양받아주세요!');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/user/tamagotchi/feed', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            await loadUserData();
+        } else {
+            alert(result.message || '먹이주기에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('먹이주기 오류:', error);
+        alert('먹이주기 중 오류가 발생했습니다.');
+    }
+}
+
+async function handleCareAction() {
+    const tamagotchiDisplay = document.querySelector('.tamagotchi-display');
+    if (tamagotchiDisplay.querySelector('.no-pet-container')) {
+        alert('키우고 있는 펫이 없습니다. 먼저 펫을 분양받아주세요!');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/user/tamagotchi/care', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            await loadUserData();
+        } else {
+            alert(result.message || '돌보기에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('돌보기 오류:', error);
+        alert('돌보기 중 오류가 발생했습니다.');
+    }
+}
+
+async function handlePlayAction() {
+    const tamagotchiDisplay = document.querySelector('.tamagotchi-display');
+    if (tamagotchiDisplay.querySelector('.no-pet-container')) {
+        alert('키우고 있는 펫이 없습니다. 먼저 펫을 분양받아주세요!');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/user/tamagotchi/play', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message);
+            await loadUserData();
+        } else {
+            alert(result.message || '놀아주기에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('놀아주기 오류:', error);
+        alert('놀아주기 중 오류가 발생했습니다.');
+    }
+}
+
+// 펫 이름 편집 기능
+async function handlePetNameEdit() {
+    const petNameElement = document.querySelector('.pet-name');
+    const currentName = petNameElement.textContent;
+    
+    const newName = prompt('새로운 펫 이름을 입력하세요:', currentName);
+    
+    if (newName === null || newName.trim() === '' || newName.trim() === currentName) {
+        return; // 취소하거나 변경사항이 없는 경우
+    }
+    
+    try {
+        const response = await fetch('/api/user/tamagotchi/name', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ petName: newName.trim() })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            petNameElement.textContent = result.newName;
+            alert(result.message);
+        } else {
+            alert(result.message || '펫 이름 변경에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('펫 이름 변경 오류:', error);
+        alert('펫 이름 변경 중 오류가 발생했습니다.');
     }
 }
