@@ -135,37 +135,28 @@
                             
                             <!-- 상태 바 (배고픔, 건강도, 행복도 순) -->
                             <div class="pet-status">
-                                <div class="status-bar">
+                                <div class="status-bar" data-status="hunger">
                                     <span class="status-label">배고픔</span>
                                     <div class="status-progress">
-                                        <div class="progress-fill hunger" id="hungerBar" style="width: 70%;"></div>
+                                        <div class="progress-fill hunger" style="width: 0%"></div>
                                     </div>
-                                    <div class="status-info">
-                                        <span class="status-percent" id="hungerPercent">70%</span>
-                                        <span class="status-detail" id="hungerDetail">70/100</span>
-                                    </div>
+                                    <span class="status-value">0/0</span>
                                 </div>
                                 
-                                <div class="status-bar">
+                                <div class="status-bar" data-status="health">
                                     <span class="status-label">건강도</span>
                                     <div class="status-progress">
-                                        <div class="progress-fill health" id="healthBar" style="width: 85%;"></div>
+                                        <div class="progress-fill health" style="width: 0%"></div>
                                     </div>
-                                    <div class="status-info">
-                                        <span class="status-percent" id="hungerPercent">70%</span>
-                                        <span class="status-detail" id="hungerDetail">70/100</span>
-                                    </div>
+                                    <span class="status-value">0/0</span>
                                 </div>
                                 
-                                <div class="status-bar">
+                                <div class="status-bar" data-status="happiness">
                                     <span class="status-label">행복도</span>
                                     <div class="status-progress">
-                                        <div class="progress-fill happiness" id="happinessBar" style="width: 60%;"></div>
+                                        <div class="progress-fill happiness" style="width: 0%"></div>
                                     </div>
-                                    <div class="status-info">
-                                        <span class="status-percent" id="hungerPercent">70%</span>
-                                        <span class="status-detail" id="hungerDetail">70/100</span>
-                                    </div>
+                                    <span class="status-value">0/0</span>
                                 </div>
                             </div>
                         </div>

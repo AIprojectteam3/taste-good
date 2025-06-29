@@ -119,19 +119,21 @@ CREATE TABLE experience_logs (
 CREATE TABLE user_tamagotchi (
     id INT NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
+    pet_type_id INT NULL COMMENT '선택한 펫 타입 ID',
     pet_name VARCHAR(50) DEFAULT '내 다마고치',
-    hunger INT DEFAULT 70 COMMENT '배고픔 (0-100)',
-    health INT DEFAULT 85 COMMENT '건강도 (0-100)',
-    happiness INT DEFAULT 60 COMMENT '행복도 (0-100)',
-    last_fed TIMESTAMP NULL COMMENT '마지막 먹이 준 시간',
-    last_cared TIMESTAMP NULL COMMENT '마지막 돌본 시간',
-    last_played TIMESTAMP NULL COMMENT '마지막 놀아준 시간',
+    hunger INT DEFAULT 0 COMMENT '배고픔 (0-100)',
+    health INT DEFAULT 0 COMMENT '건강도 (0-100)',
+    happiness INT DEFAULT 0 COMMENT '행복도 (0-100)',
+    is_completed BOOLEAN DEFAULT FALSE COMMENT '펫 완성 여부',
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_user_tamagotchi (user_id),
     CONSTRAINT fk_user_tamagotchi_user_id 
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_tamagotchi_pet_type 
+        FOREIGN KEY (pet_type_id) REFERENCES pet_types(id) ON DELETE SET NULL,
+    INDEX idx_pet_type_id (pet_type_id),
+    INDEX idx_user_completed (user_id, is_completed)
 );
 
 -- =====================- 다마고치 펫 -=====================

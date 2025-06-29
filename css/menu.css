@@ -138,7 +138,7 @@ body {
 
 .profile-stats .user-info {
     flex-direction : column;
-    width : 40%;
+    width : 45%;
 }
 
 .user-info > div, .user-info > div > a {
@@ -146,6 +146,7 @@ body {
     align-items : center;
     justify-content : flex-end;
     width : 100%;
+    font-size : 0.9rem;
 }
 
 .user-info a span:nth-child(1) {

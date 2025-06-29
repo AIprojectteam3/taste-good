@@ -685,7 +685,10 @@ class PointLogModal {
         const actionTypeMap = {
             'POST_CREATE': '게시물 작성',
             'COMMENT_CREATE': '댓글 작성',
-            'attendance_check_in': '출석체크'
+            'attendance_check_in': '출석체크',
+            'TAMAGOTCHI_FEED': '다마고치-먹이주기',
+            'TAMAGOTCHI_CARE': '다마고치-돌보기',
+            'TAMAGOTCHI_PLAY': '다마고치-놀아주기'
         };
 
         const actionText = actionTypeMap[log.action_type] || log.action_type;

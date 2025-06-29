@@ -37,8 +37,7 @@
     flex: 1;
     padding: 30px;
     min-width: 400px;
-    min-height : 400px;
-    max-height : 500px;
+    height : 500px;
     background: linear-gradient(135deg, #fff1f0 0%, #ffffff 100%);
     border-radius: 20px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
@@ -124,8 +123,8 @@
 }
 
 .pet-image {
-    width: 200px;
-    height: 200px;
+    width: 220px;
+    height: 220px;
     object-fit: contain;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 241, 240, 0.9) 100%);
@@ -930,7 +929,7 @@
         min-width: unset;
         max-width: 100%;
         width: 100%;
-        min-height: 300px; /* 높이 줄임 */
+        height: 380px; /* 높이 줄임 */
         border-width: 2px;
         box-sizing: border-box;
     }
