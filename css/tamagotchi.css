@@ -894,6 +894,378 @@
     font-size: 1rem;
 }
 
+/* 펫 다이어리 모달 스타일 */
+.diary-modal-overlay {
+    display: none;
+    position: fixed;
+    z-index: 2100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    animation: diaryFadeIn 0.3s ease-out;
+}
+
+@keyframes diaryFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.diary-modal-container {
+    background-color: #fefefe;
+    margin: 2% auto;
+    padding: 0;
+    border-radius: 25px;
+    width: 90%;
+    max-width: 1400px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+    animation: diarySlideIn 0.4s ease-out;
+}
+
+@keyframes diarySlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-80px) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.diary-modal-header {
+    background: linear-gradient(135deg, #A855F7, #EC4899, #F97316);
+    color: white;
+    padding: 25px 35px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 25px 25px 0 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.diary-modal-title {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.diary-close-btn {
+    color: white;
+    font-size: 2.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 8px 12px;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.diary-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1) rotate(90deg);
+}
+
+.diary-modal-body {
+    padding: 35px;
+    max-height: calc(90vh - 120px);
+    overflow-y: auto;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+/* 다이어리 통계 요약 */
+.diary-stats-summary {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.summary-value {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #333;
+    background: linear-gradient(135deg, #A855F7, #EC4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 다이어리 그리드 레이아웃 */
+.diary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+    padding: 15px;
+}
+
+/* 완성된 펫 카드 스타일 */
+.diary-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.diary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #A855F7, #EC4899, #F97316, #10B981);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.diary-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    border-color: #A855F7;
+}
+
+.diary-card:hover::before {
+    opacity: 1;
+}
+
+/* 완성 배지 */
+.completion-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* 펫 이미지 컨테이너 */
+.diary-image-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.diary-pet-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #f0f0f0;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #fff8f0, #ffffff);
+    padding: 10px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.diary-card:hover .diary-pet-image {
+    border-color: #A855F7;
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(168, 85, 247, 0.3);
+}
+
+/* 펫 정보 섹션 */
+.diary-info {
+    text-align: center;
+}
+
+.diary-pet-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.diary-pet-description {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.4;
+    height: 40px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* 완성 정보 */
+.completion-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.completion-item {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid #e9ecef;
+}
+
+.completion-label {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.completion-value {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.completion-value.date {
+    color: #6B7280;
+    font-size: 0.9rem;
+}
+
+.completion-value.exp {
+    color: #F59E0B;
+}
+
+/* 최대 스탯 표시 */
+.max-stats-display {
+    display: flex;
+    justify-content: space-around;
+    background: linear-gradient(135deg, #F3F4F6, #E5E7EB);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+
+.max-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.max-stat-icon {
+    font-size: 1.2rem;
+}
+
+.max-stat-label {
+    font-size: 0.7rem;
+    color: #6B7280;
+    font-weight: 500;
+}
+
+.max-stat-value {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #374151;
+}
+
+/* 빈 다이어리 상태 */
+.empty-diary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 20px;
+    height: 300px;
+}
+
+.empty-diary-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+.empty-diary-title {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #6B7280;
+    margin-bottom: 10px;
+}
+
+.empty-diary-description {
+    font-size: 1rem;
+    color: #9CA3AF;
+    line-height: 1.5;
+    max-width: 300px;
+}
+
+/* 로딩 상태 */
+.diary-loading {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    font-size: 1.2rem;
+    color: #666;
+}
+
+.diary-loading-spinner {
+    width: 35px;
+    height: 35px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #A855F7;
+    border-radius: 50%;
+    animation: diarySpinning 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes diarySpinning {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* 모바일 반응형 */
 @media (max-width: 768px) {
     .tamagotchi-content {
@@ -1073,6 +1445,63 @@
     .adopt-pet-btn .btn-text {
         font-size: 0.9rem;
     }
+
+    .diary-modal-container {
+        width: 95%;
+        margin: 5% auto;
+        border-radius: 20px;
+    }
+    
+    .diary-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 10px;
+    }
+    
+    .diary-modal-body {
+        padding: 25px;
+    }
+    
+    .diary-card {
+        padding: 20px;
+    }
+    
+    .diary-pet-image {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .diary-modal-header {
+        padding: 20px 25px;
+    }
+    
+    .diary-modal-title {
+        font-size: 1.4rem;
+    }
+    
+    .diary-stats-summary {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .summary-item {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    
+    .completion-info {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .max-stats-display {
+        padding: 12px;
+    }
+    
+    .max-stat-item {
+        gap: 3px;
+    }
 }
 
 .petshop-modal-body::-webkit-scrollbar {
@@ -1091,4 +1520,22 @@
 
 .petshop-modal-body::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, #45B7D1, #3498db);
+}
+
+.diary-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.diary-modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.diary-modal-body::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #A855F7, #EC4899);
+    border-radius: 10px;
+}
+
+.diary-modal-body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #9333EA, #DB2777);
 }

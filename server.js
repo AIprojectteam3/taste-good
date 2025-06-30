@@ -62,7 +62,7 @@ const db = mysql.createConnection({
     port: 3306,                   // MySQL 포트 번호
     user: 'root',                 // MySQL 사용자 이름
     password: '',                 // MySQL 비밀번호
-    database: 'taste_good',       // 사용할 데이터베이스 이름
+    database: 'ai3',              // 사용할 데이터베이스 이름
 });
 
 // MySQL 연결

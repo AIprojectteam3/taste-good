@@ -254,6 +254,31 @@
         </div>
     </div>
 
+    <!-- 펫 다이어리 모달 (기존 펫 분양소 모달 다음에 추가) -->
+    <div id="diary-modal-overlay" class="diary-modal-overlay">
+        <div class="diary-modal-container">
+            <div class="diary-modal-header">
+                <h2 class="diary-modal-title">📖 펫 다이어리</h2>
+                <span class="diary-close-btn">&times;</span>
+            </div>
+            <div class="diary-modal-body">
+                <div class="diary-stats-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">완성한 펫</span>
+                        <span class="summary-value" id="total-completed">0마리</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">총 획득 경험치</span>
+                        <span class="summary-value" id="total-exp">0exp</span>
+                    </div>
+                </div>
+                <div class="diary-grid" id="diary-grid">
+                    <!-- 완성된 펫 카드들이 여기에 동적으로 생성됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 모바일 네비게이션 -->
     <nav class="bottom-nav">
         <div class = "hamburger-menu" id = "hamburgerMenu">

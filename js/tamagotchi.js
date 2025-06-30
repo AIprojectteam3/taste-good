@@ -65,6 +65,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const diaryBtn = document.querySelector('.diary-btn');
     if (diaryBtn) {
         diaryBtn.addEventListener('click', openDiaryModal);
+        // 다이어리 버튼은 항상 활성화 상태로 설정
+        diaryBtn.disabled = false;
+        diaryBtn.style.opacity = '1';
+        diaryBtn.style.cursor = 'pointer';
+    }
+
+    // 다이어리 모달 닫기 이벤트 리스너 추가
+    const diaryModal = document.getElementById('diary-modal-overlay');
+    const diaryCloseBtn = document.querySelector('.diary-close-btn');
+
+    if (diaryCloseBtn) {
+        diaryCloseBtn.addEventListener('click', closeDiaryModal);
+    }
+
+    if (diaryModal) {
+        diaryModal.addEventListener('click', (e) => {
+            if (e.target === diaryModal) {
+                closeDiaryModal();
+            }
+        });
     }
 });
 
@@ -433,14 +453,6 @@ function showNoPetMessage() {
     
     // 액션 버튼들 비활성화 (다이어리 버튼 제외)
     disableActionButtons();
-    
-    // 다이어리 버튼은 항상 활성화 상태 유지
-    const diaryBtn = document.querySelector('.diary-btn');
-    if (diaryBtn) {
-        diaryBtn.disabled = false;
-        diaryBtn.style.opacity = '1';
-        diaryBtn.style.cursor = 'pointer';
-    }
 }
 
 function showPetDisplay() {
@@ -505,6 +517,14 @@ function disableActionButtons() {
         btn.style.opacity = '0.5';
         btn.style.cursor = 'not-allowed';
     });
+    
+    // 다이어리 버튼은 항상 활성화 상태 유지
+    const diaryBtn = document.querySelector('.diary-btn');
+    if (diaryBtn) {
+        diaryBtn.disabled = false;
+        diaryBtn.style.opacity = '1';
+        diaryBtn.style.cursor = 'pointer';
+    }
 }
 
 // 액션 버튼 활성화 함수
@@ -787,39 +807,137 @@ async function completePet() {
 
 // 다이어리 모달 열기
 async function openDiaryModal() {
+    const modal = document.getElementById('diary-modal-overlay');
+    const diaryGrid = document.getElementById('diary-grid');
+    
+    // 모달 표시
+    modal.style.display = 'block';
+    
+    // 로딩 표시
+    diaryGrid.innerHTML = `
+        <div class="diary-loading">
+            <div class="diary-loading-spinner"></div>
+            <span>완성한 펫들을 불러오는 중...</span>
+        </div>
+    `;
+    
     try {
         const response = await fetch('/api/user/completed-pets');
         const result = await response.json();
         
         if (result.success) {
             displayCompletedPets(result.completedPets);
+            updateDiarySummary(result.completedPets);
         } else {
-            alert(result.message || '완성된 펫 목록을 불러올 수 없습니다.');
+            diaryGrid.innerHTML = `
+                <div class="diary-loading">
+                    <span>완성된 펫 목록을 불러올 수 없습니다.</span>
+                </div>
+            `;
         }
     } catch (error) {
         console.error('완성된 펫 목록 로드 실패:', error);
-        alert('완성된 펫 목록을 불러오는데 실패했습니다.');
+        diaryGrid.innerHTML = `
+            <div class="diary-loading">
+                <span>완성된 펫 목록을 불러오는데 실패했습니다.</span>
+            </div>
+        `;
     }
+}
+
+function closeDiaryModal() {
+    const modal = document.getElementById('diary-modal-overlay');
+    modal.style.display = 'none';
 }
 
 // 완성된 펫 목록 표시
 function displayCompletedPets(completedPets) {
-    console.log('완성된 펫 목록:', completedPets);
+    const diaryGrid = document.getElementById('diary-grid');
     
-    if (completedPets.length === 0) {
-        alert('아직 완성한 펫이 없습니다.\n첫 번째 펫을 키워서 완성해보세요! 🐾');
+    if (!completedPets || completedPets.length === 0) {
+        diaryGrid.innerHTML = `
+            <div class="empty-diary">
+                <div class="empty-diary-icon">📖</div>
+                <h3 class="empty-diary-title">아직 완성한 펫이 없어요</h3>
+                <p class="empty-diary-description">
+                    첫 번째 펫을 키워서 완성해보세요!<br>
+                    완성한 펫들의 추억이 여기에 기록됩니다.
+                </p>
+            </div>
+        `;
         return;
     }
     
-    // 간단한 알림으로 표시 (실제로는 모달로 구현 가능)
-    const petNames = completedPets.map(pet => pet.pet_name).join(', ');
-    const totalExp = completedPets.reduce((sum, pet) => sum + (pet.completion_exp_reward || 0), 0);
+    const petCards = completedPets.map(pet => {
+        const completedDate = new Date(pet.completed_at).toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        return `
+            <div class="diary-card">
+                <div class="completion-badge">✅ 완성</div>
+                
+                <div class="diary-image-container">
+                    <img src="${pet.pet_image_path || 'image/pet/default.png'}" 
+                         alt="${pet.pet_name}" 
+                         class="diary-pet-image"
+                         onerror="this.src='image/pet/default.png'">
+                </div>
+                
+                <div class="diary-info">
+                    <h3 class="diary-pet-name">${pet.pet_name}</h3>
+                    <p class="diary-pet-description">${pet.pet_description || '특별한 추억을 남긴 펫입니다.'}</p>
+                    
+                    <div class="max-stats-display">
+                        <div class="max-stat-item">
+                            <div class="max-stat-icon">🍽️</div>
+                            <div class="max-stat-label">배고픔</div>
+                            <div class="max-stat-value">${pet.hunger_max_requirement || 100}</div>
+                        </div>
+                        <div class="max-stat-item">
+                            <div class="max-stat-icon">❤️</div>
+                            <div class="max-stat-label">건강도</div>
+                            <div class="max-stat-value">${pet.health_max_requirement || 100}</div>
+                        </div>
+                        <div class="max-stat-item">
+                            <div class="max-stat-icon">😊</div>
+                            <div class="max-stat-label">행복도</div>
+                            <div class="max-stat-value">${pet.happiness_max_requirement || 100}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="completion-info">
+                        <div class="completion-item">
+                            <div class="completion-label">완성일</div>
+                            <div class="completion-value date">${completedDate}</div>
+                        </div>
+                        <div class="completion-item">
+                            <div class="completion-label">획득 경험치</div>
+                            <div class="completion-value exp">${(pet.completion_exp_reward || 0).toLocaleString()}exp</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
     
-    alert(`🏆 완성한 펫들 🏆\n\n` +
-          `펫 이름: ${petNames}\n` +
-          `완성 개수: ${completedPets.length}마리\n` +
-          `총 획득 경험치: ${totalExp.toLocaleString()}exp\n\n` +
-          `축하합니다! 계속해서 새로운 펫들을 키워보세요! 🎉`);
+    diaryGrid.innerHTML = petCards;
+}
+
+function updateDiarySummary(completedPets) {
+    const totalCompletedElement = document.getElementById('total-completed');
+    const totalExpElement = document.getElementById('total-exp');
+    
+    if (totalCompletedElement) {
+        totalCompletedElement.textContent = `${completedPets.length}마리`;
+    }
+    
+    if (totalExpElement) {
+        const totalExp = completedPets.reduce((sum, pet) => sum + (pet.completion_exp_reward || 0), 0);
+        totalExpElement.textContent = `${totalExp.toLocaleString()}exp`;
+    }
 }
 
 async function checkCurrentPet() {

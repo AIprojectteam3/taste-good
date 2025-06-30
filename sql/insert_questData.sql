@@ -1,14 +1,5 @@
 use ai3;
 
--- 데이터베이스 인코딩 변경
-ALTER DATABASE taste_good CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-
--- question_options 테이블 인코딩 변경
-ALTER TABLE question_options CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- option_emoji 컬럼 인코딩 변경
-ALTER TABLE question_options MODIFY option_emoji VARCHAR(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
 -- question_categories 테이블에 카테고리 데이터 삽입
 INSERT INTO question_categories (category_name, category_description, sort_order) VALUES
 ('맛 선호도', '맛 선호도 관련 질문 (단맛, 짠맛, 매운맛 등)', 1),
