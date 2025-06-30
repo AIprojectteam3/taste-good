@@ -6,7 +6,7 @@ html {
 .content {
     display: flex;
     align-items: flex-start;
-    justify-content: flex-start;
+    justify-content: center;
     margin-left: 250px;
     padding: 20px;
     min-height: 100vh;
@@ -14,7 +14,7 @@ html {
 }
 
 .recommender-container {
-    margin: 70px;
+    margin: 35px 70px;
     padding: 30px;
     width: 75%;
     min-height: calc(100vh - 40px);
