@@ -431,3 +431,10 @@ INSERT INTO question_options (question_id, option_text, option_value, option_emo
 (48, '배달음식', 178, '🛵', 4),
 (48, '인스턴트 음식', 179, '🍝', 5),
 (48, '직접 요리', 180, '👨‍🍳', 6);
+
+INSERT INTO attendance_rewards (consecutive_days, reward_points, reward_description) 
+VALUES 
+    (3, 10, '3일 연속 출석 보상'),
+    (7, 25, '7일 연속 출석 보상'),
+    (15, 50, '15일 연속 출석 보상'),
+    (30, 100, '30일 연속 출석 보상');
