@@ -4392,61 +4392,48 @@ app.post('/api/user/tamagotchi/complete', (req, res) => {
                             });
                         });
                     }
-                    
-                    // 3. 포인트 로그 기록
-                    const logQuery = `
-                        INSERT INTO point_logs (user_id, points, action_type, description)
-                        VALUES (?, ?, ?, ?)
+                        
+                    // 4. 업데이트된 사용자 레벨 정보 조회
+                    const getUserLevelQuery = `
+                        SELECT level, experience 
+                        FROM user_levels 
+                        WHERE user_id = ?
                     `;
                     
-                    db.query(logQuery, [userId, 0, 'PET_COMPLETION', `${pet.pet_name} 완성`], (logErr) => {
-                        if (logErr) {
-                            console.warn('로그 기록 실패:', logErr);
-                            // 로그 실패는 치명적이지 않으므로 계속 진행
+                    db.query(getUserLevelQuery, [userId], (levelErr, levelResults) => {
+                        if (levelErr) {
+                            console.error('사용자 레벨 조회 오류:', levelErr);
+                            // 레벨 조회 실패해도 완성은 성공으로 처리
                         }
                         
-                        // 4. 업데이트된 사용자 레벨 정보 조회
-                        const getUserLevelQuery = `
-                            SELECT level, experience 
-                            FROM user_levels 
-                            WHERE user_id = ?
-                        `;
-                        
-                        db.query(getUserLevelQuery, [userId], (levelErr, levelResults) => {
-                            if (levelErr) {
-                                console.error('사용자 레벨 조회 오류:', levelErr);
-                                // 레벨 조회 실패해도 완성은 성공으로 처리
+                        // 커밋
+                        db.commit((commitErr) => {
+                            if (commitErr) {
+                                return db.rollback(() => {
+                                    console.error('커밋 오류:', commitErr);
+                                    res.status(500).json({
+                                        success: false,
+                                        message: '서버 오류가 발생했습니다.'
+                                    });
+                                });
                             }
                             
-                            // 커밋
-                            db.commit((commitErr) => {
-                                if (commitErr) {
-                                    return db.rollback(() => {
-                                        console.error('커밋 오류:', commitErr);
-                                        res.status(500).json({
-                                            success: false,
-                                            message: '서버 오류가 발생했습니다.'
-                                        });
-                                    });
-                                }
-                                
-                                const newLevel = levelResults && levelResults.length > 0 ? levelResults[0].level : null;
-                                const newExp = levelResults && levelResults.length > 0 ? levelResults[0].experience : null;
-                                
-                                res.json({
-                                    success: true,
-                                    message: `축하합니다! ${pet.pet_name}을(를) 완성했습니다!`,
-                                    completedPet: {
-                                        name: pet.pet_name,
-                                        expGained: pet.completion_exp_reward
-                                    },
-                                    levelInfo: newLevel ? {
-                                        currentLevel: newLevel,
-                                        currentExp: newExp,
-                                        expGained: pet.completion_exp_reward
-                                    } : null,
-                                    canAdoptNew: true
-                                });
+                            const newLevel = levelResults && levelResults.length > 0 ? levelResults[0].level : null;
+                            const newExp = levelResults && levelResults.length > 0 ? levelResults[0].experience : null;
+                            
+                            res.json({
+                                success: true,
+                                message: `축하합니다! ${pet.pet_name}을(를) 완성했습니다!`,
+                                completedPet: {
+                                    name: pet.pet_name,
+                                    expGained: pet.completion_exp_reward
+                                },
+                                levelInfo: newLevel ? {
+                                    currentLevel: newLevel,
+                                    currentExp: newExp,
+                                    expGained: pet.completion_exp_reward
+                                } : null,
+                                canAdoptNew: true
                             });
                         });
                     });

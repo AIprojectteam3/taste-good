@@ -857,7 +857,7 @@
     color: #666;
     line-height: 1.6;
     margin-bottom: 30px;
-    max-width: 300px;
+    max-width: 350px;
 }
 
 .adopt-pet-btn {
@@ -1430,7 +1430,7 @@
     .no-pet-description {
         font-size: 0.9rem;
         margin-bottom: 25px;
-        max-width: 250px;
+        max-width: 300px;
     }
     
     .adopt-pet-btn {
