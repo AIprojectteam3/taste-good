@@ -2,10 +2,37 @@
 // 가져온 유저 정보 토대로 프로필 정보 입력 함수
 // ==============================================================================================
 async function fetchUserProfile() {
-    try {
-        const response = await fetch('/api/user');
+    // 1. localStorage에서 토큰을 가져옵니다.
+    const token = localStorage.getItem('token');
 
+    // 2. 토큰이 없으면 로그인 상태가 아니므로, 로그인 페이지로 보냅니다.
+    if (!token) {
+        console.error('인증 토큰이 없습니다. 로그인 페이지로 이동합니다.');
+        window.location.href = '/intro.html'; // 로그인 페이지 경로
+        return; // 함수 실행 중단
+    }
+
+    try {
+        // 3. fetch 요청의 headers에 'Authorization'을 추가하여 토큰을 보냅니다.
+        const response = await fetchWithToken('/api/user', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        // 4. 응답 상태를 확인합니다.
         if (!response.ok) {
+            // 401(미인증) 또는 403(권한 없음) 오류 시, 토큰이 유효하지 않으므로 로그아웃 처리합니다.
+            if (response.status === 401 || response.status === 403) {
+                console.error('인증에 실패했습니다. 토큰이 만료되었거나 유효하지 않습니다.');
+                localStorage.removeItem('token'); // 잘못된 토큰 삭제
+                window.location.href = '/intro.html'; // 로그인 페이지로 리디렉션
+                return;
+            }
+            
+            // 그 외 서버 오류 처리
             let errorMsg = `사용자 정보 요청 실패: ${response.status}`;
             try {
                 const errorData = await response.json();
@@ -17,17 +44,18 @@ async function fetchUserProfile() {
             return;
         }
 
+        // 5. 성공적으로 사용자 정보를 받으면 UI를 업데이트합니다.
         const userData = await response.json();
 
         if (!userData) {
-            console.error("서버로부터 사용자 정보를 받지 못했습니다 (userData is null). 페이지를 새로고침하거나 다시 로그인해주세요.");
+            console.error("서버로부터 사용자 정보를 받지 못했습니다. 페이지를 새로고침하거나 다시 로그인해주세요.");
             return;
         }
         
         updateProfileUI(userData);
 
     } catch (error) {
-        console.error('사용자 정보 가져오기 중 네트워크/예외 발생:', error);
+        console.error('사용자 정보 가져오기 중 네트워크 또는 기타 예외가 발생했습니다:', error);
     }
 }
 
@@ -104,7 +132,7 @@ let currentRankings = [];
 
 async function loadSearchRankings() {
     try {
-        const response = await fetch('/api/search/ranking?period=7');
+        const response = await fetchWithToken('/api/search/ranking?period=7');
         const data = await response.json();
         
         if (data.success) {
@@ -235,7 +263,7 @@ function startRankingUpdates() {
     
     rankingUpdateInterval = setInterval(async () => {
         try {
-            const response = await fetch('/api/search/ranking/live');
+            const response = await fetchWithToken('/api/search/ranking/live');
             const data = await response.json();
             
             if (data.success && data.live_rankings.length > 0) {

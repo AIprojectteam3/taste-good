@@ -358,40 +358,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 로그인 폼 제출
     document.getElementById('form2').addEventListener('submit', async (e) => {
-        e.preventDefault();
+        e.preventDefault(); // 폼의 기본 제출 동작을 막음
+
+        // 입력된 이메일과 비밀번호 값을 가져옴
         const email = e.target.querySelector('input[placeholder="이메일"]').value;
         const password = e.target.querySelector('input[placeholder="비밀번호"]').value;
 
+        // 입력값 검증 (간단한 예)
+        if (!email || !password) {
+            alert('이메일과 비밀번호를 모두 입력해주세요.');
+            return;
+        }
+
         try {
+            // 서버에 로그인 요청
             const response = await fetch('/api/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({ email, password }),
             });
 
+            // 서버로부터 받은 응답을 JSON 형태로 파싱
             const data = await response.json();
 
-            if (data.success) {
-                try {
-                    const userResponse = await fetch('/api/user');
-                    if (userResponse.ok) {
-                        const userData = await userResponse.json();
-                        if (userData && userData.id) {
-                            sessionStorage.setItem('loggedInUserId', userData.id.toString());
-                        }
-                    }
-                } catch (userError) {
-                    console.error('사용자 정보 가져오기 실패:', userError);
-                }
+            // 응답이 성공적이고, 데이터에 success: true가 포함된 경우
+            if (response.ok && data.success) {
+                // ✅ 가장 중요한 부분: 서버로부터 받은 토큰을 localStorage에 저장합니다.
+                localStorage.setItem('token', data.token);
 
-                alert(data.message || '로그인 성공!');
-                window.location.href = data.redirectUrl || '/index.html';
+                // 사용자에게 로그인 성공을 알림
+                alert('로그인에 성공했습니다!');
+
+                // 메인 페이지(index.html)로 이동
+                window.location.href = '/index.html';
+
             } else {
-                alert(data.message || '로그인에 실패했습니다.');
+                // 서버가 보낸 오류 메시지를 사용자에게 표시
+                alert(data.message || '로그인에 실패했습니다. 이메일 또는 비밀번호를 확인해주세요.');
             }
+
         } catch (error) {
-            console.error('로그인 처리 중 오류:', error);
-            alert('로그인 처리 중 오류가 발생했습니다.');
+            // 네트워크 오류 등 fetch 요청 자체에서 예외가 발생한 경우
+            console.error('로그인 요청 중 오류 발생:', error);
+            alert('로그인 중 네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         }
     });
 

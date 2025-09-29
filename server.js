@@ -23,6 +23,11 @@ const cors = require('cors');
 const fs = require('fs');
 const dotenv = require('dotenv');
 
+// ===============================================================================================================================================
+// 컨트롤러 연결
+const UserController = require('./controllers/UserController');
+// ===============================================================================================================================================
+
 // 1. 기존 환경변수 완전 삭제
 delete process.env.OPENAI_API_KEY;
 
@@ -74,15 +79,15 @@ db.connect((err) => {
     console.log('MySQL에 연결되었습니다.');
 });
 
-app.use(session({
-    secret: 'aVeryL0ngAndRandomStringThatIsHardToGuess!@#$%^&*()', // 세션 암호화 키 (보안상 중요)
-    resave: false,                      // 세션이 변경되지 않아도 다시 저장할지 여부
-    saveUninitialized: true,            // 초기화되지 않은 세션을 저장소에 저장할지 여부
-    cookie: {
-        secure: false,                   // HTTPS 환경에서는 true로 설정
-        maxAge: 1000 * 60 * 60 * 24     // 쿠키 유효 기간 (예: 1일)
-    }
-}));
+// app.use(session({
+//     secret: 'aVeryL0ngAndRandomStringThatIsHardToGuess!@#$%^&*()', // 세션 암호화 키 (보안상 중요)
+//     resave: false,                      // 세션이 변경되지 않아도 다시 저장할지 여부
+//     saveUninitialized: true,            // 초기화되지 않은 세션을 저장소에 저장할지 여부
+//     cookie: {
+//         secure: false,                   // HTTPS 환경에서는 true로 설정
+//         maxAge: 1000 * 60 * 60 * 24     // 쿠키 유효 기간 (예: 1일)
+//     }
+// }));
 
 // 기본 라우트: intro.html 반환
 app.get('/', (req, res) => {
@@ -92,6 +97,23 @@ app.get('/', (req, res) => {
 app.use(express.static(path.join(__dirname))); // 정적 파일 제공
 
 app.use('/Uploads', express.static(path.join(__dirname, 'Uploads')));
+
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // "Bearer TOKEN" 형식
+
+    if (token == null) {
+        return res.status(401).json({ message: '인증 토큰이 없습니다.' }); // Unauthorized
+    }
+
+    jwt.verify(token, 'YOUR_JWT_SECRET', (err, user) => {
+        if (err) {
+            return res.status(403).json({ message: '토큰이 유효하지 않습니다.' }); // Forbidden
+        }
+        req.user = user; // 요청 객체에 사용자 정보 저장
+        next(); // 다음 미들웨어 또는 라우트 핸들러로 이동
+    });
+};
 
 // ===============================================================================================================================================
 // 폴더 존재 확인 후 없을 경우 생성
@@ -108,35 +130,6 @@ const ensureDirectoryExists = (dirPath) => {
 ensureDirectoryExists('Uploads/Profile_Image/');
 ensureDirectoryExists('Uploads/Post_Image/');
 ensureDirectoryExists('uploads/default/');
-
-// 유효성 검사 함수들
-function validateUsername(username) {
-    if (!username || typeof username !== 'string') {
-        return { valid: false, message: '닉네임을 입력해주세요.' };
-    }
-    
-    const trimmedUsername = username.trim();
-    
-    if (trimmedUsername.length < 2) {
-        return { valid: false, message: '닉네임은 최소 2자 이상이어야 합니다.' };
-    }
-    
-    if (trimmedUsername.length > 8) {
-        return { valid: false, message: '닉네임은 최대 8자까지 입력 가능합니다.' };
-    }
-    
-    return { valid: true, message: '' };
-}
-
-function validateEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
-
-function validatePassword(password) {
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,20}$/;
-    return passwordRegex.test(password);
-}
 
 // ===============================================================================================================================================
 // 로그인 기록 남기기 함수
@@ -175,171 +168,14 @@ app.get('/api/check-session', (req, res) => {
     }
 });
 
-// ===============================================================================================================================================
-// 회원가입 처리
-// ===============================================================================================================================================
-app.post('/api/signup', async (req, res) => {
-    const { username, email, password, passwordConfirm, address, detailAddress } = req.body;
-    console.log('받은 데이터:', { username, email, password, passwordConfirm, address, detailAddress });
+// 회원가입 컨트롤러 연결
+app.post('/api/signup', UserController.signup);
 
-    // 1. 개별 필수 입력값 검증
-    const usernameValidation = validateUsername(username);
-    if (!usernameValidation.valid) {
-        return res.status(400).json({ message: usernameValidation.message });
-    }
+// 로그인 컨트롤러 연결
+app.post('/api/login', UserController.login);
 
-    if (!email) {
-        return res.status(400).json({ message: '이메일을 입력해주세요.' });
-    }
 
-    // 이메일 유효성 검사
-    if (!validateEmail(email)) {
-        return res.status(400).json({ message: '올바른 이메일 형식을 입력해주세요.' });
-    }
-
-    if (!password) {
-        return res.status(400).json({ message: '비밀번호를 입력해주세요.' });
-    }
-
-    // 비밀번호 유효성 검사
-    if (!validatePassword(password)) {
-        return res.status(400).json({ message: '비밀번호는 8-20자리이며, 영문자와 숫자가 모두 포함되어야 합니다.' });
-    }
-
-    if (!passwordConfirm) {
-        return res.status(400).json({ message: '비밀번호 확인을 입력해주세요.' });
-    }
-
-    if (password !== passwordConfirm) {
-        return res.status(400).json({ message: '비밀번호와 비밀번호 확인이 일치하지 않습니다.' });
-    }
-
-    if (!address) {
-        return res.status(400).json({ message: '주소를 입력해주세요.' });
-    }
-
-    if (!detailAddress) {
-        return res.status(400).json({ message: '상세주소를 입력해주세요.' });
-    }
-
-    try {
-        const checkUsernameQuery = 'SELECT id FROM users WHERE username = ?';
-        const usernameExists = await new Promise((resolve, reject) => {
-            db.query(checkUsernameQuery, [username.trim()], (err, results) => {
-                if (err) reject(err);
-                else resolve(results.length > 0);
-            });
-        });
-
-        if (usernameExists) {
-            return res.status(409).json({ message: '이미 사용 중인 닉네임입니다. 다른 닉네임을 사용해주세요.' });
-        }
-
-        // 비밀번호 해시화
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        const insertQuery = 'INSERT INTO users (username, email, password, address, detail_address) VALUES (?, ?, ?, ?, ?)';
-        db.query(insertQuery, [username, email, hashedPassword, address, detailAddress], (err, result) => {
-            if (err) {
-                console.error('회원가입 중 오류 발생:', err);
-                if (err.code === 'ER_DUP_ENTRY') {
-                    let dupField = '알 수 없는 필드';
-                    if (err.sqlMessage && err.sqlMessage.includes('for key')) {
-                        try {
-                            const keyInfo = err.sqlMessage.split('for key ')[1].replace(/'/g, "");
-                            if (keyInfo.includes('.')) {
-                                dupField = keyInfo.split('.')[1].replace('_UNIQUE', '').replace('_PRIMARY', '');
-                            } else {
-                                dupField = keyInfo.replace('_UNIQUE', '').replace('_PRIMARY', '');
-                            }
-                        } catch (parseError) {
-                            console.error("중복 필드 파싱 오류:", parseError);
-                        }
-                    }
-
-                    if (dupField.toLowerCase().includes('email')) {
-                        return res.status(409).json({ message: '이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요.' });
-                    }
-
-                    return res.status(409).json({ message: `이미 존재하는 ${dupField} 값입니다.` });
-                }
-
-                return res.status(500).json({ message: '회원가입 실패: 데이터베이스 처리 중 오류가 발생했습니다.' });
-            }
-
-            // 방금 삽입된 데이터 조회
-            const selectQuery = 'SELECT * FROM users WHERE id = ?';
-            db.query(selectQuery, [result.insertId], (err, rows) => {
-                if (err) {
-                    console.error('데이터 조회 중 오류 발생:', err);
-                    return res.status(500).json({ message: '회원가입 성공, 그러나 데이터 조회 실패' });
-                }
-
-                console.log('회원가입 성공:', rows[0]);
-                res.json({ success: true, message: '회원가입 성공!', user: rows[0] });
-            });
-        });
-    } catch (hashError) {
-        console.error('비밀번호 해시화 중 오류:', hashError);
-        return res.status(500).json({ message: '회원가입 처리 중 오류가 발생했습니다.' });
-    }
-});
-
-// ===============================================================================================================================================
-// 로그인 처리
-// ===============================================================================================================================================
-app.post('/api/login', async (req, res) => {
-    console.log('요청 데이터:', req.body);
-    const { email, password } = req.body;
-
-    if (!email || !password || !validateEmail(email)) {
-        return res.json({ success: false, message: '이메일과 비밀번호를 올바르게 입력해주세요.' });
-    }
-
-    const query = 'SELECT * FROM users WHERE email = ?';
-    db.query(query, [email], async (err, results) => {
-        if (err) {
-            console.error('로그인 중 오류 발생:', err);
-            return res.json({ success: false, message: '로그인 실패: 데이터베이스 오류' });
-        }
-
-        if (results.length > 0) {
-            const user = results[0];
-            try {
-                const passwordMatch = await bcrypt.compare(password, user.password);
-                if (passwordMatch) {
-                    req.session.userId = user.id;
-                    req.session.isLoggedIn = true;
-
-                    // 1. 로그인 로그 기록 함수를 호출합니다.
-                    logSuccessfulLogin(db, user.id, req, 'local', (logErr) => {
-                        if (logErr) {
-                            console.error('로그 기록에 실패했지만 로그인은 계속합니다.');
-                        }
-                        // 2. 로그 기록 시도가 끝난 후(성공/실패 무관) 클라이언트에 응답을 보냅니다.
-                        console.log('로그인 성공 및 로그 기록 완료, 응답 전송:', user.email);
-                        req.session.save(saveErr => {
-                            if (saveErr) {
-                                console.error('세션 저장 실패:', saveErr);
-                                return res.json({ success: false, message: '세션 저장 중 오류 발생' });
-                            }
-                            return res.json({ success: true, message: '로그인 성공!', redirectUrl: '/index.html' });
-                        });
-                    });
-
-                } else {
-                    res.json({ success: false, message: '로그인 실패: 이메일 또는 비밀번호가 잘못되었습니다.' });
-                }
-            } catch (compareError) {
-                console.error('비밀번호 비교 중 오류:', compareError);
-                res.json({ success: false, message: '로그인 처리 중 오류가 발생했습니다.' });
-            }
-        } else {
-            res.json({ success: false, message: '로그인 실패: 이메일 또는 비밀번호가 잘못되었습니다.' });
-        }
-    });
-});
+app.get('/api/user', authenticateToken, UserController.getUserProfile);
 
 // ===============================================================================================================================================
 // 카카오 콜백 처리
@@ -505,17 +341,17 @@ app.get('/naver/callback', async (req, res) => {
     }
 });
 
-function authenticateToken(req, res, next) {
-    const token = req.headers['authorization'];
+// function authenticateToken(req, res, next) {
+//     const token = req.headers['authorization'];
 
-    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
+//     if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ message: '유효하지 않은 토큰입니다.' });
-        req.user = user;
-        next();
-    });
-}
+//     jwt.verify(token, JWT_SECRET, (err, user) => {
+//         if (err) return res.status(403).json({ message: '유효하지 않은 토큰입니다.' });
+//         req.user = user;
+//         next();
+//     });
+// }
 
 // // 예: HTML 폼에서 입력값 가져오기
 // document.getElementById('loginButton').addEventListener('click', () => {
@@ -840,8 +676,8 @@ app.post('/api/createPost', upload.array('postImages', 10), (req, res) => { // '
 // ==================================================================================================================
 // 게시글 목록 가져오기
 // ==================================================================================================================
-app.get('/api/posts', (req, res) => {
-    const currentUserId = req.session.userId || null;
+app.get('/api/posts', authenticateToken, async (req, res) => {
+    const currentUserId = req.user ? req.user.userId : null;
     
     const query = `
         SELECT

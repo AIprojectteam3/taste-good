@@ -1,17 +1,12 @@
 // 사용자 게시물 로드 함수
 async function fetchUserPosts() {
     try {
-        const response = await fetch('/api/user/posts');
-        // 401 오류 시 로그인 페이지로 리다이렉트
-        if (response.status === 401) {
-            alert('세션이 만료되었습니다. 다시 로그인해주세요.');
-            window.location.href = '/intro.html';
-            return [];
-        }
+        // auth.js에 추가한 로그인 확인 함수를 호출합니다.
+        const userData = await verifyLoginStatus();
 
-        if (!response.ok) {
-            console.error("사용자 게시물 로드 실패:", response.status);
-            return [];
+        // userData가 null이 아니면 로그인된 상태입니다.
+        if (userData) {
+            console.log(`${userData.username}님, 환영합니다!`);
         }
 
         const posts = await response.json();
@@ -27,11 +22,12 @@ async function fetchUserBookmarks() {
     try {
         const response = await fetch('/api/user/liked-posts');
         
-        // 401 오류 시 로그인 페이지로 리다이렉트
-        if (response.status === 401) {
-            alert('세션이 만료되었습니다. 다시 로그인해주세요.');
-            window.location.href = '/intro.html';
-            return [];
+        // auth.js에 추가한 로그인 확인 함수를 호출합니다.
+        const userData = await verifyLoginStatus();
+
+        // userData가 null이 아니면 로그인된 상태입니다.
+        if (userData) {
+            console.log(`${userData.username}님, 환영합니다!`);
         }
 
         if (!response.ok) {
@@ -697,21 +693,12 @@ function handleLogout(event) {
 
 // 초기 렌더링 및 이벤트 등록
 document.addEventListener("DOMContentLoaded", async () => {
-    try {
-        const response = await fetch('/api/check-session');
-        const data = await response.json();
-        
-        if (!data.loggedIn) {
-            // AIMenu.js와 동일한 방식 사용
-            alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.');
-            window.location.href = '/intro.html';
-            return;
-        }
-    } catch (error) {
-        console.error('세션 확인 중 오류:', error);
-        alert('서버와 통신할 수 없습니다. 로그인 페이지로 이동합니다.');
-        window.location.href = '/intro.html';
-        return;
+    // auth.js에 추가한 로그인 확인 함수를 호출합니다.
+    const userData = await verifyLoginStatus();
+
+    // userData가 null이 아니면 로그인된 상태입니다.
+    if (userData) {
+        console.log(`${userData.username}님, 환영합니다!`);
     }
 
     await loadProfileData();

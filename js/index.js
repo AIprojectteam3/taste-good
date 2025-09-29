@@ -5,10 +5,13 @@ function isMobile() {
 let userLikedPosts = [];
 let currentSearchTerm = null;
 
+let msnry;
+
 // =======================================================================================================
 // 게시물(카드) 생성 함수
 // =======================================================================================================
 function createCard(item, isPlaceholder = false, currentUserId = null) {
+    console.log('createCard 호출됨:', item);
     const card = document.createElement('div');
     card.className = 'card';
     card.setAttribute('data-post-id', item.id);
@@ -28,6 +31,13 @@ function createCard(item, isPlaceholder = false, currentUserId = null) {
         if (!isMobile()) {
             // PC 환경
             const img = document.createElement('img');
+            img.onload = () => {
+                card.classList.add('loaded');
+            };
+            // ✅ 이미지 로드 실패 시에도 처리
+            img.onerror = () => {
+                card.classList.add('loaded'); // 이미지가 없더라도 레이아웃은 잡히도록
+            };
             img.src = item.thumbnail_path;
             img.alt = item.title;
             sliderContainer.appendChild(img);
@@ -232,7 +242,7 @@ function createCard(item, isPlaceholder = false, currentUserId = null) {
 async function editPost(postId) {
     try {
         // 게시물 정보 가져오기
-        const response = await fetch(`/api/post/${postId}`);
+        const response = await fetchWithToken(`/api/post/${postId}`);
         if (!response.ok) {
             throw new Error('게시물 정보를 가져올 수 없습니다.');
         }
@@ -252,7 +262,7 @@ async function editPost(postId) {
         }
 
         // 수정 요청
-        const updateResponse = await fetch(`/api/post/${postId}`, {
+        const updateResponse = await fetchWithToken(`/api/post/${postId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -284,7 +294,7 @@ async function editPost(postId) {
 // =======================================================================================================
 async function deletePost(postId) {
     try {
-        const response = await fetch(`/api/post/${postId}`, {
+        const response = await fetchWithToken(`/api/post/${postId}`, {
             method: 'DELETE'
         });
 
@@ -309,7 +319,7 @@ async function deletePost(postId) {
 async function checkPostPermission(authorId, action) {
     try {
         // 현재 로그인한 사용자 정보 가져오기
-        const userResponse = await fetch('/api/user');
+        const userResponse = await fetchWithToken('/api/user');
         const currentUser = await userResponse.json();
         
         if (!currentUser) {
@@ -436,37 +446,47 @@ function setupMobileCardSliderAndReadMore() {
     }, 100);
 }
 
-async function renderCards() {
-    const cardContainer = document.querySelector('.content');
-    
-    try {
-        const response = await fetch('/api/posts');
-        const data = await response.json();
-        
-        if (data.posts && Array.isArray(data.posts)) {
-            cardContainer.innerHTML = '';
-            
-            if (data.posts.length > 0) {
-                data.posts.forEach(item => {
-                    // currentUserId 매개변수 추가
-                    const cardElement = createCard(item, false, data.currentUserId);
-                    if (cardElement) {
-                        cardContainer.appendChild(cardElement);
-                    }
-                });
-            } else {
-                cardContainer.innerHTML = '<div class="no-posts">게시물이 없습니다.</div>';
-            }
-        } else {
-            cardContainer.innerHTML = '<div class="no-posts">게시물이 없습니다.</div>';
-        }
-        
-        adjustGridRows();
-        setupMobileCardSliderAndReadMore();
-    } catch (error) {
-        console.error('게시물 데이터를 가져오는 중 오류 발생:', error);
-        cardContainer.innerHTML = '<div class="error-message">게시물을 불러오는 데 실패했습니다.</div>';
+function renderCards(posts) {
+    const cardContainer = document.getElementById('postContainer');
+    if (!cardContainer) {
+        console.error('게시물 컨테이너(#postContainer)를 찾지 못했습니다.');
+        return;
     }
+
+    // 기존 Masonry 인스턴스가 있다면 초기화
+    if (msnry) {
+        msnry.destroy();
+    }
+    cardContainer.innerHTML = '';
+
+    if (!posts || posts.length === 0) {
+        cardContainer.innerHTML = '<div class="empty-message">아직 게시물이 없습니다.</div>';
+        return;
+    }
+    
+    // DocumentFragment를 사용하여 DOM 조작 성능 최적화
+    const fragment = document.createDocumentFragment();
+    posts.forEach(item => {
+        const card = createCard(item); // createCard 함수는 수정할 필요 없습니다.
+        fragment.appendChild(card);
+    });
+
+    // 준비된 모든 카드를 한 번에 DOM에 추가
+    cardContainer.appendChild(fragment);
+
+    // ✅ Masonry 초기화
+    msnry = new Masonry(cardContainer, {
+        itemSelector: '.card',      // 그리드 아이템 요소
+        columnWidth: '.card',   // 너비 기준 요소
+        percentPosition: true,      // % 단위 위치 설정
+        gutter: 20                  // 아이템 사이의 간격 (필요시 조정)
+    });
+
+    // ✅ imagesLoaded를 사용하여 컨테이너 안의 모든 이미지가 로드되었는지 확인
+    imagesLoaded(cardContainer).on('progress', function() {
+        // 이미지가 하나씩 로드될 때마다 Masonry 레이아웃을 다시 계산
+        msnry.layout();
+    });
 }
 
 function adjustGridRows() {
@@ -665,7 +685,7 @@ function highlightPost(postId) {
 // 페이지 로드 시 좋아요 상태 가져오기
 async function loadUserLikedPosts() {
     try {
-        const response = await fetch('/api/posts/likes');
+        const response = await fetchWithToken('/api/posts/likes');
         if (response.ok) {
             const data = await response.json();
             userLikedPosts = data.likedPosts || [];
@@ -679,44 +699,34 @@ async function loadUserLikedPosts() {
 
 // 게시물 로드 함수
 async function loadPosts() {
-    currentSearchTerm = null;
     try {
-        const response = await fetch('/api/posts');
+        const response = await fetchWithToken('/api/posts');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        const contentDiv = document.querySelector('.content');
+        const contentDiv = document.querySelector('.content'); // '#postContainer'와 동일
         
-        if (!contentDiv) {
-            console.error('.content 요소를 찾을 수 없습니다.');
-            return;
-        }
-
-        // 기존 카드들 제거 (센티넬 제외)
-        const existingCards = contentDiv.querySelectorAll('.card');
-        existingCards.forEach(card => card.remove());
+        contentDiv.innerHTML = ''; // 기존 카드 비우기
 
         if (data.posts && data.posts.length > 0) {
-            // 각 게시물에 대해 카드 생성
             data.posts.forEach(post => {
                 const card = createCard(post, false, data.currentUserId);
                 contentDiv.appendChild(card);
             });
         } else {
-            // 게시물이 없는 경우
-            const noPostsDiv = document.createElement('div');
-            noPostsDiv.className = 'no-posts';
-            noPostsDiv.innerHTML = '<p>게시물이 없습니다.</p>';
-            contentDiv.appendChild(noPostsDiv);
+            contentDiv.innerHTML = '<div class="empty-message">게시물이 없습니다.</div>';
         }
+
+        // ✅✅✅ 최종 해결책: 모든 카드를 DOM에 추가한 후, 그리드 레이아웃을 강제로 업데이트합니다.
+        adjustGridRows();
 
     } catch (error) {
         console.error('게시물 로드 중 오류:', error);
         const contentDiv = document.querySelector('.content');
-        if (contentDiv) {
-            contentDiv.innerHTML = '<div class="error-message">게시물을 불러오는 중 오류가 발생했습니다.</div>';
+        if(contentDiv) {
+            contentDiv.innerHTML = '<div class="error-message">게시물을 불러오는 데 실패했습니다.</div>';
         }
     }
 }
@@ -724,7 +734,7 @@ async function loadPosts() {
 // 좋아요 버튼 클릭 처리 함수
 async function handleLikeClick(postId, heartBtn) {
     try {
-        const response = await fetch(`/api/post/${postId}/like`, {
+        const response = await fetchWithToken(`/api/post/${postId}/like`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -776,7 +786,7 @@ async function logSearchClick(searchTerm, clickedPostId) {
     if (!searchTerm || !clickedPostId) return;
 
     try {
-        await fetch('/api/search/click_log', {
+        await fetchWithToken('/api/search/click_log', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ searchTerm, clickedPostId }),
@@ -786,25 +796,24 @@ async function logSearchClick(searchTerm, clickedPostId) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-    try { 
-        const response = await fetch('/api/check-session'); 
-        const data = await response.json(); 
-        if (!data.loggedIn) { 
-            alert('로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.'); 
-            window.location.href = '/intro.html'; 
-            return; 
-        } 
-    } catch (error) { 
-        console.error('세션 확인 중 오류:', error); 
-        alert('서버와 통신할 수 없습니다. 로그인 페이지로 이동합니다.'); 
-        window.location.href = '/intro.html'; 
-        return; 
-    } 
+function initializePage(userData) {
+    // 예: 프로필 UI 업데이트, 게시글 불러오기 등
+    loadPosts();
+}
 
-    await loadUserLikedPosts();
-    await renderCards();
-    await loadPosts();
+document.addEventListener("DOMContentLoaded", async () => {
+    // auth.js에 추가한 로그인 확인 함수를 호출합니다.
+    const userData = await verifyLoginStatus();
+
+    // userData가 null이 아니면 로그인된 상태입니다.
+    if (userData) {
+        console.log(`${userData.username}님, 환영합니다!`);
+        
+        // 로그인된 사용자를 위한 페이지 초기화
+        initializePage(userData);
+    }
+    // userData가 null이면, verifyLoginStatus 함수가 이미 로그인 페이지로 보냈으므로
+    // 여기서는 아무것도 할 필요가 없습니다.
 
     const urlParams = new URLSearchParams(window.location.search);
     const searchParam = urlParams.get('search');
@@ -941,7 +950,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             });
 
-            const response = await fetch(`/api/posts/search?${searchParams.toString()}`);
+            const response = await fetchWithToken(`/api/posts/search?${searchParams.toString()}`);
             const data = await response.json();
 
             if (data.success) {
@@ -1104,7 +1113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 검색어 로깅
     async function logSearch(searchTerm, searchType, resultCount) {
         try {
-            await fetch('/api/search/log', {
+            await fetchWithToken('/api/search/log', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1123,7 +1132,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 인기 검색어 가져오기
     async function loadPopularSearches() {
         try {
-            const response = await fetch('/api/search/ranking/live');
+            const response = await fetchWithToken('/api/search/ranking/live');
             const data = await response.json();
             
             if (data.success) {

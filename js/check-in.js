@@ -14,20 +14,14 @@ let attendanceStats = {};   // user_attendance_stats 1행
 document.addEventListener('DOMContentLoaded', initPage);
 
 async function initPage() {
-    /* 1) 세션 확인 */
-    try {
-        const sess = await (await fetch('/api/check-session')).json();
-        if (!sess.loggedIn) {
-            alert('로그인이 필요한 서비스입니다.');
-            location.href = '/intro.html';
-            return;
-        }
-    } catch (e) {
-        alert('서버와 통신할 수 없습니다.');
-        location.href = '/intro.html';
-        return;
-    }
+    // auth.js에 추가한 로그인 확인 함수를 호출합니다.
+    const userData = await verifyLoginStatus();
 
+    // userData가 null이 아니면 로그인된 상태입니다.
+    if (userData) {
+        console.log(`${userData.username}님, 환영합니다!`);
+    }
+    
     /* 2) 서버 데이터 로드 */
     await Promise.all([
         loadAttendanceData(), 
